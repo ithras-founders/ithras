@@ -106,7 +106,7 @@ if parent_dir not in sys.path:
 base_dir = '/' if os.path.exists('/products') else os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
 
 # Core routers
-from app.modules.shared.routers import cycles, notifications, telemetry, setup, auth, audit, batches, organizations, opportunities, eligibility, messaging, entity_about_admin
+from app.modules.shared.routers import cycles, notifications, telemetry, setup, auth, audit, batches, organizations, opportunities, eligibility, messaging, entity_about_admin, benchmark_analytics
 from app.middleware.telemetry_middleware import TelemetryMiddleware
 
 
@@ -242,6 +242,7 @@ app.include_router(entity_about_admin.router)
 app.include_router(opportunities.router)
 app.include_router(eligibility.router)
 app.include_router(messaging.router)
+app.include_router(benchmark_analytics.router)
 
 # Analytics (moved from database-analytics product into core)
 from app.modules.analytics.routers import database as analytics_database

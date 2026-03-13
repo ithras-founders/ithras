@@ -55,3 +55,40 @@ export const getOutreachList = (role) =>
 
 export const respondOutreach = (outreachId, status) =>
   apiRequest(`/v1/hr/outreach/${outreachId}/respond`, { method: 'PUT', body: JSON.stringify({ status }) });
+
+export const getSharedCohortOutcomes = (params = {}) => {
+  const search = new URLSearchParams();
+  if (params.institution_id) search.set('institution_id', params.institution_id);
+  if (params.program_id) search.set('program_id', params.program_id);
+  if (params.batch_id) search.set('batch_id', params.batch_id);
+  if (params.refresh) search.set('refresh', 'true');
+  const qs = search.toString();
+  return apiRequest(`/v1/shared/analytics/cohort-outcomes${qs ? `?${qs}` : ''}`);
+};
+
+export const getSharedRoleProgression = (params = {}) => {
+  const search = new URLSearchParams();
+  if (params.graduation_year != null) search.set('graduation_year', String(params.graduation_year));
+  if (params.institution_id) search.set('institution_id', params.institution_id);
+  if (params.program_id) search.set('program_id', params.program_id);
+  if (params.batch_id) search.set('batch_id', params.batch_id);
+  if (params.refresh) search.set('refresh', 'true');
+  const qs = search.toString();
+  return apiRequest(`/v1/shared/analytics/role-progression${qs ? `?${qs}` : ''}`);
+};
+
+export const getSharedTransitions = (params = {}) => {
+  const search = new URLSearchParams();
+  ['institution_id','program_id','batch_id','company_id','business_unit_id','designation_id'].forEach((k) => {
+    if (params[k]) search.set(k, params[k]);
+  });
+  if (params.refresh) search.set('refresh', 'true');
+  const qs = search.toString();
+  return apiRequest(`/v1/shared/analytics/transitions${qs ? `?${qs}` : ''}`);
+};
+
+export const getSimilarProfileBenchmark = (payload) =>
+  apiRequest('/v1/shared/analytics/benchmark/similar-profile', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });

@@ -7,6 +7,7 @@ import {
   getInstitutions,
   aiRankCandidates,
   sendOutreach,
+  getSimilarProfileBenchmark,
 } from '/core/frontend/src/modules/shared/services/api.js';
 import { useToast, SkeletonLoader, EmptyState } from '/core/frontend/src/modules/shared/index.js';
 
@@ -26,6 +27,7 @@ const HRDiscoveryView = ({ user, navigate }) => {
   const [rankedCandidates, setRankedCandidates] = useState(null);
   const [ranking, setRanking] = useState(false);
   const [outreachSending, setOutreachSending] = useState(null);
+  const [benchmark, setBenchmark] = useState(null);
 
   useEffect(() => {
     if (isProfessional) {
@@ -62,6 +64,7 @@ const HRDiscoveryView = ({ user, navigate }) => {
     Promise.all([
       getDiscoveryCandidates({ job_profile_id: selectedProfileId, limit: 50 }),
       getMatchStats(selectedProfileId),
+      loadBenchmark(),
     ])
       .then(([candRes, statsRes]) => {
         setCandidates(candRes?.items || []);
@@ -75,6 +78,26 @@ const HRDiscoveryView = ({ user, navigate }) => {
       })
       .finally(() => setLoadingCandidates(false));
   }, [selectedProfileId]);
+
+
+
+  const loadBenchmark = async () => {
+    if (!selectedProfileId) return;
+    const selected = profiles.find((p) => p.id === selectedProfileId) || {};
+    try {
+      const res = await getSimilarProfileBenchmark({
+        target_role: selected.title || '',
+        target_function: selected.sector || '',
+        target_company_id: user?.company_id || null,
+        program_id: selected.program_ids?.[0] || null,
+        batch_id: null,
+        limit: 5,
+      });
+      setBenchmark(res);
+    } catch (e) {
+      setBenchmark(null);
+    }
+  };
 
   const handleProfileClick = (c) => navigate(`profile/${c.id}`);
 
@@ -162,6 +185,16 @@ const HRDiscoveryView = ({ user, navigate }) => {
           </button>
         `}
       </div>
+
+      ${benchmark?.top_trajectories?.length > 0 && html`
+        <div className="p-4 bg-[var(--app-surface)] rounded-xl border border-[var(--app-border-soft)]">
+          <p className="text-sm font-semibold text-[var(--app-text-primary)]">Similar Profile Benchmark</p>
+          <p className="text-xs text-[var(--app-text-muted)] mt-1">Confidence band: ${benchmark.confidence_band?.lower} - ${benchmark.confidence_band?.upper}</p>
+          <div className="mt-2 space-y-1 text-xs">
+            ${benchmark.top_trajectories.map((t, i) => html`<div key=${i}>${t.from_role || 'Role'} → ${t.to_role || 'Role'} (${t.transition_count})</div>`)}
+          </div>
+        </div>
+      `}
 
       ${matchStats && selectedProfileId && html`
         <div className="p-4 bg-[var(--app-accent-soft)] rounded-xl border border-[var(--app-accent)]/30">
