@@ -98,13 +98,14 @@ def _step_seed_programs(engine):
             if exists.fetchone() is None:
                 conn.execute(
                     text("""
-                        INSERT INTO programs (id, institution_id, name, code, created_at, updated_at)
-                        VALUES (:id, :institution_id, :name, :code, NOW(), NOW())
+                        INSERT INTO programs (id, institution_id, name, normalized_name, code, created_at, updated_at)
+                        VALUES (:id, :institution_id, :name, :normalized_name, :code, NOW(), NOW())
                     """),
                     {
                         "id": default_prog_id,
                         "institution_id": inst_id,
                         "name": f"{inst_name} (Default)",
+                        "normalized_name": f"{inst_name} (default)".strip().lower(),
                         "code": "DEFAULT",
                     },
                 )
