@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from .. import models, database, schemas
-from ..auth import get_current_user, require_permission
+from ..auth import require_permission
 
 router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
 @router.get("/institutions", response_model=List[schemas.InstitutionRead])
 def list_institutions(
     db: Session = Depends(database.get_db),
-    current_user=Depends(get_current_user),
+    _: models.User = Depends(require_permission("institution.view")),
 ):
     """List all institutions. Requires institution.structure.view or institution.view."""
     return db.query(models.Institution).order_by(models.Institution.name).all()
@@ -24,7 +24,7 @@ def list_institutions(
 def get_institution(
     institution_id: str,
     db: Session = Depends(database.get_db),
-    current_user=Depends(get_current_user),
+    _: models.User = Depends(require_permission("institution.view")),
 ):
     """Get institution by ID."""
     inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
@@ -37,7 +37,7 @@ def get_institution(
 def get_institution_structure(
     institution_id: str,
     db: Session = Depends(database.get_db),
-    current_user=Depends(get_current_user),
+    _: models.User = Depends(require_permission("institution.structure.view")),
 ):
     """Get institution with programs and batches (structure view)."""
     inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
@@ -60,7 +60,7 @@ def get_institution_structure(
 @router.get("/companies", response_model=List[schemas.CompanyRead])
 def list_companies(
     db: Session = Depends(database.get_db),
-    current_user=Depends(get_current_user),
+    _: models.User = Depends(require_permission("company.view")),
 ):
     """List all companies."""
     return db.query(models.Company).order_by(models.Company.name).all()
@@ -70,7 +70,7 @@ def list_companies(
 def get_company(
     company_id: str,
     db: Session = Depends(database.get_db),
-    current_user=Depends(get_current_user),
+    _: models.User = Depends(require_permission("company.view")),
 ):
     """Get company by ID."""
     company = db.query(models.Company).filter(models.Company.id == company_id).first()
@@ -83,7 +83,7 @@ def get_company(
 def list_business_units(
     company_id: str,
     db: Session = Depends(database.get_db),
-    current_user=Depends(get_current_user),
+    _: models.User = Depends(require_permission("company.structure.view")),
 ):
     """List business units for a company."""
     return db.query(models.BusinessUnit).filter(models.BusinessUnit.company_id == company_id).all()
@@ -95,7 +95,7 @@ def list_business_units(
 def list_programs(
     institution_id: Optional[str] = Query(None),
     db: Session = Depends(database.get_db),
-    current_user=Depends(get_current_user),
+    _: models.User = Depends(require_permission("institution.structure.view")),
 ):
     """List programs, optionally filtered by institution."""
     query = db.query(models.Program)
@@ -181,7 +181,7 @@ def _get_company_about(company_id: str, db: Session):
 def get_institution_about(
     institution_id: str,
     db: Session = Depends(database.get_db),
-    current_user=Depends(get_current_user),
+    _: models.User = Depends(require_permission("institution.about.view")),
 ):
     """Get institution About page with programs, degrees, certifications, and stats."""
     data = _get_institution_about(institution_id, db)
@@ -200,7 +200,7 @@ def get_institution_about(
 def get_company_about(
     company_id: str,
     db: Session = Depends(database.get_db),
-    current_user=Depends(get_current_user),
+    _: models.User = Depends(require_permission("company.about.view")),
 ):
     """Get company About page with business units, designations, functions, and stats."""
     data = _get_company_about(company_id, db)
