@@ -16,7 +16,6 @@ from app.constants import (
     DEMO_USER_IDS,
     FOUNDER_EMAIL,
     FOUNDER_USER_ID,
-    SHASHANK_USER_ID,
 )
 from app.modules.shared.password import hash_password
 
@@ -44,13 +43,13 @@ def _step_seed_institutions(engine):
             if r.fetchone() is None:
                 if dialect == "postgresql":
                     conn.execute(text("""
-                        INSERT INTO institutions (id, name, tier, location, allowed_roles, created_at, updated_at)
-                        VALUES (:id, :name, :tier, :location, CAST(:allowed_roles AS jsonb), NOW(), NOW())
+                        INSERT INTO institutions (id, name, tier, location, status, allowed_roles, created_at, updated_at)
+                        VALUES (:id, :name, :tier, :location, 'PARTNER', CAST(:allowed_roles AS jsonb), NOW(), NOW())
                     """), {**inst, "allowed_roles": default_roles})
                 else:
                     conn.execute(text("""
-                        INSERT INTO institutions (id, name, tier, location, allowed_roles, created_at, updated_at)
-                        VALUES (:id, :name, :tier, :location, :allowed_roles, NOW(), NOW())
+                        INSERT INTO institutions (id, name, tier, location, status, allowed_roles, created_at, updated_at)
+                        VALUES (:id, :name, :tier, :location, 'PARTNER', :allowed_roles, NOW(), NOW())
                     """), {**inst, "allowed_roles": default_roles})
         conn.commit()
 
@@ -306,8 +305,8 @@ def _step_seed_demo_users(engine):
             else:
                 conn.execute(
                     text("""
-                        INSERT INTO users (id, email, name, full_name, role, institution_id, company_id, program_id, batch_id, sector_preferences, password_hash)
-                        VALUES (:id, :email, :name, :full_name, :role, :inst_id, :comp_id, :prog_id, NULL, '[]', :pw_hash)
+                        INSERT INTO users (id, email, name, full_name, role, institution_id, company_id, program_id, batch_id, sector_preferences, password_hash, is_active, is_verified, email_hidden)
+                        VALUES (:id, :email, :name, :full_name, :role, :inst_id, :comp_id, :prog_id, NULL, '[]', :pw_hash, true, false, false)
                     """),
                     {
                         "id": u["id"],
@@ -416,47 +415,9 @@ def _step_seed_shashank_institution_link(engine):
     """
 
     def check(conn):
-        if not _links_table_exists(conn):
-            return True  # Skip if links table doesn't exist
-        r = conn.execute(
-            text("SELECT 1 FROM individual_institution_links WHERE user_id = :uid AND institution_id = :inst_id"),
-            {"uid": SHASHANK_USER_ID, "inst_id": DEFAULT_INSTITUTION_ID},
-        )
-        return r.fetchone() is not None
+        return True  # No-op: Shashank user removed from seed
 
     def apply(conn):
-        if not _links_table_exists(conn):
-            conn.commit()
-            return
-        dialect = getattr(conn.dialect, "name", "postgresql") if hasattr(conn, "dialect") else "postgresql"
-        link_id = f"iil_{SHASHANK_USER_ID}_ALUMNI_inst1"
-        existing = conn.execute(text("SELECT 1 FROM individual_institution_links WHERE id = :id"), {"id": link_id})
-        if existing.fetchone() is not None:
-            conn.commit()
-            return
-        role_exists = conn.execute(text("SELECT 1 FROM roles WHERE id = :id"), {"id": "ALUMNI"})
-        if role_exists.fetchone() is None:
-            conn.commit()
-            return
-        params = {"id": link_id, "uid": SHASHANK_USER_ID, "inst_id": DEFAULT_INSTITUTION_ID, "prog_id": DEFAULT_PROGRAM_ID}
-        if dialect == "sqlite":
-            conn.execute(
-                text("""
-                    INSERT INTO individual_institution_links
-                    (id, user_id, institution_id, program_id, role_id, start_date, end_date, created_at)
-                    VALUES (:id, :uid, :inst_id, :prog_id, 'ALUMNI', datetime('2020-07-01'), datetime('2022-06-01'), datetime('now'))
-                """),
-                params,
-            )
-        else:
-            conn.execute(
-                text("""
-                    INSERT INTO individual_institution_links
-                    (id, user_id, institution_id, program_id, role_id, start_date, end_date, created_at)
-                    VALUES (:id, :uid, :inst_id, :prog_id, 'ALUMNI', '2020-07-01'::timestamp, '2022-06-01'::timestamp, NOW())
-                """),
-                params,
-            )
         conn.commit()
 
     return check, apply
@@ -499,11 +460,6 @@ def _step_seed_batches(engine):
                 "name": "2025-26 MBA",
                 "year": 2026,
             },
-        )
-        demo_student_id = DEMO_USERS["CANDIDATE"]["id"]
-        conn.execute(
-            text("UPDATE users SET batch_id = :batch_id WHERE id = :uid"),
-            {"batch_id": DEFAULT_BATCH_ID, "uid": demo_student_id},
         )
         conn.commit()
 
@@ -602,7 +558,7 @@ def _step_seed_workflows(engine):
         return (r.scalar() or 0) >= 2
 
     def apply(conn):
-        demo_pt_id = DEMO_USERS["PLACEMENT_TEAM"]["id"]
+        created_by_id = FOUNDER_USER_ID
         jobs = ["job1", "job2", "job3"]
         stages = ["Applied", "Shortlist", "Interview", "Offer"]
         for job_id in jobs:
@@ -618,7 +574,7 @@ def _step_seed_workflows(engine):
                     "job_id": job_id,
                     "inst_id": DEFAULT_INSTITUTION_ID,
                     "name": f"Workflow for {job_id}",
-                    "created_by": demo_pt_id,
+                    "created_by": created_by_id,
                 },
             )
             for i, stage_name in enumerate(stages):
@@ -636,80 +592,24 @@ def _step_seed_workflows(engine):
 
 
 def _step_seed_demo_cv(engine):
-    """Seed CV for demo_student. Idempotent."""
+    """Seed CV for demo_student. No-op when only SYSTEM_ADMIN is seeded."""
 
     def check(conn):
-        demo_student_id = DEMO_USERS["CANDIDATE"]["id"]
-        r = conn.execute(text("SELECT 1 FROM cvs WHERE candidate_id = :uid"), {"uid": demo_student_id})
-        return r.fetchone() is not None
+        return True  # Skip: no demo candidate in minimal seed
 
     def apply(conn):
-        demo_student_id = DEMO_USERS["CANDIDATE"]["id"]
-        cv_id = "cv_demo_student"
-        cv_data = json.dumps({"education": [{"degree": "MBA", "institution": "IIM Calcutta"}], "experience": []})
-        conn.execute(
-            text("""
-                INSERT INTO cvs (id, candidate_id, template_id, data, pdf_url, status, created_at, updated_at)
-                VALUES (:id, :uid, 'inst1_default', CAST(:data AS json), '/pdf/demo.pdf', 'VERIFIED', NOW(), NOW())
-            """),
-            {"id": cv_id, "uid": demo_student_id, "data": cv_data},
-        )
-        conn.execute(
-            text("""
-                INSERT INTO cv_versions (id, cv_id, version, data, created_at)
-                VALUES (:id, :cv_id, 1, CAST(:data AS json), NOW())
-            """),
-            {"id": f"{cv_id}_v1", "cv_id": cv_id, "data": cv_data},
-        )
         conn.commit()
 
     return check, apply
 
 
 def _step_seed_demo_applications(engine):
-    """Seed applications for demo_student to job1 and job2. Idempotent."""
+    """Seed applications for demo_student. No-op when only SYSTEM_ADMIN is seeded."""
 
     def check(conn):
-        demo_student_id = DEMO_USERS["CANDIDATE"]["id"]
-        r = conn.execute(
-            text("SELECT COUNT(*) FROM applications WHERE student_id = :uid"),
-            {"uid": demo_student_id},
-        )
-        return (r.scalar() or 0) >= 2
+        return True  # Skip: no demo candidate in minimal seed
 
     def apply(conn):
-        demo_student_id = DEMO_USERS["CANDIDATE"]["id"]
-        cv_id = "cv_demo_student"
-        first_stage_ids = ["ws_job1_0", "ws_job2_0"]
-        for i, (job_id, stage_id) in enumerate([("job1", "ws_job1_0"), ("job2", "ws_job2_0")]):
-            wf_id = f"wf_{job_id}"
-            app_id = f"app_demo_{job_id}"
-            conn.execute(
-                text("""
-                    INSERT INTO applications (id, student_id, job_id, workflow_id, cv_id, current_stage_id, status, submitted_at, updated_at)
-                    VALUES (:id, :uid, :job_id, :wf_id, :cv_id, :stage_id, 'IN_PROGRESS', NOW(), NOW())
-                """),
-                {
-                    "id": app_id,
-                    "uid": demo_student_id,
-                    "job_id": job_id,
-                    "wf_id": wf_id,
-                    "cv_id": cv_id,
-                    "stage_id": stage_id,
-                },
-            )
-            conn.execute(
-                text("""
-                    INSERT INTO application_stage_progress (id, application_id, stage_id, status, moved_at, moved_by)
-                    VALUES (:id, :app_id, :stage_id, 'PASSED', NOW(), :uid)
-                """),
-                {
-                    "id": f"asp_{app_id}_0",
-                    "app_id": app_id,
-                    "stage_id": stage_id,
-                    "uid": demo_student_id,
-                },
-            )
         conn.commit()
 
     return check, apply

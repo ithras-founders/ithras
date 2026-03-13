@@ -33,9 +33,8 @@ def seed_institutions(db: Session):
             print(f"Created institution: {inst_data['name']}")
 
 def seed_users(db: Session):
-    """Seed users with various roles"""
+    """Seed users - only system admin (founders@ithras.com)."""
     users_data = [
-        # System Admin
         {
             'id': 'user_founders',
             'email': 'founders@ithras.com',
@@ -43,154 +42,6 @@ def seed_users(db: Session):
             'role': 'SYSTEM_ADMIN',
             'institution_id': None
         },
-        # Placement Team
-        {
-            'id': 'pt1',
-            'email': 'placement@iimc.ac.in',
-            'name': 'Placement Team Lead',
-            'role': 'PLACEMENT_TEAM',
-            'institution_id': 'inst1'
-        },
-        # Faculty Observer
-        {
-            'id': 'faculty1',
-            'email': 'faculty@iimc.ac.in',
-            'name': 'Faculty Observer',
-            'role': 'FACULTY_OBSERVER',
-            'institution_id': 'inst1'
-        },
-        # Recruiters
-        {
-            'id': 'rec1',
-            'email': 'recruiter@mckinsey.com',
-            'name': 'McKinsey Recruiter',
-            'role': 'RECRUITER',
-            'company_id': 'comp1',
-            'institution_id': None
-        },
-        {
-            'id': 'rec2',
-            'email': 'recruiter@bcg.com',
-            'name': 'BCG Recruiter',
-            'role': 'RECRUITER',
-            'company_id': 'comp2',
-            'institution_id': None
-        },
-        {
-            'id': 'rec3',
-            'email': 'recruiter@bain.com',
-            'name': 'Bain Recruiter',
-            'role': 'RECRUITER',
-            'company_id': 'comp3',
-            'institution_id': None
-        },
-        # Students
-        {
-            'id': 'student1',
-            'email': 'student1@iimc.ac.in',
-            'name': 'Rahul Sharma',
-            'role': 'CANDIDATE',
-            'institution_id': 'inst1'
-        },
-        {
-            'id': 'student2',
-            'email': 'student2@iimc.ac.in',
-            'name': 'Priya Patel',
-            'role': 'CANDIDATE',
-            'institution_id': 'inst1'
-        },
-        {
-            'id': 'student3',
-            'email': 'student3@iimc.ac.in',
-            'name': 'Amit Kumar',
-            'role': 'CANDIDATE',
-            'institution_id': 'inst1'
-        },
-        {
-            'id': 'student4',
-            'email': 'student4@iimc.ac.in',
-            'name': 'Sneha Reddy',
-            'role': 'CANDIDATE',
-            'institution_id': 'inst1'
-        },
-        {
-            'id': 'student5',
-            'email': 'student5@iimc.ac.in',
-            'name': 'Vikram Singh',
-            'role': 'CANDIDATE',
-            'institution_id': 'inst1'
-        },
-        # Alumni
-        {
-            'id': 'alumni1',
-            'email': 'alumni1@iimc.ac.in',
-            'name': 'Rajesh Kumar',
-            'role': 'ALUMNI',
-            'institution_id': 'inst1'
-        },
-        {
-            'id': 'alumni2',
-            'email': 'alumni2@iimc.ac.in',
-            'name': 'Meera Desai',
-            'role': 'ALUMNI',
-            'institution_id': 'inst1'
-        },
-        # General/Public users
-        {
-            'id': 'general1',
-            'email': 'public@example.com',
-            'name': 'Public User',
-            'role': 'GENERAL',
-            'institution_id': None
-        },
-        # Additional Placement Team for IIM Ahmedabad
-        {
-            'id': 'pt2',
-            'email': 'placement@iima.ac.in',
-            'name': 'Placement Team IIMA',
-            'role': 'PLACEMENT_TEAM',
-            'institution_id': 'inst2'
-        },
-        # Additional Faculty Observer
-        {
-            'id': 'faculty2',
-            'email': 'faculty@iima.ac.in',
-            'name': 'Faculty Observer IIMA',
-            'role': 'FACULTY_OBSERVER',
-            'institution_id': 'inst2'
-        },
-        # Additional Recruiters
-        {
-            'id': 'rec4',
-            'email': 'recruiter@goldmansachs.com',
-            'name': 'Goldman Sachs Recruiter',
-            'role': 'RECRUITER',
-            'company_id': 'comp4',
-            'institution_id': None
-        },
-        {
-            'id': 'rec5',
-            'email': 'recruiter@amazon.com',
-            'name': 'Amazon Recruiter',
-            'role': 'RECRUITER',
-            'company_id': 'comp5',
-            'institution_id': None
-        },
-        # Additional Students for IIM Ahmedabad
-        {
-            'id': 'student6',
-            'email': 'student6@iima.ac.in',
-            'name': 'Arjun Mehta',
-            'role': 'CANDIDATE',
-            'institution_id': 'inst2'
-        },
-        {
-            'id': 'student7',
-            'email': 'student7@iima.ac.in',
-            'name': 'Kavita Nair',
-            'role': 'CANDIDATE',
-            'institution_id': 'inst2'
-        }
     ]
     
     for user_data in users_data:
@@ -287,14 +138,8 @@ def main():
         print("\n" + "=" * 60)
         print("✓ Database seeding completed successfully!")
         print("=" * 60)
-        print("\nSample users created (no password required):")
+        print("\nSample user created:")
         print("  System Admin: founders@ithras.com")
-        print("  Placement Team: placement@iimc.ac.in, placement@iima.ac.in")
-        print("  Faculty: faculty@iimc.ac.in, faculty@iima.ac.in")
-        print("  Recruiters: recruiter@mckinsey.com, recruiter@bcg.com, recruiter@bain.com, recruiter@goldmansachs.com, recruiter@amazon.com")
-        print("  Students: student1@iimc.ac.in, student2@iimc.ac.in, student3@iimc.ac.in, student4@iimc.ac.in, student5@iimc.ac.in, student6@iima.ac.in, student7@iima.ac.in")
-        print("  Alumni: alumni1@iimc.ac.in, alumni2@iimc.ac.in")
-        print("  General: public@example.com")
         print("=" * 60)
         
     except Exception as e:

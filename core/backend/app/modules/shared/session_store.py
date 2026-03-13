@@ -10,12 +10,13 @@ SESSION_TTL_HOURS = 24 * 7  # 7 days
 def create_session(db: Session, user_id: str) -> str:
     """Create a new session for the user. Returns session_id."""
     session_id = secrets.token_urlsafe(32)
-    expires_at = datetime.datetime.utcnow() + datetime.timedelta(hours=SESSION_TTL_HOURS)
+    now = datetime.datetime.utcnow()
+    expires_at = now + datetime.timedelta(hours=SESSION_TTL_HOURS)
     db.execute(
         text(
-            "INSERT INTO auth_sessions (id, user_id, expires_at) VALUES (:id, :user_id, :expires_at)"
+            "INSERT INTO auth_sessions (id, user_id, created_at, expires_at) VALUES (:id, :user_id, :created_at, :expires_at)"
         ),
-        {"id": session_id, "user_id": user_id, "expires_at": expires_at},
+        {"id": session_id, "user_id": user_id, "created_at": now, "expires_at": expires_at},
     )
     db.commit()
     return session_id
