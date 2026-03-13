@@ -17,8 +17,9 @@ class Institution(Base):
     founding_year = Column(Integer, nullable=True)
     student_count_range = Column(String, nullable=True)  # e.g. "1,001-5,000"
     onboarding_status = Column(String, default="FULLY_ONBOARDED")  # PRESENT_ONLY | FULLY_ONBOARDED
-    features = Column(JSON, default=list)  # e.g. ["placement", "governance", "institution_admin"]
-    allowed_roles = Column(JSON, default=list)  # e.g. ["CANDIDATE","PLACEMENT_TEAM","INSTITUTION_ADMIN",...]
+    status = Column(String, default="PENDING", nullable=False)  # PENDING | LISTED | PARTNER
+    features = Column(JSON, default=[])  # e.g. ["placement", "governance", "institution_admin"]
+    allowed_roles = Column(JSON, default=[])  # e.g. ["CANDIDATE","PLACEMENT_TEAM","INSTITUTION_ADMIN",...]
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
@@ -28,6 +29,7 @@ class Program(Base):
     id = Column(String, primary_key=True)
     institution_id = Column(String, ForeignKey("institutions.id"), nullable=False, index=True)
     name = Column(String, nullable=False)
+    normalized_name = Column(String, nullable=False)
     code = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
@@ -69,6 +71,7 @@ class BusinessUnit(Base):
     id = Column(String, primary_key=True)
     company_id = Column(String, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
+    normalized_name = Column(String, nullable=False)
     code = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
@@ -81,6 +84,7 @@ class CompanyFunction(Base):
     id = Column(String, primary_key=True)
     company_id = Column(String, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
+    normalized_name = Column(String, nullable=False)
     code = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     company = relationship("Company", foreign_keys=[company_id])
@@ -92,6 +96,7 @@ class CompanyDesignation(Base):
     id = Column(String, primary_key=True)
     company_id = Column(String, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
+    normalized_name = Column(String, nullable=False)
     level = Column(Integer, nullable=True)  # sort order / hierarchy
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     company = relationship("Company", foreign_keys=[company_id])
@@ -103,6 +108,7 @@ class InstitutionDegree(Base):
     id = Column(String, primary_key=True)
     institution_id = Column(String, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
+    normalized_name = Column(String, nullable=False)
     degree_type = Column(String, nullable=True)  # UG, PG, PhD, DIPLOMA, CERTIFICATE
     program_id = Column(String, ForeignKey("programs.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -116,6 +122,7 @@ class InstitutionCertification(Base):
     id = Column(String, primary_key=True)
     institution_id = Column(String, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
+    normalized_name = Column(String, nullable=False)
     issuing_body = Column(String, nullable=True)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)

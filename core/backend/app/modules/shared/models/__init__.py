@@ -52,7 +52,14 @@ from .placement import (
 from .cv import CV, CVVersion, CVTemplate, CVTemplateVisibilityOverride, PortfolioAsset
 from .calendar import CalendarSlot, TimetableBlock, SlotBooking, StudentSlotAvailability
 from .governance import Policy, PolicyProposal, WorkflowApproval, ApplicationRequest, Notification, NotificationPreference, JDSubmission
-from .analytics import AnalyticsReport, AnalyticsDashboard, AnalyticsSchedule
+from .analytics import (
+    AnalyticsReport,
+    AnalyticsDashboard,
+    AnalyticsSchedule,
+    BenchmarkCohortOutcomeAgg,
+    BenchmarkRoleProgressionAgg,
+    BenchmarkTransitionAgg,
+)
 from .rbac import Role, Permission, UserRoleAssignment, role_permissions
 from .identity import AuthSession
 from .opportunities import SavedOpportunity, CompanyFollow
@@ -105,6 +112,9 @@ __all__ = [
     "AnalyticsReport",
     "AnalyticsDashboard",
     "AnalyticsSchedule",
+    "BenchmarkCohortOutcomeAgg",
+    "BenchmarkRoleProgressionAgg",
+    "BenchmarkTransitionAgg",
     "Role",
     "Permission",
     "UserRoleAssignment",
