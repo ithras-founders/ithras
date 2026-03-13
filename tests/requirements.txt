@@ -1,0 +1,10 @@
+# Core backend deps (ORM, FastAPI, etc.)
+-r ../core/backend/requirements.txt
+
+# Test framework
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+httpx>=0.25.0
+
+# Coverage
+pytest-cov>=4.1.0

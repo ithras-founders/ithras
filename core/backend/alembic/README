@@ -1,0 +1,3 @@
+Alembic migrations for Athena backend.
+Run: alembic upgrade head
+From project root (with core/backend as cwd): alembic -c alembic.ini upgrade head

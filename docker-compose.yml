@@ -1,0 +1,89 @@
+services:
+  # Core Database (shared by all services)
+  db:
+    image: postgres:15-alpine
+    container_name: ithras-db
+    environment:
+      POSTGRES_USER: ithras_user
+      POSTGRES_PASSWORD: ithras_password
+      POSTGRES_DB: placement_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ithras_user -d postgres || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - ithras-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: ithras-redis
+    networks:
+      - ithras-network
+
+  # Unified Backend (serves all products from core/backend)
+  backend:
+    build: ./core/backend
+    container_name: ithras-backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://ithras_user:ithras_password@db:5432/placement_db
+      REDIS_URL: redis://redis:6379/0
+      DB_SETUP: "TRUE"
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-password}
+      ASSETS_COMPANIES_DIR: /app_assets/companies
+      DB_HOST: db
+      DB_PORT: 5432
+      POSTGRES_USER: ithras_user
+      POSTGRES_PASSWORD: ithras_password
+      POSTGRES_DB: placement_db
+    volumes:
+      - ./core/backend:/app
+      - ./products:/products
+      - ./assets:/app_assets
+      - ./tests:/tests
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    ports:
+      - "8000:8000"
+    networks:
+      - ithras-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --reload --reload-dir /app --reload-dir /products
+
+  # Unified Frontend (serves all products from core/frontend)
+  frontend:
+    build: ./core/frontend
+    container_name: ithras-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    volumes:
+      - ./core/frontend:/usr/share/nginx/html
+      - ./core:/core
+      - ./products:/products
+      - ./assets/companies:/usr/share/nginx/html/public/assets/companies
+      - ./core/frontend/nginx.conf.template:/etc/nginx/conf.d/default.conf.template
+      - ./core/frontend/entrypoint.sh:/entrypoint.sh
+    networks:
+      - ithras-network
+
+networks:
+  ithras-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

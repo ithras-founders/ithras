@@ -1,0 +1,137 @@
+# Unified nginx config - works for both local (docker-compose) and Cloud Run
+# Custom placeholders __LISTEN_PORT__ and __BACKEND_ORIGIN__ are substituted
+# at container start by entrypoint.sh using sed. This avoids conflicts with
+# nginx's own $host, $uri, $remote_addr variables.
+#
+# Defaults (set in entrypoint.sh):
+#   __LISTEN_PORT__    = $PORT or 80
+#   __BACKEND_ORIGIN__ = $BACKEND_URL or http://backend:8000
+
+server {
+    listen __LISTEN_PORT__;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/json;
+
+    # API proxy to backend
+    location /api {
+        proxy_pass __BACKEND_ORIGIN__;
+        proxy_http_version 1.1;
+        proxy_ssl_server_name on;
+        proxy_set_header Host __BACKEND_HOST__;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Authorization $http_authorization;
+
+        # Cloud Run HTTPS responses have large headers
+        proxy_buffer_size 16k;
+        proxy_buffers 4 32k;
+        proxy_busy_buffers_size 32k;
+    }
+
+    # Company logos: proxy to backend (serves from ASSETS_COMPANIES_DIR)
+    # Backend has ./assets:/app_assets, so company logos are available there
+    location ^~ /assets/companies/ {
+        proxy_pass __BACKEND_ORIGIN__;
+        proxy_ssl_server_name on;
+        proxy_set_header Host __BACKEND_HOST__;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Other static assets (ithras_logo, etc.) from public/assets
+    location ^~ /assets/ {
+        alias /usr/share/nginx/html/public/assets/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Uploads proxy (proof files, logos, etc. served by backend)
+    location ^~ /uploads {
+        proxy_pass __BACKEND_ORIGIN__;
+        proxy_ssl_server_name on;
+        proxy_set_header Host __BACKEND_HOST__;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Authorization $http_authorization;
+
+        proxy_buffer_size 16k;
+        proxy_buffers 4 32k;
+        proxy_busy_buffers_size 32k;
+    }
+
+    # ES module imports from /products (mounted volume or COPY'd in Dockerfile)
+    location ^~ /products/ {
+        alias /products/;
+        types { application/javascript js mjs; }
+        default_type application/javascript;
+        try_files $uri =404;
+        add_header Content-Type application/javascript always;
+        add_header Access-Control-Allow-Origin * always;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header Pragma "no-cache" always;
+        add_header Expires "0" always;
+        autoindex off;
+    }
+
+    # ES module imports from /core
+    location ^~ /core/ {
+        alias /core/;
+        types { application/javascript js mjs; }
+        default_type application/javascript;
+        try_files $uri =404;
+        add_header Content-Type application/javascript always;
+        add_header Access-Control-Allow-Origin * always;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header Pragma "no-cache" always;
+        add_header Expires "0" always;
+        autoindex off;
+    }
+
+    # ES module imports from /src
+    location ^~ /src/ {
+        alias /usr/share/nginx/html/src/;
+        types { application/javascript js mjs; }
+        default_type application/javascript;
+        try_files $uri =404;
+        add_header Content-Type application/javascript always;
+        add_header Access-Control-Allow-Origin * always;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header Pragma "no-cache" always;
+        add_header Expires "0" always;
+    }
+
+    # Catch-all for .js files not matched by prefix locations above
+    location ~* \.js$ {
+        types { application/javascript js mjs; }
+        default_type application/javascript;
+        add_header Content-Type application/javascript always;
+        add_header Cache-Control "no-cache" always;
+    }
+
+    # Cache static assets
+    location ~* \.(css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # SPA fallback
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+}

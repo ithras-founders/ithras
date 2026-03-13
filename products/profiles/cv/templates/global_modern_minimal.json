@@ -1,0 +1,152 @@
+{
+  "id": "global_skills_first",
+  "name": "Skills First",
+  "group": "global",
+  "group_label": "Global",
+  "institution_id": null,
+  "college_slug": null,
+  "status": "PUBLISHED",
+  "batch_ids": [],
+  "program_ids": [],
+  "config": {
+    "page": {
+      "size": "A4",
+      "margins": { "top": 10, "bottom": 10, "left": 14, "right": 14 },
+      "border": "none"
+    },
+    "typography": {
+      "baseFont": { "family": "'Inter', 'Helvetica Neue', sans-serif", "size": 9, "lineHeight": 1.3 },
+      "headerFont": {
+        "sizes": { "h1": 20, "h2": 10, "h3": 9 },
+        "weights": { "h1": 600, "h2": 600, "h3": 500 }
+      },
+      "bulletStyle": "circle",
+      "bulletIndentation": 2
+    },
+    "spacing": {
+      "lineSpacing": 1.25,
+      "bulletSpacing": 0.2,
+      "sectionTitleBefore": 0.6,
+      "sectionTitleAfter": 0.4,
+      "sectionSpacing": 0.5,
+      "rowSpacing": 0,
+      "boxGap": 0
+    },
+    "designTokens": {
+      "lineColor": "#E5E7EB",
+      "primary": "#374151",
+      "accent": "#4F46E5",
+      "charcoalBar": "#374151",
+      "labelFill": "#EEF2FF",
+      "gridLineColor": "#E5E7EB",
+      "instituteBrown": "#4F46E5"
+    },
+    "fixedElements": {
+      "header": {
+        "layout": "split",
+        "logoUrl": "",
+        "leftContent": "",
+        "rightVariables": ["name", "roll_number", "email"],
+        "logoPosition": "left",
+        "height": 4,
+        "textColor": "#1F2937",
+        "dividerAfter": true
+      },
+      "summaryBar": null,
+      "footer": {
+        "content": "{{email}}",
+        "variables": ["email"],
+        "alignment": "center"
+      }
+    },
+    "autoVariables": ["name", "roll_number", "email"],
+    "sections": [
+      {
+        "id": "core_skills",
+        "title": "Core Competencies",
+        "layoutStyle": "label_left_content_right",
+        "sectionHeaderStyle": {
+          "backgroundColor": "transparent",
+          "textColor": "#4F46E5",
+          "titleCaps": false,
+          "titleAlign": "left",
+          "labelWidth": "22%"
+        },
+        "gridWidths": { "label": "22%", "bullets": "73%", "year": "5%" },
+        "useDynamicBuckets": false,
+        "subCategories": [
+          { "fieldId": "analytics", "label": "Analytics & Data", "richText": true },
+          { "fieldId": "leadership", "label": "Leadership", "richText": true },
+          { "fieldId": "technical", "label": "Technical", "richText": true }
+        ],
+        "entryTypes": [{ "id": "default", "name": "Entry", "repeatable": false, "fields": [] }],
+        "order": 0
+      },
+      {
+        "id": "experience",
+        "title": "Experience",
+        "optional": true,
+        "layoutStyle": "vertical_label_grouped",
+        "verticalLabelFieldId": "employment_type",
+        "sectionHeaderStyle": {
+          "backgroundColor": "transparent",
+          "textColor": "#4F46E5",
+          "titleCaps": false,
+          "titleAlign": "left"
+        },
+        "groupLabelStyle": { "backgroundColor": "#EEF2FF", "color": "#3730A3" },
+        "entryHeaderBucketStyle": { "backgroundColor": "#E0E7FF" },
+        "gridWidths": { "verticalBand": "3%", "categoryLabel": "14%", "bullets": "83%" },
+        "removePerBulletYears": true,
+        "durationAutoCalculate": true,
+        "headerFields": ["company", "role", "duration"],
+        "entryTypes": [{
+          "id": "default",
+          "name": "Experience",
+          "repeatable": true,
+          "fields": [
+            { "id": "employment_type", "label": "Type", "type": "dropdown", "options": ["Full Time", "Intern"] },
+            { "id": "company", "label": "Company", "type": "text" },
+            { "id": "role", "label": "Role", "type": "text" },
+            { "id": "start_date", "label": "Start", "type": "date" },
+            { "id": "end_date", "label": "End", "type": "date" },
+            { "id": "duration", "label": "Duration", "type": "text" },
+            { "id": "achievementBuckets", "label": "Achievements", "type": "bucket_list", "richText": true, "allowProofPerItem": true }
+          ]
+        }],
+        "order": 1
+      },
+      {
+        "id": "education",
+        "title": "Education",
+        "layoutStyle": "two_column",
+        "sectionHeaderStyle": {
+          "backgroundColor": "transparent",
+          "textColor": "#4F46E5",
+          "titleCaps": false,
+          "titleAlign": "left"
+        },
+        "entryTypes": [{
+          "id": "default",
+          "name": "Qualification",
+          "repeatable": false,
+          "fields": [{
+            "id": "qualifications_table",
+            "label": "Education",
+            "type": "table",
+            "columns": [
+              { "id": "degree", "label": "Degree", "align": "left", "width": "30%" },
+              { "id": "institute", "label": "Institution", "align": "left", "width": "50%" },
+              { "id": "percentage", "label": "Score", "align": "center", "width": "10%" },
+              { "id": "year", "label": "Year", "align": "center", "width": "10%" }
+            ],
+            "tableBorderStyle": "1px solid #E5E7EB",
+            "tableHeaderBackground": "#F9FAFB",
+            "tableCellBackground": "#fff"
+          }]
+        }],
+        "order": 2
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+// Shared module exports
+export { Icon, CHART_COLORS_HEX } from './ui/index.js';
+export { SetupScreen } from './SetupScreen.js';
+export { default as Layout } from './components/Layout.js';
+export { default as ApiError } from './components/ApiError.js';
+export { default as EmptyState } from './components/EmptyState.js';
+export { default as ProfileCard } from './components/ProfileCard.js';
+export { default as SkeletonLoader } from './components/SkeletonLoader.js';
+export * from './primitives/index.js';
+export { ToastProvider, useToast } from './hooks/useToast.js';
+export { DialogProvider } from './components/DialogProvider.js';
+export { useDialog } from './hooks/useDialog.js';
+export { useOptimisticMutation } from './hooks/useOptimisticMutation.js';
+export { useDebouncedValue } from './hooks/useDebouncedValue.js';
+export { useNetworkStatus } from './hooks/useNetworkStatus.js';
+export { useFetchWithTutorial } from './hooks/useFetchWithTutorial.js';
+export { AppProvider, useApp } from './context/AppContext.js';
+export * from './types.js';
+export * as api from './services/api.js';
+export { toDisplayString } from './utils/displayUtils.js';

@@ -1,0 +1,206 @@
+{
+  "id": "iim_calcutta",
+  "name": "IIM Calcutta - Standard CV",
+  "group": "institutional",
+  "group_label": "IIM Calcutta",
+  "institution_id": "inst1",
+  "college_slug": "iim-calcutta",
+  "status": "PUBLISHED",
+  "batch_ids": ["batch1"],
+  "program_ids": ["inst1_default"],
+  "config": {
+    "page": {
+      "size": "A4",
+      "margins": { "top": 8, "bottom": 6, "left": 12, "right": 12 },
+      "border": "none"
+    },
+    "typography": {
+      "baseFont": { "family": "Arial, Helvetica, sans-serif", "size": 8.5, "lineHeight": 1.1 },
+      "headerFont": {
+        "sizes": { "h1": 13, "h2": 9, "h3": 8 },
+        "weights": { "h1": 900, "h2": 700, "h3": 600 }
+      },
+      "bulletStyle": "disc",
+      "bulletIndentation": 3
+    },
+    "spacing": {
+      "lineSpacing": 1.1,
+      "bulletSpacing": 0.1,
+      "sectionTitleBefore": 0,
+      "sectionTitleAfter": 0,
+      "sectionSpacing": 0,
+      "rowSpacing": 0,
+      "boxGap": 0
+    },
+    "designTokens": {
+      "lineColor": "#000",
+      "primary": "#3A3838",
+      "accent": "#000",
+      "charcoalBar": "#3A3838",
+      "labelFill": "#D9D9D9",
+      "gridLineColor": "#000000",
+      "instituteBrown": "#7A4B2A"
+    },
+    "fixedElements": {
+      "header": {
+        "layout": "split",
+        "logoUrl": "",
+        "leftContent": "भारतीय प्रबंध संस्थान कलकत्ता\nIndian Institute of Management Calcutta",
+        "rightVariables": ["name", "roll_number"],
+        "logoPosition": "left",
+        "height": 4,
+        "textColor": "#7A4B2A",
+        "dividerAfter": true
+      },
+      "summaryBar": {
+        "items": [
+          "{{summary_item_1}}",
+          "{{summary_item_2}}",
+          "{{summary_item_3}}"
+        ],
+        "backgroundColor": "#3A3838",
+        "textColor": "#fff"
+      },
+      "footer": {
+        "content": "Email: {{email}}\nIndian Institute of Management Calcutta",
+        "variables": ["email"],
+        "alignment": "center"
+      }
+    },
+    "autoVariables": ["name", "roll_number", "email", "summary_item_1", "summary_item_2", "summary_item_3"],
+    "sections": [
+      {
+        "id": "academic_qualifications",
+        "title": "ACADEMIC QUALIFICATIONS",
+        "layoutStyle": "two_column",
+        "sectionHeaderStyle": {
+          "backgroundColor": "#3A3838",
+          "textColor": "#fff",
+          "titleCaps": true,
+          "titleAlign": "left",
+          "titleDivider": true
+        },
+        "entryTypes": [
+          {
+            "id": "default",
+            "name": "Qualification",
+            "repeatable": false,
+            "fields": [
+              {
+                "id": "qualifications_table",
+                "label": "Academic Qualifications",
+                "type": "table",
+                "columns": [
+                  { "id": "degree", "label": "Degree/Exam", "align": "left", "width": "30.6%" },
+                  { "id": "institute", "label": "Board/Institute", "align": "left", "width": "48.0%" },
+                  { "id": "percentage", "label": "%/CGPA", "align": "center", "width": "9.4%" },
+                  { "id": "rank", "label": "Rank", "align": "center", "optional": true, "width": "6.7%" },
+                  { "id": "year", "label": "Year", "align": "center", "width": "5.2%" }
+                ],
+                "tableBorderStyle": "1px solid #000",
+                "tableHeaderBackground": "#D9D9D9",
+                "tableCellBackground": "#D9D9D9"
+              }
+            ]
+          }
+        ],
+        "order": 0
+      },
+      {
+        "id": "academic_distinctions",
+        "title": "ACADEMIC DISTINCTIONS & CO-CURRICULAR ACHIEVEMENTS",
+        "layoutStyle": "label_left_content_right",
+        "sectionHeaderStyle": {
+          "backgroundColor": "#3A3838",
+          "textColor": "#fff",
+          "titleCaps": true,
+          "titleAlign": "left",
+          "labelWidth": "17%"
+        },
+        "gridWidths": { "label": "17%", "bullets": "78%", "year": "5%" },
+        "useDynamicBuckets": true,
+        "subCategories": [],
+        "entryTypes": [
+          { "id": "default", "name": "Entry", "repeatable": false, "fields": [] }
+        ],
+        "order": 1
+      },
+      {
+        "id": "industry_experience",
+        "title": "INDUSTRY EXPERIENCE",
+        "optional": true,
+        "layoutStyle": "vertical_label_grouped",
+        "verticalLabelFieldId": "employment_type",
+        "sectionHeaderStyle": {
+          "backgroundColor": "#3A3838",
+          "textColor": "#fff",
+          "titleCaps": true,
+          "titleAlign": "left"
+        },
+        "groupLabelStyle": { "backgroundColor": "#D9D9D9", "color": "#000" },
+        "entryHeaderBucketStyle": { "backgroundColor": "#D9D9D9" },
+        "gridWidths": { "verticalBand": "2.85%", "categoryLabel": "14.1%", "bullets": "83%" },
+        "removePerBulletYears": true,
+        "durationAutoCalculate": true,
+        "headerFields": ["company", "role", "duration"],
+        "entryTypes": [
+          {
+            "id": "default",
+            "name": "Experience",
+            "repeatable": true,
+            "fields": [
+              { "id": "employment_type", "label": "Employment Type", "type": "dropdown", "options": ["Full Time", "Intern"] },
+              { "id": "company", "label": "Company", "type": "text" },
+              { "id": "role", "label": "Role / Designation", "type": "text" },
+              { "id": "start_date", "label": "Start Date", "type": "date" },
+              { "id": "end_date", "label": "End Date", "type": "date" },
+              { "id": "duration", "label": "Duration (e.g. Aug'23 - May'24)", "type": "text" },
+              { "id": "achievementBuckets", "label": "Achievement Categories", "type": "bucket_list", "richText": true, "allowProofPerItem": true }
+            ]
+          }
+        ],
+        "order": 2
+      },
+      {
+        "id": "positions_of_responsibility",
+        "title": "POSITIONS OF RESPONSIBILITY",
+        "optional": true,
+        "layoutStyle": "label_left_content_right",
+        "sectionHeaderStyle": {
+          "backgroundColor": "#3A3838",
+          "textColor": "#fff",
+          "titleCaps": true,
+          "titleAlign": "left",
+          "labelWidth": "17%"
+        },
+        "gridWidths": { "label": "17%", "bullets": "77.8%", "year": "5.2%" },
+        "useDynamicBuckets": true,
+        "subCategories": [],
+        "entryTypes": [
+          { "id": "default", "name": "Entry", "repeatable": false, "fields": [] }
+        ],
+        "order": 3
+      },
+      {
+        "id": "extra_curricular",
+        "title": "EXTRA-CURRICULAR ACHIEVEMENTS",
+        "optional": true,
+        "layoutStyle": "label_left_content_right",
+        "sectionHeaderStyle": {
+          "backgroundColor": "#3A3838",
+          "textColor": "#fff",
+          "titleCaps": true,
+          "titleAlign": "left",
+          "labelWidth": "17%"
+        },
+        "gridWidths": { "label": "17%", "bullets": "77.8%", "year": "5.2%" },
+        "useDynamicBuckets": true,
+        "subCategories": [],
+        "entryTypes": [
+          { "id": "default", "name": "Entry", "repeatable": false, "fields": [] }
+        ],
+        "order": 4
+      }
+    ]
+  }
+}

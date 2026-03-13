@@ -1,0 +1,35 @@
+# Production Dockerfile for Athena Backend (Cloud Run)
+# Build from athena root: docker build -f Dockerfile.backend .
+# Cloud Run sets PORT (default 8080); uses DATABASE_URL, REDIS_URL from env
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system deps
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Core backend requirements
+COPY core/backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Application code
+COPY core/backend/ .
+COPY products/ /products/
+
+# Assets dir for uploads (company logos etc)
+RUN mkdir -p /app_assets/companies /app/uploads
+
+# Production entrypoint (runs migrations then starts uvicorn)
+COPY entrypoint.prod.sh /app/entrypoint.prod.sh
+RUN chmod +x /app/entrypoint.prod.sh
+
+# Cloud Run uses PORT env (default 8080)
+ENV PORT=8080
+EXPOSE ${PORT}
+
+# entrypoint.prod.sh already calls exec uvicorn at the end
+ENTRYPOINT ["/app/entrypoint.prod.sh"]

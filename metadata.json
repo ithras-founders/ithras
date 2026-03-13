@@ -1,0 +1,8 @@
+{
+  "name": "IIMC Placement Portal",
+  "description": "Production-grade placement governance system for IIM Calcutta.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

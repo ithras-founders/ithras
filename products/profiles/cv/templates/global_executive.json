@@ -1,0 +1,149 @@
+{
+  "id": "global_editorial",
+  "name": "Editorial",
+  "group": "global",
+  "group_label": "Global",
+  "institution_id": null,
+  "college_slug": null,
+  "status": "PUBLISHED",
+  "batch_ids": [],
+  "program_ids": [],
+  "config": {
+    "page": {
+      "size": "A4",
+      "margins": { "top": 10, "bottom": 10, "left": 14, "right": 14 },
+      "border": "none"
+    },
+    "typography": {
+      "baseFont": { "family": "'Georgia', 'Times New Roman', serif", "size": 9, "lineHeight": 1.35 },
+      "headerFont": {
+        "sizes": { "h1": 28, "h2": 12, "h3": 10 },
+        "weights": { "h1": 400, "h2": 600, "h3": 500 }
+      },
+      "bulletStyle": "disc",
+      "bulletIndentation": 3
+    },
+    "spacing": {
+      "lineSpacing": 1.2,
+      "bulletSpacing": 0.15,
+      "sectionTitleBefore": 0.8,
+      "sectionTitleAfter": 0.4,
+      "sectionSpacing": 0.6,
+      "rowSpacing": 0,
+      "boxGap": 0
+    },
+    "designTokens": {
+      "lineColor": "#1F2937",
+      "primary": "#111827",
+      "accent": "#111827",
+      "charcoalBar": "#111827",
+      "labelFill": "#F3F4F6",
+      "gridLineColor": "#1F2937",
+      "instituteBrown": "#374151"
+    },
+    "fixedElements": {
+      "header": {
+        "layout": "split",
+        "logoUrl": "",
+        "leftContent": "",
+        "rightVariables": ["name", "roll_number", "email"],
+        "logoPosition": "left",
+        "height": 5,
+        "textColor": "#111827",
+        "dividerAfter": true
+      },
+      "summaryBar": null,
+      "footer": {
+        "content": "{{email}}",
+        "variables": ["email"],
+        "alignment": "center"
+      }
+    },
+    "autoVariables": ["name", "roll_number", "email"],
+    "sections": [
+      {
+        "id": "experience",
+        "title": "Experience",
+        "optional": true,
+        "layoutStyle": "vertical_label_grouped",
+        "verticalLabelFieldId": "employment_type",
+        "sectionHeaderStyle": {
+          "backgroundColor": "transparent",
+          "textColor": "#111827",
+          "titleCaps": false,
+          "titleAlign": "left"
+        },
+        "groupLabelStyle": { "backgroundColor": "#F3F4F6", "color": "#111827" },
+        "entryHeaderBucketStyle": { "backgroundColor": "#F9FAFB" },
+        "gridWidths": { "verticalBand": "2.5%", "categoryLabel": "14%", "bullets": "83.5%" },
+        "removePerBulletYears": true,
+        "durationAutoCalculate": true,
+        "headerFields": ["company", "role", "duration"],
+        "entryTypes": [{
+          "id": "default",
+          "name": "Experience",
+          "repeatable": true,
+          "fields": [
+            { "id": "employment_type", "label": "Type", "type": "dropdown", "options": ["Full Time", "Intern"] },
+            { "id": "company", "label": "Company", "type": "text" },
+            { "id": "role", "label": "Role", "type": "text" },
+            { "id": "start_date", "label": "Start", "type": "date" },
+            { "id": "end_date", "label": "End", "type": "date" },
+            { "id": "duration", "label": "Duration", "type": "text" },
+            { "id": "achievementBuckets", "label": "Achievements", "type": "bucket_list", "richText": true, "allowProofPerItem": true }
+          ]
+        }],
+        "order": 0
+      },
+      {
+        "id": "education",
+        "title": "Education",
+        "layoutStyle": "two_column",
+        "sectionHeaderStyle": {
+          "backgroundColor": "transparent",
+          "textColor": "#111827",
+          "titleCaps": false,
+          "titleAlign": "left"
+        },
+        "entryTypes": [{
+          "id": "default",
+          "name": "Qualification",
+          "repeatable": false,
+          "fields": [{
+            "id": "qualifications_table",
+            "label": "Education",
+            "type": "table",
+            "columns": [
+              { "id": "degree", "label": "Degree", "align": "left", "width": "28%" },
+              { "id": "institute", "label": "Institution", "align": "left", "width": "50%" },
+              { "id": "percentage", "label": "%/CGPA", "align": "center", "width": "10%" },
+              { "id": "year", "label": "Year", "align": "center", "width": "12%" }
+            ],
+            "tableBorderStyle": "1px solid #1F2937",
+            "tableHeaderBackground": "#F9FAFB",
+            "tableCellBackground": "#fff"
+          }]
+        }],
+        "order": 1
+      },
+      {
+        "id": "achievements",
+        "title": "Key Achievements",
+        "optional": true,
+        "layoutStyle": "label_left_content_right",
+        "sectionHeaderStyle": {
+          "backgroundColor": "transparent",
+          "textColor": "#111827",
+          "titleCaps": false,
+          "titleAlign": "left",
+          "labelWidth": "18%"
+        },
+        "gridWidths": { "label": "18%", "bullets": "77%", "year": "5%" },
+        "useDynamicBuckets": true,
+        "subCategories": [],
+        "entryTypes": [{ "id": "default", "name": "Entry", "repeatable": false, "fields": [] }],
+        "order": 2
+      }
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["core/backend", "."]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: tests that require a running database with seeded data",
+    "unit: pure unit tests with no external dependencies",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.pytest.env]
+DATABASE_URL = {value = "postgresql://ithras_user:ithras_password@localhost:5432/placement_db", transform = true}

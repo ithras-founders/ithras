@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 100" fill="#111111">
+  <path d="M20 20h20v60H20zM50 20h40c15 0 25 10 25 25s-10 25-25 25H50v10h40c25 0 45-20 45-45s-20-45-45-45H50v10zM160 20h30l20 30 20-30h30v60h-20V40l-20 30-20-30v40h-20z"/>
+  <text x="0" y="75" font-family="Optima, sans-serif" font-weight="bold" font-size="60" letter-spacing="2">J.P.Morgan</text>
+</svg>

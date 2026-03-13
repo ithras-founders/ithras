@@ -1,0 +1,31 @@
+# Production Dockerfile for Athena Frontend (Cloud Run)
+# Build from athena root: docker build -f Dockerfile.frontend .
+#
+# Cloud Run sets PORT=8080 and BACKEND_URL=<backend Cloud Run URL> via env.
+# entrypoint.sh substitutes these into the nginx config template at startup.
+
+FROM nginx:alpine
+
+WORKDIR /usr/share/nginx/html
+
+# Copy frontend source files
+COPY core/frontend/index.html .
+COPY core/frontend/src ./src
+COPY core/frontend/public ./public
+
+# ES modules - frontend expects /products, /core for imports
+RUN mkdir -p /products /core
+COPY products/ /products/
+COPY core/ /core/
+
+# Unified nginx template + entrypoint (same files used locally)
+COPY core/frontend/nginx.conf.template /etc/nginx/conf.d/default.conf.template
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+COPY core/frontend/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 8080
+
+# Cloud Run sets PORT=8080 and BACKEND_URL; entrypoint.sh uses them
+ENTRYPOINT ["/entrypoint.sh"]
