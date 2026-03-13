@@ -8,7 +8,12 @@ import datetime
 
 from app.modules.shared import models, database, schemas
 from app.modules.shared.audit import log_audit
-from app.modules.shared.auth import get_current_user, get_current_user_optional, _links_table_exists
+from app.modules.shared.auth import (
+    get_current_user,
+    get_current_user_optional,
+    require_role,
+    _links_table_exists,
+)
 from app.modules.shared.links import (
     get_all_institution_links,
     get_all_organization_links,
@@ -48,6 +53,47 @@ _PROFILE_ERROR_MAP = {
     "reason_required": (400, "Rejection reason is required"),
 }
 
+def _active_scope_ids(user: models.User, db: Session) -> tuple[set[str], set[str]]:
+    institution_ids = {user.institution_id} if user.institution_id else set()
+    company_ids = {user.company_id} if user.company_id else set()
+    if not _links_table_exists(db):
+        return institution_ids, company_ids
+
+    now = datetime.datetime.utcnow()
+    institution_ids.update(
+        link.institution_id
+        for link in get_active_institution_links(db, user.id, now)
+        if link.institution_id
+    )
+    company_ids.update(
+        link.company_id
+        for link in get_active_organization_links(db, user.id, now)
+        if link.company_id
+    )
+    return institution_ids, company_ids
+
+
+def _ensure_within_scope(
+    current_user: models.User,
+    db: Session,
+    *,
+    target_institution_id: Optional[str] = None,
+    target_company_id: Optional[str] = None,
+) -> None:
+    if current_user.role == "SYSTEM_ADMIN":
+        return
+
+    institution_ids, company_ids = _active_scope_ids(current_user, db)
+    if target_institution_id and target_institution_id not in institution_ids:
+        raise HTTPException(status_code=403, detail="Institution scope access denied")
+    if target_company_id and target_company_id not in company_ids:
+        raise HTTPException(status_code=403, detail="Company scope access denied")
+
+
+def _ensure_self(current_user: models.User, target_user_id: str) -> None:
+    if current_user.id != target_user_id:
+        raise HTTPException(status_code=403, detail="You can only perform this action for yourself")
+
 
 @router.get("/")
 def get_users(
@@ -64,10 +110,19 @@ def get_users(
     is_alumni: Optional[bool] = Query(None, description="When true with institution_id or company_id, return users with ended links (alumni)"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(database.get_db)
+    current_user: models.User = Depends(get_current_user),
+    _: models.User = Depends(require_role("SYSTEM_ADMIN", "PLACEMENT_ADMIN", "PLACEMENT_TEAM", "RECRUITER")),
+    db: Session = Depends(database.get_db),
 ):
     """Get users with optional filtering and pagination. q = text search on name, email, roll_number."""
     now = datetime.datetime.utcnow()
+    _ensure_within_scope(
+        current_user,
+        db,
+        target_institution_id=institution_id,
+        target_company_id=company_id,
+    )
+
     query = db.query(models.User)
     if is_alumni:
         if _links_table_exists(db):
@@ -527,9 +582,14 @@ def delete_user(
 def create_profile_change_request(
     user_id: str,
     req: schemas.UserProfileChangeRequestCreateSchema,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
     """Students submit profile edits for placement-team approval."""
+    _ensure_self(current_user, user_id)
+    if req.requested_by != current_user.id:
+        raise HTTPException(status_code=403, detail="requested_by must match the authenticated user")
+
     try:
         db_req = create_profile_change(
             user_id=user_id,
@@ -550,9 +610,13 @@ def create_profile_change_request(
 def list_profile_change_requests(
     institution_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    current_user: models.User = Depends(get_current_user),
+    _: models.User = Depends(require_role("SYSTEM_ADMIN", "PLACEMENT_ADMIN", "PLACEMENT_TEAM", "RECRUITER")),
     db: Session = Depends(database.get_db)
 ):
     """List profile update requests for placement representatives."""
+    _ensure_within_scope(current_user, db, target_institution_id=institution_id)
+
     query = db.query(models.UserProfileChangeRequest)
     if institution_id:
         query = query.filter(models.UserProfileChangeRequest.institution_id == institution_id)
@@ -577,9 +641,12 @@ def list_profile_change_requests(
 @router.get("/{user_id}/profile-change-requests", response_model=List[schemas.UserProfileChangeRequestSchema])
 def list_user_profile_change_requests(
     user_id: str,
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
     """List a student's profile update requests."""
+    _ensure_self(current_user, user_id)
+
     requests = db.query(models.UserProfileChangeRequest).filter(
         models.UserProfileChangeRequest.user_id == user_id
     ).order_by(models.UserProfileChangeRequest.created_at.desc()).all()
@@ -640,9 +707,12 @@ def reject_profile_change_request(
 async def upload_profile_photo(
     user_id: str,
     file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
     """Upload a profile photo for a user"""
+    _ensure_self(current_user, user_id)
+
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")

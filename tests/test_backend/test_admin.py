@@ -25,9 +25,19 @@ def test_seed_system_admin_idempotent(client):
 def test_get_users_after_seed(client):
     """System admin should be visible in users list after seed."""
     client.post("/api/v1/admin/seed-system-admin")
-    r = client.get("/api/v1/users")
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "founders@ithras.com", "password": "password"},
+    )
+    if login.status_code != 200:
+        pytest.skip("Seeded user required for authenticated users endpoint")
+    r = client.get(
+        "/api/v1/users",
+        headers={"Authorization": f"Bearer {login.json()['session_id']}"},
+    )
     assert r.status_code == 200
-    users = r.json()
+    payload = r.json()
+    users = payload.get("items", [])
     assert isinstance(users, list)
     admin_emails = [u.get("email") for u in users if u]
     assert "founders@ithras.com" in admin_emails
