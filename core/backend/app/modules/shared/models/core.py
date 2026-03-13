@@ -17,6 +17,7 @@ class Institution(Base):
     founding_year = Column(Integer, nullable=True)
     student_count_range = Column(String, nullable=True)  # e.g. "1,001-5,000"
     onboarding_status = Column(String, default="FULLY_ONBOARDED")  # PRESENT_ONLY | FULLY_ONBOARDED
+    status = Column(String, default="PENDING", nullable=False)  # PENDING | LISTED | PARTNER
     features = Column(JSON, default=[])  # e.g. ["placement", "governance", "institution_admin"]
     allowed_roles = Column(JSON, default=[])  # e.g. ["CANDIDATE","PLACEMENT_TEAM","INSTITUTION_ADMIN",...]
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
