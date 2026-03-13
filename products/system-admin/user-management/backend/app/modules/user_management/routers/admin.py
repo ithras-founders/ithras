@@ -74,7 +74,7 @@ def approve_institution(
     db: Session = Depends(database.get_db),
     current_user=Depends(require_permission("system.admin")),
 ):
-    """Approve a PENDING institution: set status to VERIFIED or PARTNER and apply details."""
+    """Approve a PENDING institution: set status to LISTED or PARTNER and apply details."""
     inst = db.query(models.Institution).filter(models.Institution.id == institution_id).first()
     if not inst:
         raise HTTPException(status_code=404, detail="Institution not found")
@@ -139,7 +139,7 @@ def approve_company(
     db: Session = Depends(database.get_db),
     current_user=Depends(require_permission("system.admin")),
 ):
-    """Approve a PENDING company: set status to VERIFIED or PARTNER and apply details."""
+    """Approve a PENDING company: set status to LISTED or PARTNER and apply details."""
     comp = db.query(models.Company).filter(models.Company.id == company_id).first()
     if not comp:
         raise HTTPException(status_code=404, detail="Company not found")

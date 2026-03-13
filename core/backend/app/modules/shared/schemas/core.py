@@ -21,6 +21,7 @@ class InstitutionSchema(BaseModel):
     tier: Optional[str] = None
     location: Optional[str] = None
     logo_url: Optional[str] = None
+    status: str
     allowed_roles: List[str] = []
     created_at: datetime
     updated_at: datetime
