@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class InstitutionRead(BaseModel):
@@ -80,8 +80,8 @@ class BusinessUnitRead(BaseModel):
 class InstitutionStructureRead(BaseModel):
     """Institution with programs and batches."""
     institution: InstitutionRead
-    programs: List[ProgramRead] = []
-    batches_by_program: Dict[str, List[BatchRead]] = {}  # program_id -> list of BatchRead
+    programs: List[ProgramRead] = Field(default_factory=list)
+    batches_by_program: Dict[str, List[BatchRead]] = Field(default_factory=dict)  # program_id -> list of BatchRead
 
 
 class CompanyFunctionRead(BaseModel):
@@ -129,19 +129,19 @@ class InstitutionCertificationRead(BaseModel):
 class InstitutionAboutRead(BaseModel):
     """Institution About page - LinkedIn-style."""
     institution: InstitutionRead
-    programs: List[ProgramRead] = []
-    degrees: List[InstitutionDegreeRead] = []
-    certifications: List[InstitutionCertificationRead] = []
-    stats: dict = {}  # e.g. { "total_users": 1200, "total_programs": 12, "total_alumni": 800 }
+    programs: List[ProgramRead] = Field(default_factory=list)
+    degrees: List[InstitutionDegreeRead] = Field(default_factory=list)
+    certifications: List[InstitutionCertificationRead] = Field(default_factory=list)
+    stats: dict = Field(default_factory=dict)  # e.g. { "total_users": 1200, "total_programs": 12, "total_alumni": 800 }
 
 
 class CompanyAboutRead(BaseModel):
     """Company About page - LinkedIn-style."""
     company: CompanyRead
-    business_units: List[BusinessUnitRead] = []
-    designations: List[CompanyDesignationRead] = []
-    functions: List[CompanyFunctionRead] = []
-    stats: dict = {}  # e.g. { "total_users": 50, "total_current": 45, "total_alumni": 5 }
+    business_units: List[BusinessUnitRead] = Field(default_factory=list)
+    designations: List[CompanyDesignationRead] = Field(default_factory=list)
+    functions: List[CompanyFunctionRead] = Field(default_factory=list)
+    stats: dict = Field(default_factory=dict)  # e.g. { "total_users": 50, "total_current": 45, "total_alumni": 5 }
 
 
 # Create/Update schemas for admin CRUD
