@@ -9,6 +9,7 @@ import {
   assignProfile,
   updateProfile,
   revokeProfile,
+  batchRevokeProfiles,
   updateUser,
   deleteUser,
   getApplications,
@@ -265,9 +266,7 @@ const UserDetailView = ({
     }
     if (!(await confirm({ message: `Revoke all ${activeProfiles.length} active role(s)? User will lose access.` }))) return;
     try {
-      for (const p of activeProfiles) {
-        await revokeProfile(userId, p.id);
-      }
+      await batchRevokeProfiles(userId, activeProfiles.map((p) => p.id));
       toast.success('User deactivated');
       loadProfiles();
       onRefresh?.();

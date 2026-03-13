@@ -11,6 +11,9 @@ export const getApiBaseUrl = () => {
   return baseUrl;
 };
 
+const _responseCache = new Map();
+const _inflightRequests = new Map();
+
 export async function apiRequest(endpoint, options = {}) {
   let normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const method = (options.method || 'GET').toUpperCase();
@@ -26,6 +29,8 @@ export async function apiRequest(endpoint, options = {}) {
 
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}${normalizedEndpoint}`;
+  const cacheTtlMs = Number.isFinite(options.cacheTtlMs) ? options.cacheTtlMs : 15000;
+  const canUseCache = method === 'GET' && !options.noCache;
   let sessionId;
   let authToken;
   try {
@@ -47,8 +52,16 @@ export async function apiRequest(endpoint, options = {}) {
   };
   if (options.signal) config.signal = options.signal;
 
+  const cacheKey = `${method}:${url}:${authToken || ''}`;
+  if (canUseCache && cacheTtlMs > 0) {
+    const cached = _responseCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+    if (_inflightRequests.has(cacheKey)) return _inflightRequests.get(cacheKey);
+  }
+
   const startTime = performance.now();
-  try {
+  const requestPromise = (async () => {
+    try {
     const response = await fetch(url, { ...config, redirect: 'manual' });
 
     if (response.status >= 300 && response.status < 400) {
@@ -125,7 +138,7 @@ export async function apiRequest(endpoint, options = {}) {
     } catch (e) {
       return text;
     }
-  } catch (error) {
+    } catch (error) {
     const duration_ms = performance.now() - startTime;
     try {
       import('../telemetry.js').then(({ recordApiEvent }) => {
@@ -156,7 +169,19 @@ export async function apiRequest(endpoint, options = {}) {
       }
       console.error('API Request failed:', logPayload);
     }
-    throw error;
+      throw error;
+    }
+  })();
+
+  if (canUseCache && cacheTtlMs > 0) _inflightRequests.set(cacheKey, requestPromise);
+  try {
+    const data = await requestPromise;
+    if (canUseCache && cacheTtlMs > 0) {
+      _responseCache.set(cacheKey, { data, expiresAt: Date.now() + cacheTtlMs });
+    }
+    return data;
+  } finally {
+    if (canUseCache && cacheTtlMs > 0) _inflightRequests.delete(cacheKey);
   }
 }
 

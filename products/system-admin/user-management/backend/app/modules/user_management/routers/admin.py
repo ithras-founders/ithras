@@ -35,6 +35,37 @@ def list_pending_companies(
     return db.query(models.Company).filter(models.Company.status == "PENDING").order_by(models.Company.name).all()
 
 
+@router.get("/summary")
+def get_admin_summary(
+    db: Session = Depends(database.get_db),
+    current_user=Depends(require_permission("system.admin")),
+):
+    """Return aggregated platform stats for system admin dashboard."""
+    total_institutions = db.query(models.Institution).count()
+    total_companies = db.query(models.Company).count()
+    total_users = db.query(models.User).count()
+    total_candidates = db.query(models.User).filter(models.User.role == "CANDIDATE").count()
+    pending_institutions = db.query(models.Institution).filter(models.Institution.status == "PENDING").count()
+    pending_companies = db.query(models.Company).filter(models.Company.status == "PENDING").count()
+    active_jobs = db.query(models.JobPosting).filter(models.JobPosting.jd_status.in_(["Approved", "Submitted"])).count()
+    active_cycles = db.query(models.Cycle).filter(models.Cycle.status.in_(["APPLICATIONS_OPEN", "SHORTLISTING"])).count()
+    total_cvs = db.query(models.CV).count()
+    total_shortlists = db.query(models.Shortlist).count()
+
+    return {
+        "totalInstitutions": total_institutions,
+        "totalCompanies": total_companies,
+        "totalUsers": total_users,
+        "totalCandidates": total_candidates,
+        "pendingInstitutions": pending_institutions,
+        "pendingCompanies": pending_companies,
+        "activeJobs": active_jobs,
+        "activeCycles": active_cycles,
+        "totalCVs": total_cvs,
+        "totalShortlists": total_shortlists,
+    }
+
+
 # --- Approval schemas ---
 
 class InstitutionApproveSchema(BaseModel):

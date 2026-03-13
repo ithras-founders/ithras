@@ -51,6 +51,9 @@ export const deleteBatch = (id) =>
 export const seedSystemAdmin = () =>
   apiRequest('/v1/admin/seed-system-admin', { method: 'POST' });
 
+export const getAdminSummary = () =>
+  apiRequest('/v1/admin/summary');
+
 export const getPendingInstitutions = () =>
   apiRequest('/v1/admin/institutions/pending');
 export const getPendingCompanies = () =>

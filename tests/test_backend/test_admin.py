@@ -31,3 +31,26 @@ def test_get_users_after_seed(client):
     assert isinstance(users, list)
     admin_emails = [u.get("email") for u in users if u]
     assert "founders@ithras.com" in admin_emails
+
+
+def test_admin_summary_endpoint(client):
+    """System admin summary endpoint should return aggregated counters."""
+    login_r = client.post(
+        "/api/v1/auth/login",
+        json={"email": "founders@ithras.com", "password": "password"},
+    )
+    if login_r.status_code != 200:
+        pytest.skip("Seeded admin login unavailable")
+    token = login_r.json().get("access_token") or login_r.json().get("session_id")
+    assert token
+    r = client.get(
+        "/api/v1/admin/summary",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "totalInstitutions" in data
+    assert "totalCompanies" in data
+    assert "totalUsers" in data
+    assert "pendingInstitutions" in data
+    assert "pendingCompanies" in data

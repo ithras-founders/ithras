@@ -294,6 +294,14 @@ const UnifiedProfileView = ({
   const isVisible = (key) => vis(key) === 'public';
   const showLocked = (key) => vis(key) === 'private' || vis(key) === 'restricted';
 
+  const trustSignals = [
+    { key: 'verified_profile', label: 'Verified Profile', ok: !!isVerified },
+    { key: 'verified_institution', label: 'Institution Linked', ok: usableInstLinks.length > 0 },
+    { key: 'verified_program', label: 'Program Mapped', ok: usableInstLinks.some((l) => !!l.program_id || !!l.program_name) },
+    { key: 'verified_org', label: 'Organization Linked', ok: usableOrgLinks.length > 0 },
+  ];
+  const trustStrength = trustSignals.filter((s) => s.ok).length;
+
   // Last college (most recent: Current first, then Alumni by end_date desc)
   const lastCollege = (() => {
     const current = mergedEducation.find((e) => e.type === 'link' && e.link.tag === 'Current');
@@ -373,6 +381,16 @@ const UnifiedProfileView = ({
                     </div>
                     ${metaLine ? html`<p className="text-sm text-[var(--app-text-muted)] mt-0.5 truncate max-w-md">${metaLine}</p>` : null}
                     ${headline ? html`<p className="text-[15px] text-[var(--app-text-secondary)] mt-1 font-medium">${headline}</p>` : null}
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--app-surface-muted)] text-[var(--app-text-secondary)]">
+                        Trust ${trustStrength}/${trustSignals.length}
+                      </span>
+                      ${trustSignals.map((s) => html`
+                        <span key=${s.key} className=${`px-2 py-0.5 rounded-full text-[10px] font-medium ${s.ok ? 'bg-[var(--app-accent-soft)] text-[var(--app-accent)]' : 'bg-[var(--app-surface-muted)] text-[var(--app-text-muted)]'}`}>
+                          ${s.label}
+                        </span>
+                      `)}
+                    </div>
                     ${(roleTags.length > 0 || industryTags.length > 0) ? html`
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         ${roleTags.map((r) => html`<span key=${`role-${r}`} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--app-accent-soft)] text-[var(--app-accent)]">${toStr(r)}</span>`)}

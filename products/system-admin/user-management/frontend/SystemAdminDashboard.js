@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import {
   getInstitutions,
+  getAdminSummary,
   getUsers,
   getCompanies,
   getJobs,
@@ -40,6 +41,11 @@ const SystemAdminDashboard = ({ user, navigate }) => {
   const fetchStats = async () => {
     try {
       setLoading(true);
+      const summary = await getAdminSummary().catch(() => null);
+      if (summary && typeof summary === 'object') {
+        setStats((prev) => ({ ...prev, ...summary }));
+        return;
+      }
       const [
         institutionsData,
         usersData,

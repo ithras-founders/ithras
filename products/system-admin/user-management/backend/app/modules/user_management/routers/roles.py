@@ -3,7 +3,7 @@ import uuid
 import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
 
 from app.modules.shared import models, database, schemas
@@ -484,3 +484,54 @@ def revoke_profile(user_id: str, assignment_id: str, db: Session = Depends(datab
     db.delete(assignment)
     db.commit()
     return {"status": "revoked"}
+
+
+@router.post("/users/{user_id}/profiles/batch-revoke")
+def batch_revoke_profiles(
+    user_id: str,
+    assignment_ids: List[str] = Body(..., embed=True),
+    db: Session = Depends(database.get_db),
+    _=Depends(require_permission("users.manage_roles")),
+):
+    """Revoke multiple profile assignments in one request."""
+    ids = [a for a in (assignment_ids or []) if isinstance(a, str) and a.strip()]
+    if not ids:
+        raise HTTPException(status_code=400, detail="assignment_ids is required")
+
+    if _count_active_profiles(db, user_id, exclude_link_id=None, exclude_ura_id=None) - len(ids) <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot revoke all roles. Every user must have at least one role.",
+        )
+
+    revoked = []
+    for assignment_id in ids:
+        if assignment_id.startswith("iil_"):
+            link = db.query(models.IndividualInstitutionLink).filter(
+                models.IndividualInstitutionLink.id == assignment_id,
+                models.IndividualInstitutionLink.user_id == user_id,
+            ).first()
+            if link:
+                db.delete(link)
+                revoked.append(assignment_id)
+            continue
+        if assignment_id.startswith("iol_"):
+            link = db.query(models.IndividualOrganizationLink).filter(
+                models.IndividualOrganizationLink.id == assignment_id,
+                models.IndividualOrganizationLink.user_id == user_id,
+            ).first()
+            if link:
+                db.delete(link)
+                revoked.append(assignment_id)
+            continue
+
+        assignment = db.query(models.UserRoleAssignment).filter(
+            models.UserRoleAssignment.id == assignment_id,
+            models.UserRoleAssignment.user_id == user_id,
+        ).first()
+        if assignment:
+            db.delete(assignment)
+            revoked.append(assignment_id)
+
+    db.commit()
+    return {"status": "ok", "revoked": revoked}

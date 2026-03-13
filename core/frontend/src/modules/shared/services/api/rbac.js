@@ -35,6 +35,11 @@ export const updateProfile = (userId, assignmentId, data) =>
   apiRequest(`/v1/users/${userId}/profiles/${assignmentId}`, { method: 'PUT', body: JSON.stringify(data) });
 export const revokeProfile = (userId, assignmentId) =>
   apiRequest(`/v1/users/${userId}/profiles/${assignmentId}`, { method: 'DELETE' });
+export const batchRevokeProfiles = (userId, assignmentIds) =>
+  apiRequest(`/v1/users/${userId}/profiles/batch-revoke`, {
+    method: 'POST',
+    body: JSON.stringify({ assignment_ids: assignmentIds }),
+  });
 
 export const switchProfile = (profileId) =>
   apiRequest('/v1/auth/switch-profile', { method: 'POST', body: JSON.stringify({ profile_id: profileId }) });
