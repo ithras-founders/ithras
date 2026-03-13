@@ -17,8 +17,8 @@ class Institution(Base):
     founding_year = Column(Integer, nullable=True)
     student_count_range = Column(String, nullable=True)  # e.g. "1,001-5,000"
     onboarding_status = Column(String, default="FULLY_ONBOARDED")  # PRESENT_ONLY | FULLY_ONBOARDED
-    features = Column(JSON, default=[])  # e.g. ["placement", "governance", "institution_admin"]
-    allowed_roles = Column(JSON, default=[])  # e.g. ["CANDIDATE","PLACEMENT_TEAM","INSTITUTION_ADMIN",...]
+    features = Column(JSON, default=list)  # e.g. ["placement", "governance", "institution_admin"]
+    allowed_roles = Column(JSON, default=list)  # e.g. ["CANDIDATE","PLACEMENT_TEAM","INSTITUTION_ADMIN",...]
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
@@ -60,7 +60,7 @@ class Company(Base):
     founding_year = Column(Integer, nullable=True)
     onboarding_status = Column(String, default="ONBOARDED")  # deprecated: use status
     status = Column(String, default="PENDING", nullable=False)  # PENDING | VERIFIED | PARTNER
-    allowed_roles = Column(JSON, default=[])  # e.g. ["RECRUITER"]
+    allowed_roles = Column(JSON, default=list)  # e.g. ["RECRUITER"]
 
 
 class BusinessUnit(Base):
@@ -135,7 +135,7 @@ class User(Base):
     institution_id = Column(String, ForeignKey("institutions.id"), nullable=True)  # deprecated: use individual_institution_links
     program_id = Column(String, ForeignKey("programs.id"), nullable=True)  # deprecated: use individual_institution_links
     batch_id = Column(String, ForeignKey("batches.id"), nullable=True, index=True)
-    sector_preferences = Column(JSON, default=[])
+    sector_preferences = Column(JSON, default=list)
     password_hash = Column(String, nullable=True)
     roll_number = Column(String, nullable=True)
     profile_photo_url = Column(String, nullable=True)
@@ -192,7 +192,7 @@ class UserProfileChangeRequest(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     institution_id = Column(String, ForeignKey("institutions.id"), nullable=True, index=True)
     requested_by = Column(String, ForeignKey("users.id"), nullable=False, index=True)
-    requested_changes = Column(JSON, default={})
+    requested_changes = Column(JSON, default=dict)
     status = Column(String, default="PENDING")  # PENDING, APPROVED, REJECTED
     reviewed_by = Column(String, ForeignKey("users.id"), nullable=True)
     reviewed_at = Column(DateTime, nullable=True)

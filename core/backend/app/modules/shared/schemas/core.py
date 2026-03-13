@@ -1,5 +1,5 @@
 """Core domain schemas: Institution, User, Company, RBAC"""
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -21,7 +21,7 @@ class InstitutionSchema(BaseModel):
     tier: Optional[str] = None
     location: Optional[str] = None
     logo_url: Optional[str] = None
-    allowed_roles: List[str] = []
+    allowed_roles: List[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
@@ -116,7 +116,7 @@ class UserSchema(BaseModel):
     institution_id: Optional[str] = None
     program_id: Optional[str] = None
     batch_id: Optional[str] = None
-    sector_preferences: List[str] = []
+    sector_preferences: List[str] = Field(default_factory=list)
     roll_number: Optional[str] = None
     profile_photo_url: Optional[str] = None
     student_subtype: Optional[str] = None
@@ -137,7 +137,7 @@ class UserProfileSchema(BaseModel):
     institution_id: Optional[str] = None
     program_id: Optional[str] = None
     batch_id: Optional[str] = None
-    sector_preferences: List[str] = []
+    sector_preferences: List[str] = Field(default_factory=list)
     roll_number: Optional[str] = None
     profile_photo_url: Optional[str] = None
     student_subtype: Optional[str] = None
@@ -179,8 +179,8 @@ class OrganizationLinkSchema(BaseModel):
 class UserProfileResponseSchema(BaseModel):
     """Enhanced user payload with links and profile type for LinkedIn-style profiles."""
     user: UserProfileSchema
-    institution_links: List[InstitutionLinkSchema] = []
-    organization_links: List[OrganizationLinkSchema] = []
+    institution_links: List[InstitutionLinkSchema] = Field(default_factory=list)
+    organization_links: List[OrganizationLinkSchema] = Field(default_factory=list)
     profile_type: str  # "public" | "student" | "recruiter"
 
 
@@ -215,7 +215,7 @@ class UserProfileChangeRequestSchema(BaseModel):
     user_id: str
     institution_id: Optional[str] = None
     requested_by: str
-    requested_changes: Dict[str, Any] = {}
+    requested_changes: Dict[str, Any] = Field(default_factory=dict)
     status: str
     reviewed_by: Optional[str] = None
     reviewed_at: Optional[datetime] = None
@@ -253,7 +253,7 @@ class CompanySchema(BaseModel):
     description: Optional[str] = None
     headquarters: Optional[str] = None
     founding_year: Optional[int] = None
-    allowed_roles: List[str] = []
+    allowed_roles: List[str] = Field(default_factory=list)
     status: Optional[str] = "PARTNER"  # PENDING | LISTED | PARTNER
 
     _normalize_allowed_roles = field_validator("allowed_roles", mode="before")(_coerce_allowed_roles)
@@ -309,7 +309,7 @@ class RoleSchema(BaseModel):
     description: Optional[str] = None
     institution_id: Optional[str] = None
     is_system: bool = False
-    permissions: List[PermissionSchema] = []
+    permissions: List[PermissionSchema] = Field(default_factory=list)
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -321,7 +321,7 @@ class RoleCreateSchema(BaseModel):
     name: str
     description: Optional[str] = None
     institution_id: Optional[str] = None
-    permission_codes: List[str] = []
+    permission_codes: List[str] = Field(default_factory=list)
 
 
 class RoleUpdateSchema(BaseModel):
@@ -342,7 +342,7 @@ class ProfileSchema(BaseModel):
     company_logo_url: Optional[str] = None
     program_id: Optional[str] = None
     program_name: Optional[str] = None
-    permissions: List[str] = []
+    permissions: List[str] = Field(default_factory=list)
     granted_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
     is_active: bool = True
