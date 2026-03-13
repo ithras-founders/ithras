@@ -95,6 +95,30 @@ def _ensure_self(current_user: models.User, target_user_id: str) -> None:
         raise HTTPException(status_code=403, detail="You can only perform this action for yourself")
 
 
+def _apply_user_list_scope(
+    query,
+    current_user: models.User,
+    db: Session,
+    institution_id: Optional[str],
+    company_id: Optional[str],
+):
+    if current_user.role == "SYSTEM_ADMIN":
+        return query
+
+    institution_ids, company_ids = _active_scope_ids(current_user, db)
+    if institution_id or company_id:
+        return query
+
+    conditions = []
+    if institution_ids:
+        conditions.append(models.User.institution_id.in_(list(institution_ids)))
+    if company_ids:
+        conditions.append(models.User.company_id.in_(list(company_ids)))
+    if not conditions:
+        return query.filter(models.User.id.in_([]))
+    return query.filter(or_(*conditions))
+
+
 @router.get("/")
 def get_users(
     q: Optional[str] = None,
@@ -124,6 +148,7 @@ def get_users(
     )
 
     query = db.query(models.User)
+    query = _apply_user_list_scope(query, current_user, db, institution_id, company_id)
     if is_alumni:
         if _links_table_exists(db):
             if institution_id:
@@ -611,13 +636,20 @@ def list_profile_change_requests(
     institution_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     current_user: models.User = Depends(get_current_user),
-    _: models.User = Depends(require_role("SYSTEM_ADMIN", "PLACEMENT_ADMIN", "PLACEMENT_TEAM", "RECRUITER")),
+    _: models.User = Depends(require_role("SYSTEM_ADMIN", "PLACEMENT_ADMIN", "PLACEMENT_TEAM")),
     db: Session = Depends(database.get_db)
 ):
     """List profile update requests for placement representatives."""
-    _ensure_within_scope(current_user, db, target_institution_id=institution_id)
 
     query = db.query(models.UserProfileChangeRequest)
+    if current_user.role != "SYSTEM_ADMIN":
+        institution_ids, _ = _active_scope_ids(current_user, db)
+        if institution_id:
+            _ensure_within_scope(current_user, db, target_institution_id=institution_id)
+        elif institution_ids:
+            query = query.filter(models.UserProfileChangeRequest.institution_id.in_(list(institution_ids)))
+        else:
+            return []
     if institution_id:
         query = query.filter(models.UserProfileChangeRequest.institution_id == institution_id)
     if status:

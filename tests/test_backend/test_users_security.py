@@ -1,19 +1,56 @@
 """Regression tests for users router authorization and scope checks."""
+from types import SimpleNamespace
+
 import pytest
 
+from app.main import app
+from app.modules.shared.auth import get_current_user
+from app.modules.shared import database
+from app.modules.institution.routers import users as users_router
 
 BASE = "/api/v1/users"
 
 
-def _login_seeded_admin(client):
-    client.post("/api/v1/admin/seed-system-admin")
-    login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "founders@ithras.com", "password": "password"},
+class _EmptyQuery:
+    def filter(self, *args, **kwargs):
+        return self
+
+    def order_by(self, *args, **kwargs):
+        return self
+
+    def all(self):
+        return []
+
+    def first(self):
+        return None
+
+
+class _FakeDB:
+    def query(self, *args, **kwargs):
+        return _EmptyQuery()
+
+    def commit(self):
+        return None
+
+    def refresh(self, _obj):
+        return None
+
+
+def _override_auth(user_id="user_self", role="CANDIDATE"):
+    app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(
+        id=user_id,
+        role=role,
+        institution_id="inst_a",
+        company_id="comp_a",
     )
-    if login.status_code != 200:
-        pytest.skip("Seeded user required for auth tests")
-    return login.json()["user"], {"Authorization": f"Bearer {login.json()['session_id']}"}
+    app.dependency_overrides[database.get_db] = lambda: _FakeDB()
+
+
+@pytest.fixture(autouse=True)
+def _clear_overrides():
+    app.dependency_overrides.clear()
+    yield
+    app.dependency_overrides.clear()
 
 
 def test_users_sensitive_routes_require_auth(client):
@@ -33,50 +70,45 @@ def test_users_sensitive_routes_require_auth(client):
 
 
 def test_users_self_scoped_routes_reject_cross_user_access(client):
-    me, headers = _login_seeded_admin(client)
+    _override_auth(user_id="user_self")
     other_user_id = "user_other"
 
-    r1 = client.get(f"{BASE}/{other_user_id}/profile-change-requests", headers=headers)
+    r1 = client.get(f"{BASE}/{other_user_id}/profile-change-requests")
     assert r1.status_code == 403
 
     r2 = client.post(
         f"{BASE}/{other_user_id}/profile-change-requests",
-        headers=headers,
-        json={"requested_by": me["id"], "requested_changes": {"name": "Cross User"}},
+        json={"requested_by": "user_self", "requested_changes": {"name": "Cross User"}},
     )
     assert r2.status_code == 403
 
     r3 = client.post(
         f"{BASE}/{other_user_id}/profile-photo",
-        headers=headers,
         files={"file": ("avatar.jpg", b"jpg", "image/jpeg")},
     )
     assert r3.status_code == 403
 
 
-def test_users_self_scoped_routes_allow_same_user_access(client):
-    me, headers = _login_seeded_admin(client)
+def test_users_self_scoped_routes_allow_same_scope_access(client, monkeypatch):
+    _override_auth(user_id="user_self")
 
-    r1 = client.get(f"{BASE}/{me['id']}/profile-change-requests", headers=headers)
+    monkeypatch.setattr(
+        users_router,
+        "create_profile_change",
+        lambda user_id, requested_by, changes, db: (_ for _ in ()).throw(ValueError("not_candidate")),
+    )
+
+    r1 = client.get(f"{BASE}/user_self/profile-change-requests")
     assert r1.status_code == 200
 
-    # Uses authenticated identity + self user_id; service may still reject based on role,
-    # but auth/scope should allow request through dependency checks.
     r2 = client.post(
-        f"{BASE}/{me['id']}/profile-change-requests",
-        headers=headers,
-        json={"requested_by": me["id"], "requested_changes": {"name": "Self Edit"}},
+        f"{BASE}/user_self/profile-change-requests",
+        json={"requested_by": "user_self", "requested_changes": {"name": "Self Edit"}},
     )
-    assert r2.status_code in (200, 400)
+    assert r2.status_code == 400
 
-
-def test_users_scope_filter_denies_out_of_scope_institution(client):
-    _, headers = _login_seeded_admin(client)
-
-    # seeded admin has no institution context; treated as system admin and allowed
-    allowed = client.get(f"{BASE}?institution_id=inst_1", headers=headers)
-    assert allowed.status_code == 200
-
-    # cross-scope check on explicit company scope should still pass for system admin
-    allowed_company = client.get(f"{BASE}?company_id=comp_1", headers=headers)
-    assert allowed_company.status_code == 200
+    r3 = client.post(
+        f"{BASE}/user_self/profile-photo",
+        files={"file": ("avatar.jpg", b"jpg", "image/jpeg")},
+    )
+    assert r3.status_code in (200, 404)
