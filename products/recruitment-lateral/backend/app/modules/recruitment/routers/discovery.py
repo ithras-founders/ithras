@@ -28,16 +28,59 @@ class MatchStatsRequest(BaseModel):
 
 def _apply_criteria_to_query(db, base_query, profile: dict):
     """Apply job profile criteria to a users query. Returns modified query text and params."""
+    now_expr = "CURRENT_TIMESTAMP"
+    active_inst_link = (
+        "EXISTS ("
+        "SELECT 1 FROM individual_institution_links iil "
+        "WHERE iil.user_id = u.id "
+        f"AND (iil.end_date IS NULL OR iil.end_date >= {now_expr})"
+        ")"
+    )
+    active_org_link = (
+        "EXISTS ("
+        "SELECT 1 FROM individual_organization_links iol "
+        "WHERE iol.user_id = u.id "
+        f"AND (iol.end_date IS NULL OR iol.end_date >= {now_expr})"
+        ")"
+    )
     params = {}
-    conditions = ["u.role != 'SYSTEM_ADMIN'"]
+    conditions = [
+        f"({active_inst_link} OR {active_org_link})",
+        "NOT EXISTS ("
+        "SELECT 1 FROM individual_institution_links iil_admin "
+        "WHERE iil_admin.user_id = u.id "
+        f"AND (iil_admin.end_date IS NULL OR iil_admin.end_date >= {now_expr}) "
+        "AND iil_admin.role_id = 'SYSTEM_ADMIN'"
+        ")",
+        "NOT EXISTS ("
+        "SELECT 1 FROM individual_organization_links iol_admin "
+        "WHERE iol_admin.user_id = u.id "
+        f"AND (iol_admin.end_date IS NULL OR iol_admin.end_date >= {now_expr}) "
+        "AND iol_admin.role_id = 'SYSTEM_ADMIN'"
+        ")",
+    ]
     if profile.get("institution_ids") and isinstance(profile["institution_ids"], list) and len(profile["institution_ids"]) > 0:
         placeholders = ", ".join([f":inst_{i}" for i in range(len(profile["institution_ids"]))])
-        conditions.append(f"u.institution_id IN ({placeholders})")
+        conditions.append(
+            "EXISTS ("
+            "SELECT 1 FROM individual_institution_links iil_inst "
+            "WHERE iil_inst.user_id = u.id "
+            f"AND (iil_inst.end_date IS NULL OR iil_inst.end_date >= {now_expr}) "
+            f"AND iil_inst.institution_id IN ({placeholders})"
+            ")"
+        )
         for i, v in enumerate(profile["institution_ids"]):
             params[f"inst_{i}"] = v
     if profile.get("program_ids") and isinstance(profile["program_ids"], list) and len(profile["program_ids"]) > 0:
         placeholders = ", ".join([f":prog_{i}" for i in range(len(profile["program_ids"]))])
-        conditions.append(f"u.program_id IN ({placeholders})")
+        conditions.append(
+            "EXISTS ("
+            "SELECT 1 FROM individual_institution_links iil_prog "
+            "WHERE iil_prog.user_id = u.id "
+            f"AND (iil_prog.end_date IS NULL OR iil_prog.end_date >= {now_expr}) "
+            f"AND iil_prog.program_id IN ({placeholders})"
+            ")"
+        )
         for i, v in enumerate(profile["program_ids"]):
             params[f"prog_{i}"] = v
     if profile.get("sector"):
@@ -50,7 +93,22 @@ def _apply_criteria_to_query(db, base_query, profile: dict):
         conditions.append("(u.backlog_count IS NULL OR u.backlog_count <= :max_backlogs)")
         params["max_backlogs"] = profile["max_backlogs"]
     if profile.get("experience_years_min") is not None and profile["experience_years_min"] > 0:
-        conditions.append("u.role = 'PROFESSIONAL'")
+        conditions.append(
+            "("
+            "EXISTS ("
+            "SELECT 1 FROM individual_institution_links iil_prof "
+            "WHERE iil_prof.user_id = u.id "
+            f"AND (iil_prof.end_date IS NULL OR iil_prof.end_date >= {now_expr}) "
+            "AND iil_prof.role_id = 'PROFESSIONAL'"
+            ") "
+            "OR EXISTS ("
+            "SELECT 1 FROM individual_organization_links iol_prof "
+            "WHERE iol_prof.user_id = u.id "
+            f"AND (iol_prof.end_date IS NULL OR iol_prof.end_date >= {now_expr}) "
+            "AND iol_prof.role_id = 'PROFESSIONAL'"
+            ")"
+            ")"
+        )
     return " AND ".join(conditions), params
 
 
@@ -111,13 +169,50 @@ def get_discovery_candidates(
     params["offset"] = offset
 
     sql = f"""
-        SELECT u.id, u.name, u.email, u.profile_photo_url, u.role, u.student_subtype,
-               u.institution_id, u.program_id, u.cgpa, u.backlog_count
+        SELECT u.id, u.name, u.email, u.profile_photo_url,
+               COALESCE(
+                    (SELECT iil_role.role_id FROM individual_institution_links iil_role
+                     WHERE iil_role.user_id = u.id
+                       AND (iil_role.end_date IS NULL OR iil_role.end_date >= CURRENT_TIMESTAMP)
+                     ORDER BY iil_role.start_date DESC
+                     LIMIT 1),
+                    (SELECT iol_role.role_id FROM individual_organization_links iol_role
+                     WHERE iol_role.user_id = u.id
+                       AND (iol_role.end_date IS NULL OR iol_role.end_date >= CURRENT_TIMESTAMP)
+                     ORDER BY iol_role.start_date DESC
+                     LIMIT 1)
+               ) as role,
+               u.student_subtype,
+               (SELECT iil_inst.institution_id FROM individual_institution_links iil_inst
+                WHERE iil_inst.user_id = u.id
+                  AND (iil_inst.end_date IS NULL OR iil_inst.end_date >= CURRENT_TIMESTAMP)
+                ORDER BY iil_inst.start_date DESC
+                LIMIT 1) as institution_id,
+               (SELECT iil_prog.program_id FROM individual_institution_links iil_prog
+                WHERE iil_prog.user_id = u.id
+                  AND (iil_prog.end_date IS NULL OR iil_prog.end_date >= CURRENT_TIMESTAMP)
+                ORDER BY iil_prog.start_date DESC
+                LIMIT 1) as program_id,
+               u.cgpa, u.backlog_count
         FROM users u
         WHERE {conditions}
     """
     if role:
-        sql += " AND u.role = :role"
+        sql += """
+            AND (
+                EXISTS (
+                    SELECT 1 FROM individual_institution_links iil_role_filter
+                    WHERE iil_role_filter.user_id = u.id
+                      AND (iil_role_filter.end_date IS NULL OR iil_role_filter.end_date >= CURRENT_TIMESTAMP)
+                      AND iil_role_filter.role_id = :role
+                ) OR EXISTS (
+                    SELECT 1 FROM individual_organization_links iol_role_filter
+                    WHERE iol_role_filter.user_id = u.id
+                      AND (iol_role_filter.end_date IS NULL OR iol_role_filter.end_date >= CURRENT_TIMESTAMP)
+                      AND iol_role_filter.role_id = :role
+                )
+            )
+        """
         params["role"] = role
     if q and q.strip():
         sql += " AND (u.name ILIKE :q_term OR u.email ILIKE :q_term OR u.roll_number ILIKE :q_term)"
@@ -127,7 +222,21 @@ def get_discovery_candidates(
     items = [_serialize_user(r) for r in rows]
     count_sql = f"SELECT COUNT(*) as cnt FROM users u WHERE {conditions}"
     if role:
-        count_sql += " AND u.role = :role"
+        count_sql += """
+            AND (
+                EXISTS (
+                    SELECT 1 FROM individual_institution_links iil_role_filter
+                    WHERE iil_role_filter.user_id = u.id
+                      AND (iil_role_filter.end_date IS NULL OR iil_role_filter.end_date >= CURRENT_TIMESTAMP)
+                      AND iil_role_filter.role_id = :role
+                ) OR EXISTS (
+                    SELECT 1 FROM individual_organization_links iol_role_filter
+                    WHERE iol_role_filter.user_id = u.id
+                      AND (iol_role_filter.end_date IS NULL OR iol_role_filter.end_date >= CURRENT_TIMESTAMP)
+                      AND iol_role_filter.role_id = :role
+                )
+            )
+        """
     if q and q.strip():
         count_sql += " AND (u.name ILIKE :q_term OR u.email ILIKE :q_term OR u.roll_number ILIKE :q_term)"
     total = db.execute(text(count_sql), {k: v for k, v in params.items() if k not in ("limit", "offset")}).scalar() or 0
@@ -153,11 +262,13 @@ def get_match_stats(
     total = db.execute(text(count_sql), params).scalar() or 0
 
     by_inst_sql = f"""
-        SELECT u.institution_id as id, i.name, COUNT(*) as cnt
+        SELECT iil.institution_id as id, i.name, COUNT(DISTINCT u.id) as cnt
         FROM users u
-        LEFT JOIN institutions i ON i.id = u.institution_id
-        WHERE {conditions} AND u.institution_id IS NOT NULL
-        GROUP BY u.institution_id, i.name
+        JOIN individual_institution_links iil ON iil.user_id = u.id
+          AND (iil.end_date IS NULL OR iil.end_date >= CURRENT_TIMESTAMP)
+        LEFT JOIN institutions i ON i.id = iil.institution_id
+        WHERE {conditions} AND iil.institution_id IS NOT NULL
+        GROUP BY iil.institution_id, i.name
         ORDER BY cnt DESC
         LIMIT 20
     """
