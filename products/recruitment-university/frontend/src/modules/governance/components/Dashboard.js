@@ -7,6 +7,8 @@ import {
   getCycles, 
   getCVs, 
   getShortlists,
+  getSharedCohortOutcomes,
+  getSharedRoleProgression,
 } from '/core/frontend/src/modules/shared/services/api.js';
 import { UserRole } from '/core/frontend/src/modules/shared/types.js';
 import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
@@ -29,6 +31,7 @@ const Dashboard = ({ user, navigate }) => {
     verifiedCVs: 0
   });
   const [loading, setLoading] = useState(true);
+  const [intelligence, setIntelligence] = useState({ cohort: [], progression: [] });
 
   useEffect(() => {
     if (isTutorialMode) {
@@ -87,6 +90,15 @@ const Dashboard = ({ user, navigate }) => {
         totalShortlists: shortlistsData.length,
         verifiedCVs: verifiedCVs.length
       });
+
+      const [cohortRes, progressionRes] = await Promise.all([
+        getSharedCohortOutcomes({ institution_id: user?.institution_id }).catch(() => ({ items: [] })),
+        getSharedRoleProgression({ institution_id: user?.institution_id }).catch(() => ({ items: [] })),
+      ]);
+      setIntelligence({
+        cohort: cohortRes?.items?.slice(0, 6) || [],
+        progression: progressionRes?.items?.slice(0, 6) || [],
+      });
     } catch (error) {
       console.error('Failed to fetch stats:', error);
     } finally {
@@ -125,6 +137,25 @@ const Dashboard = ({ user, navigate }) => {
             </div>
           </div>
         `)}
+      </div>
+
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--app-space-6)]">
+        <${SectionCard} title="Institution Intelligence: Cohort Outcomes" className="p-[var(--app-space-8)]">
+          ${intelligence.cohort.length === 0 ? html`<p className="text-sm text-[var(--app-text-muted)]">No cohort benchmark data yet.</p>` : html`
+            <div className="space-y-2 text-sm">
+              ${intelligence.cohort.map((r, idx) => html`<div key=${idx}>${r.month} • ${r.outcome_type}: <b>${r.outcome_count}</b></div>`)}
+            </div>
+          `}
+        <//>
+
+        <${SectionCard} title="Institution Intelligence: Role Progression" className="p-[var(--app-space-8)]">
+          ${intelligence.progression.length === 0 ? html`<p className="text-sm text-[var(--app-text-muted)]">No progression benchmark data yet.</p>` : html`
+            <div className="space-y-2 text-sm">
+              ${intelligence.progression.map((r, idx) => html`<div key=${idx}>${r.graduation_year || 'N/A'} • ${r.role_name}: <b>${r.trajectory_count}</b></div>`)}
+            </div>
+          `}
+        <//>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-[var(--app-space-6)]" data-tour-id="placement-actions">
