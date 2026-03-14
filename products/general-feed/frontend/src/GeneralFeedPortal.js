@@ -403,13 +403,25 @@ const GeneralFeedPortal = ({ user, view, navigate }) => {
     ? null
     : feedProfiles
         .filter((p) => p.id !== user?.id)
-        .map((p) => {
+        .map((p, index) => {
           const profileWithHeadline = { ...p, headline: p.student_subtype || 'Professional' };
-          return html`<${ProfileCard} key=${p.id} profile=${profileWithHeadline} viewer=${user} onClick=${() => handleProfileClick(p)} />`;
+          return html`
+            <div
+              key=${p.id}
+              className="rounded-2xl border border-[var(--app-border-soft)]/80 bg-[var(--app-surface)]/90 shadow-[var(--app-shadow-subtle)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--app-accent)]/25 hover:shadow-[var(--app-shadow-floating)] animate-in"
+              style=${{ animationDelay: `${Math.min(index * 45, 360)}ms` }}
+            >
+              <${ProfileCard} profile=${profileWithHeadline} viewer=${user} onClick=${() => handleProfileClick(p)} />
+            </div>
+          `;
         });
 
   const sidebarContent = html`
-    <aside className="lg:sticky lg:top-6 space-y-4">
+    <aside className="lg:sticky lg:top-5 space-y-4">
+      <div className="rounded-2xl border border-[var(--app-border-soft)] bg-[var(--app-surface)]/80 px-4 py-3 shadow-[var(--app-shadow-subtle)] backdrop-blur-sm">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--app-text-muted)]">Community picks</p>
+        <p className="mt-1 text-sm font-semibold text-[var(--app-text-primary)]">People you may want to connect with</p>
+      </div>
       ${loading
         ? html`
             <div className="space-y-3">
@@ -428,7 +440,7 @@ const GeneralFeedPortal = ({ user, view, navigate }) => {
 
   return html`
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-10">
-      <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-10 xl:gap-12">
+      <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-10 xl:gap-12">
         <main className="min-w-0">
           ${user ? html`<div className="mb-8"><${PostComposer} user=${user} onPost=${handlePostCreated} /></div>` : null}
 
