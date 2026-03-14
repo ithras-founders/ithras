@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { getTimetableBlocks, createTimetableBlock, updateTimetableBlock, deleteTimetableBlock, getStudentRelevantSlots } from '/core/frontend/src/modules/shared/services/api.js';
 import { useToast, useDialog } from '/core/frontend/src/modules/shared/index.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
-import { isDemoId } from '/core/frontend/src/modules/shared/utils/demoUtils.js';
 import TimetableBlockEditor from '../components/TimetableBlockEditor.js';
 
 const html = htm.bind(React.createElement);
@@ -12,8 +9,6 @@ const html = htm.bind(React.createElement);
 const StudentCalendarView = ({ user }) => {
   const toast = useToast();
   const { confirm } = useDialog();
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
-  const showAICalendarBanner = isTutorialMode || isDemoId(user?.id);
   const [blocks, setBlocks] = useState([]);
   const [companySlots, setCompanySlots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,20 +16,9 @@ const StudentCalendarView = ({ user }) => {
   const [editingBlock, setEditingBlock] = useState(null);
 
   useEffect(() => {
-    if (isTutorialMode || isDemoId(user?.id)) {
-      const mock = getTutorialData?.('CANDIDATE') ?? getTutorialMockData('CANDIDATE');
-      setBlocks(mock.timetableBlocks || []);
-      setCompanySlots([
-        { id: 'cs1', start_time: new Date(Date.now() + 86400000).toISOString(), end_time: new Date(Date.now() + 86400000 + 3600000).toISOString(), slot_type: 'INTERVIEW', company_id: 'c1' },
-        { id: 'cs2', start_time: new Date(Date.now() + 172800000).toISOString(), end_time: new Date(Date.now() + 172800000 + 5400000).toISOString(), slot_type: 'PRESENTATION', company_id: 'c2' },
-        { id: 'cs3', start_time: new Date(Date.now() + 345600000).toISOString(), end_time: new Date(Date.now() + 345600000 + 3600000).toISOString(), slot_type: 'NETWORKING', company_id: 'c4' },
-      ]);
-      setLoading(false);
-      return;
-    }
     fetchBlocks();
     fetchCompanySlots();
-  }, [user?.id, isTutorialMode]);
+  }, [user?.id]);
 
   const fetchCompanySlots = async () => {
     try {
@@ -108,30 +92,6 @@ const StudentCalendarView = ({ user }) => {
 
   return html`
     <div className="space-y-8 animate-in pb-20">
-      ${showAICalendarBanner ? html`
-        <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-violet-50 border border-violet-200 rounded-2xl p-4">
-            <p className="text-[10px] font-semibold text-violet-600 uppercase">AI Conflict Check</p>
-            <p className="text-2xl font-semibold text-[var(--app-text-primary)]">0 conflicts</p>
-            <p className="text-xs text-[var(--app-text-secondary)] mt-1">Interview slots vs your timetable</p>
-          </div>
-          <div className="bg-[var(--app-accent-soft)] border border-blue-200 rounded-2xl p-4">
-            <p className="text-[10px] font-semibold text-[var(--app-accent)] uppercase">Candidates Available</p>
-            <p className="text-2xl font-semibold text-[var(--app-text-primary)]">42</p>
-            <p className="text-xs text-[var(--app-text-secondary)] mt-1">This week for scheduling</p>
-          </div>
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
-            <p className="text-[10px] font-semibold text-emerald-600 uppercase">Open Slots</p>
-            <p className="text-2xl font-semibold text-[var(--app-text-primary)]">12</p>
-            <p className="text-xs text-[var(--app-text-secondary)] mt-1">Recruiter interview slots</p>
-          </div>
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-            <p className="text-[10px] font-semibold text-amber-600 uppercase">Blocked</p>
-            <p className="text-2xl font-semibold text-[var(--app-text-primary)]">6</p>
-            <p className="text-xs text-[var(--app-text-secondary)] mt-1">Classes & exams</p>
-          </div>
-        </div>
-      ` : null}
       <div data-tour-id="calendar-header" className="flex justify-end">
         <button
           onClick=${() => { setEditingBlock(null); setShowEditor(true); }}

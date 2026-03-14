@@ -1,14 +1,11 @@
 import React from 'react';
 import htm from 'htm';
 import { EmptyState } from '/core/frontend/src/modules/shared/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 
 const html = htm.bind(React.createElement);
 
-const ActiveProcessesView = ({ activeShortlists, companies, isTutorialMode, getTutorialData }) => {
-  const useMock = isTutorialMode;
-  const mock = useMock ? (getTutorialData?.('CANDIDATE') ?? getTutorialMockData('CANDIDATE')) : null;
-  const processes = useMock ? (mock?.activeProcesses || []) : activeShortlists.map(s => ({
+const ActiveProcessesView = ({ activeShortlists, companies }) => {
+  const processes = (activeShortlists || []).map(s => ({
     id: s.id,
     company_id: s.company_id,
     status: s.status,
@@ -20,7 +17,7 @@ const ActiveProcessesView = ({ activeShortlists, companies, isTutorialMode, getT
       <div className="grid gap-6">
         ${processes.length === 0 ? html`
           <${EmptyState}
-            title=${useMock ? 'No active processes (demo)' : 'No active processes yet'}
+            title="No active processes yet"
             message="When you're shortlisted or have applications in progress, they'll appear here."
           />
         ` : processes.map(p => html`

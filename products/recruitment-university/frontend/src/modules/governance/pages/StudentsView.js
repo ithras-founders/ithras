@@ -9,13 +9,10 @@ import {
 } from '/core/frontend/src/modules/shared/services/api.js';
 import { UserRole } from '/core/frontend/src/modules/shared/types.js';
 import { SkeletonLoader } from '/core/frontend/src/modules/shared/index.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 
 const html = htm.bind(React.createElement);
 
 const StudentsView = ({ user, navigate }) => {
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [students, setStudents] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [batches, setBatches] = useState([]);
@@ -77,20 +74,6 @@ const StudentsView = ({ user, navigate }) => {
     }
   }, [programFilter]);
 
-  useEffect(() => {
-    if (isTutorialMode) {
-      const mock = getTutorialData('PLACEMENT_TEAM') ?? getTutorialMockData('PLACEMENT_TEAM');
-      const mockStudents = mock.cvStudents || mock.users?.filter((u) => u.role === UserRole.CANDIDATE) || [];
-      setStudents(mockStudents);
-      setPrograms(mock.programs || []);
-      setBatches(mock.batches || []);
-      setCvs(mock.cvSubmissions || []);
-      setApplications(mock.applications || []);
-      setLoading(false);
-      return;
-    }
-  }, [isTutorialMode, getTutorialData]);
-
   const filtered = students.filter((s) => {
     if (search) {
       const q = search.toLowerCase();
@@ -106,7 +89,7 @@ const StudentsView = ({ user, navigate }) => {
   const getProgramName = (id) => programs.find((p) => p.id === id)?.name || id || '-';
   const getBatchName = (id) => batches.find((b) => b.id === id)?.name || id || '-';
 
-  if (!institutionId && !isTutorialMode) {
+  if (!institutionId) {
     return html`
       <div className="p-20 text-center font-semibold text-[var(--app-text-muted)]">
         No institution assigned. Contact your administrator.
@@ -114,7 +97,7 @@ const StudentsView = ({ user, navigate }) => {
     `;
   }
 
-  if (loading && !isTutorialMode) {
+  if (loading) {
     return html`<div className="p-6"><${SkeletonLoader} variant="cards" lines=${6} /></div>`;
   }
 

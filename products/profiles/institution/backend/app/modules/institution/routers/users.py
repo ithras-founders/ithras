@@ -12,6 +12,7 @@ from app.modules.shared.auth import (
     get_current_user,
     get_current_user_optional,
     require_role,
+    require_users_list_access,
     _links_table_exists,
 )
 from app.modules.shared.links import (
@@ -93,7 +94,7 @@ def get_users(
     is_alumni: Optional[bool] = Query(None, description="When true with institution_id or company_id, return users with ended links (alumni)"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    current_user: models.User = Depends(require_role("PLACEMENT_TEAM", "PLACEMENT_ADMIN", "RECRUITER", "SYSTEM_ADMIN")),
+    current_user: models.User = Depends(require_users_list_access()),
     db: Session = Depends(database.get_db)
 ):
     """Get users with optional filtering and pagination. q = text search on name, email, roll_number."""

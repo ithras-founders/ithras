@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { getWorkflows, getWorkflowStages, getApplications, getJDSubmission, createJDSubmission, createShortlist, createOffer, getOffers, getApiBaseUrl } from '/core/frontend/src/modules/shared/services/api.js';
 import { useToast, SkeletonLoader, EmptyState, ApiError } from '/core/frontend/src/modules/shared/index.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
-import { isDemoUser } from '/core/frontend/src/modules/shared/utils/demoUtils.js';
 import JDSubmissionForm from '../components/JDSubmissionForm.js';
 import StudentProgressionSelector from '../components/StudentProgressionSelector.js';
 import CVDownloadButton from '../components/CVDownloadButton.js';
@@ -13,7 +10,6 @@ const html = htm.bind(React.createElement);
 
 const CompanyWorkflowView = ({ user, navigate, onScheduleInterview }) => {
   const toast = useToast();
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [workflows, setWorkflows] = useState([]);
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [stages, setStages] = useState([]);
@@ -31,34 +27,14 @@ const CompanyWorkflowView = ({ user, navigate, onScheduleInterview }) => {
   const APPLICATIONS_PAGE_SIZE = 20;
 
   useEffect(() => {
-    if (isTutorialMode || isDemoUser(user)) {
-      const mock = getTutorialData?.('RECRUITER') ?? getTutorialMockData('RECRUITER');
-      const mockWorkflows = mock.workflows || [];
-      setWorkflows(mockWorkflows);
-      if (mockWorkflows.length > 0 && !selectedWorkflow) {
-        setSelectedWorkflow(mockWorkflows[0]);
-      }
-      setLoading(false);
-      return;
-    }
     fetchWorkflows();
-  }, [user?.company_id, isTutorialMode]);
+  }, [user?.company_id]);
 
   useEffect(() => {
-    if (selectedWorkflow && !isTutorialMode && !isDemoUser(user)) {
+    if (selectedWorkflow) {
       fetchWorkflowDetails();
-    } else if (selectedWorkflow && (isTutorialMode || isDemoUser(user))) {
-      const mock = getTutorialData?.('RECRUITER') ?? getTutorialMockData('RECRUITER');
-      const mockStages = (mock.workflows?.find(w => w.id === selectedWorkflow.id)?.stages) || [
-        { id: 's1', name: 'Application Review', stage_number: 1, stage_type: 'REVIEW' },
-        { id: 's2', name: 'Shortlist', stage_number: 2, stage_type: 'SHORTLIST' },
-      ];
-      const mockApplications = (mock.applications || []).filter(a => a.workflow_id === selectedWorkflow.id);
-      setStages(mockStages);
-      setApplications(mockApplications.length > 0 ? mockApplications : [{ id: 'a1', student_id: 'demo', student_name: 'Demo Candidate', status: 'SHORTLISTED', current_stage_id: 's2', job_id: 'j1' }]);
-      setCompanyOffers(mock.companyOffers || []);
     }
-  }, [selectedWorkflow, isTutorialMode, user]);
+  }, [selectedWorkflow]);
 
   const fetchWorkflows = async () => {
     try {

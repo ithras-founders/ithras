@@ -1,0 +1,11 @@
+{
+  "id": "pi",
+  "name": "PI Mock Rubric",
+  "dimensions": [
+    {"id": "clarity", "name": "Clarity", "weight": 0.25, "max_score": 10},
+    {"id": "structure", "name": "Structure", "weight": 0.25, "max_score": 10},
+    {"id": "relevance", "name": "Relevance", "weight": 0.30, "max_score": 10},
+    {"id": "confidence", "name": "Confidence", "weight": 0.20, "max_score": 10}
+  ],
+  "aggregate_type": "weighted_sum"
+}

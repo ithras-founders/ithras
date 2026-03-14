@@ -11,8 +11,6 @@ import {
   getSharedRoleProgression,
 } from '/core/frontend/src/modules/shared/services/api.js';
 import { UserRole } from '/core/frontend/src/modules/shared/types.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 import AuditTrailPanel from '/core/frontend/src/modules/shared/components/AuditTrailPanel.js';
 import SkeletonLoader from '/core/frontend/src/modules/shared/components/SkeletonLoader.js';
 import { SectionCard, StatusBadge } from '/core/frontend/src/modules/shared/primitives/index.js';
@@ -20,7 +18,6 @@ import { SectionCard, StatusBadge } from '/core/frontend/src/modules/shared/prim
 const html = htm.bind(React.createElement);
 
 const Dashboard = ({ user, navigate }) => {
-  const { isTutorialMode } = useTutorialContext();
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalCompanies: 0,
@@ -34,23 +31,8 @@ const Dashboard = ({ user, navigate }) => {
   const [intelligence, setIntelligence] = useState({ cohort: [], progression: [] });
 
   useEffect(() => {
-    if (isTutorialMode) {
-      const mock = getTutorialMockData('PLACEMENT_TEAM');
-      const g = mock?.governanceStats || {};
-      setStats({
-        totalStudents: g.totalStudents ?? 120,
-        totalCompanies: g.totalCompanies ?? 24,
-        activeJobs: g.activeJobs ?? 42,
-        activeCycles: g.activeCycles ?? 1,
-        pendingCVs: g.pendingCVs ?? 14,
-        totalShortlists: g.totalShortlists ?? 245,
-        verifiedCVs: g.verifiedCVs ?? 98
-      });
-      setLoading(false);
-      return;
-    }
     fetchStats();
-  }, [user?.institution_id, isTutorialMode]);
+  }, [user?.institution_id]);
 
   const fetchStats = async () => {
     try {

@@ -1,7 +1,6 @@
 import React from 'react';
 import htm from 'htm';
 import { useToast, SkeletonLoader, ApiError } from '/core/frontend/src/modules/shared/index.js';
-import { isDemoUser } from '/core/frontend/src/modules/shared/utils/demoUtils.js';
 import { useCandidateData } from './hooks/useCandidateData.js';
 import DashboardView from './views/DashboardView.js';
 import ActiveProcessesView from './views/ActiveProcessesView.js';
@@ -35,9 +34,6 @@ const CandidatePortal = ({ user, activeSubView, setView }) => {
     stageProgressCache,
     loadStageProgress,
     loadingStageProgress,
-    isTutorialMode,
-    isDemoUser: isDemo,
-    getTutorialData,
   } = data;
 
   if (loading) {
@@ -48,7 +44,7 @@ const CandidatePortal = ({ user, activeSubView, setView }) => {
     return html`<div className="p-6"><${ApiError} message=${fetchError} onRetry=${fetchData} /></div>`;
   }
 
-  if (!activePolicy && !isTutorialMode && !isDemoUser(user)) {
+  if (!activePolicy) {
     return html`<div className="p-20 text-center font-semibold text-[var(--app-text-muted)] text-3xl italic">No active policy found</div>`;
   }
 
@@ -128,8 +124,6 @@ const CandidatePortal = ({ user, activeSubView, setView }) => {
         <${ActiveProcessesView}
           activeShortlists=${activeShortlists}
           companies=${companies}
-          isTutorialMode=${isTutorialMode}
-          getTutorialData=${getTutorialData}
         />
       </div>
     `;
@@ -140,9 +134,6 @@ const CandidatePortal = ({ user, activeSubView, setView }) => {
       <div className="w-full max-w-none px-4 md:px-6">
         <${IntelligenceView}
           cycles=${cycles}
-          isTutorialMode=${isTutorialMode}
-          isDemoUser=${isDemo}
-          getTutorialData=${getTutorialData}
         />
     </div>
   `;

@@ -13,6 +13,7 @@ from . import calendar
 from . import governance
 from . import analytics
 from . import rbac
+from . import preparation
 
 # Re-export all model classes for backward compatibility
 from .core import (
@@ -65,6 +66,24 @@ from .identity import AuthSession
 from .opportunities import SavedOpportunity, CompanyFollow
 from .recruitment import TalentPool, TalentPoolMember, SavedSearch
 from .messaging import Conversation, ConversationParticipant, Message
+from .preparation import (
+    PrepProfile,
+    PrepPlan,
+    PrepQuestionBank,
+    PrepAttempt,
+    PrepRubricScore,
+    PrepMilestone,
+    PrepCommunity,
+    PrepCommunityChannel,
+    PrepCommunityMember,
+    PrepChannelMember,
+    PrepCommunityPost,
+    PrepCommunityComment,
+    PrepPeerSession,
+    CATMockSession,
+    CATAttemptResponse,
+    CATTopicScore,
+)
 
 __all__ = [
     "Institution",
@@ -128,4 +147,20 @@ __all__ = [
     "Conversation",
     "ConversationParticipant",
     "Message",
+    "PrepProfile",
+    "PrepPlan",
+    "PrepQuestionBank",
+    "PrepAttempt",
+    "PrepRubricScore",
+    "PrepMilestone",
+    "PrepCommunity",
+    "PrepCommunityChannel",
+    "PrepCommunityMember",
+    "PrepChannelMember",
+    "PrepCommunityPost",
+    "PrepCommunityComment",
+    "PrepPeerSession",
+    "CATMockSession",
+    "CATAttemptResponse",
+    "CATTopicScore",
 ]

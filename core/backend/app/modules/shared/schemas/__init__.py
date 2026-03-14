@@ -8,6 +8,7 @@ from . import placement
 from . import cv
 from . import calendar
 from . import governance
+from . import preparation
 
 # Re-export all schemas for backward compatibility
 from .identity import (
@@ -146,4 +147,26 @@ from .governance import (
     NotificationCreateSchema,
     JDSubmissionSchema,
     JDSubmissionCreateSchema,
+)
+from .preparation import (
+    PrepProfileSchema,
+    PrepProfileCreateSchema,
+    PrepProfileUpdateSchema,
+    PrepPlanSchema,
+    PrepPlanCreateSchema,
+    PrepPlanUpdateSchema,
+    PrepQuestionBankSchema,
+    PrepAttemptSchema,
+    PrepAttemptCreateSchema,
+    PrepRubricScoreSchema,
+    PrepMilestoneSchema,
+    PrepMilestoneCreateSchema,
+    PrepCommunityPostSchema,
+    PrepCommunityPostCreateSchema,
+    PrepCommunityCommentSchema,
+    PrepCommunityCommentCreateSchema,
+    ReadinessBaselineSchema,
+    CVReadinessScoreSchema,
+    PrepCommunitySchema,
+    PrepCommunityChannelSchema,
 )

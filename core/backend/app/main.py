@@ -159,7 +159,9 @@ def import_product_modules(product_name, module_path, import_names):
 
 # Build product paths
 product_backends = [
-    'products/calendar-management/backend', 'products/general-feed/backend',
+    'products/calendar-management/backend',
+    'products/feed/global/backend',
+    'products/feed/channel/backend',
     'products/recruitment-university/backend', 'products/recruitment-lateral/backend',
     # Profiles modules (live inside profiles, not as top-level products)
     'products/profiles/institution/backend',
@@ -172,6 +174,7 @@ product_backends = [
     'products/system-admin/migrations/backend',
     'products/system-admin/testing/backend',
     'products/system-admin/simulator/backend',
+    'products/preparation/backend',
 ]
 # Map profiles/* and system-admin/* paths to registry keys
 _PROFILES_REGISTRY_MAP = {
@@ -187,6 +190,8 @@ for pb in product_backends:
         product_name = _PROFILES_REGISTRY_MAP.get(parts[-2], parts[-2])
     elif 'system-admin' in pb and len(parts) >= 3:
         product_name = parts[-2]
+    elif 'feed' in pb and len(parts) >= 4:
+        product_name = f"feed-{parts[2]}"  # feed-global, feed-channel
     else:
         product_name = parts[1]
     product_path = ('/' + pb) if os.path.exists('/products') else os.path.join(base_dir, pb)

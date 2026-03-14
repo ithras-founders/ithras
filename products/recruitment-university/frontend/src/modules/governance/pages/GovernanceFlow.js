@@ -4,14 +4,11 @@ import PolicyEditor from '../components/PolicyEditor.js';
 import { getPolicyTemplates, getPolicies, getCycles, applyPolicyTemplate } from '/core/frontend/src/modules/shared/services/api.js';
 import { UserRole } from '/core/frontend/src/modules/shared/types.js';
 import { useToast } from '/core/frontend/src/modules/shared/index.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 
 const html = htm.bind(React.createElement);
 
 const GovernanceFlow = ({ user }) => {
   const toast = useToast();
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [templates, setTemplates] = useState([]);
   const [policies, setPolicies] = useState([]);
   const [cycles, setCycles] = useState([]);
@@ -22,16 +19,8 @@ const GovernanceFlow = ({ user }) => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
   useEffect(() => {
-    if (isTutorialMode) {
-      const mock = getTutorialData('PLACEMENT_TEAM') ?? getTutorialMockData('PLACEMENT_TEAM');
-      setTemplates(mock.policyTemplates || []);
-      setPolicies(mock.policy ? [{ ...mock.policy, id: 'pol-1', cycle_id: 'cy1', template_name: mock.policy.name, status: 'ACTIVE' }] : []);
-      setCycles(mock.cycles || [{ id: 'cy1', name: 'Placements 2024-25' }]);
-      setLoading(false);
-      return;
-    }
     fetchData();
-  }, [user?.institution_id, isTutorialMode, getTutorialData]);
+  }, [user?.institution_id]);
 
   const fetchData = async () => {
     try {

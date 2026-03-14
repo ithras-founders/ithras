@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import htm from 'htm';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
 
 const html = htm.bind(React.createElement);
 
-const DEMO_INSIGHT = 'Based on current Slot 1 data, 78% of offers are concentrated in consulting and technology sectors. Recommend accelerating Slot 2 outreach to FMCG and healthcare firms to improve role diversity and push median compensation above the 24L benchmark.';
-
 const PlacementAIInsights = () => {
-  const { isTutorialMode } = useTutorialContext();
   const [insight, setInsight] = useState("");
   const [loading, setLoading] = useState(false);
 
   const fetchInsights = async () => {
-    if (isTutorialMode) {
-      setInsight(DEMO_INSIGHT);
-      return;
-    }
     setLoading(true);
     try {
       const { GoogleGenAI } = await import("@google/genai");
@@ -33,13 +25,9 @@ const PlacementAIInsights = () => {
     }
   };
 
-  useEffect(() => { 
-    if (isTutorialMode) {
-      setInsight(DEMO_INSIGHT);
-      return;
-    }
+  useEffect(() => {
     if (process.env.API_KEY) fetchInsights();
-  }, [isTutorialMode]);
+  }, []);
 
   return html`
     <div className="bg-[var(--app-text-primary)] rounded-[var(--app-radius-md)] p-8 text-white shadow-[var(--app-shadow-floating)] relative overflow-hidden group">

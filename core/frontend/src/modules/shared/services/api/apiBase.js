@@ -138,8 +138,9 @@ export async function apiRequest(endpoint, options = {}) {
       }).catch(() => { /* telemetry is best-effort */ });
     } catch (_) { /* telemetry is best-effort */ }
     if (!options.quiet) {
+      const failedUrl = error.url || url;
       const logPayload = {
-        url: error.url || url,
+        url: failedUrl,
         method: config.method || 'GET',
         status: error.status,
         message: error.message,
@@ -154,7 +155,7 @@ export async function apiRequest(endpoint, options = {}) {
           }));
         }
       }
-      console.error('API Request failed:', logPayload);
+      console.error(`API Request failed [${error.status || 0}] ${failedUrl}:`, error.message, error.serverDetail || '', logPayload);
     }
     throw error;
   }

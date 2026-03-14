@@ -2,15 +2,11 @@ import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { getWorkflows, getApplications, createApplication, getCVs } from '/core/frontend/src/modules/shared/services/api.js';
 import { useToast, SkeletonLoader } from '/core/frontend/src/modules/shared/index.js';
-import { isDemoUser } from '/core/frontend/src/modules/shared/utils/demoUtils.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 
 const html = htm.bind(React.createElement);
 
 const ApplicationSubmission = ({ user }) => {
   const toast = useToast();
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [workflows, setWorkflows] = useState([]);
   const [myApplications, setMyApplications] = useState([]);
   const [cvs, setCvs] = useState([]);
@@ -18,20 +14,10 @@ const ApplicationSubmission = ({ user }) => {
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
   const [selectedCV, setSelectedCV] = useState('');
 
-  const useMock = isTutorialMode || isDemoUser(user);
-
   useEffect(() => {
-    if (useMock) {
-      const mock = getTutorialData('CANDIDATE') ?? getTutorialMockData('CANDIDATE');
-      setWorkflows(mock.workflows || []);
-      setMyApplications(mock.applications || []);
-      setCvs(mock.cvs || []);
-      setLoading(false);
-      return;
-    }
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- getTutorialData omitted to prevent effect loops
-  }, [user?.id, user?.institution_id, isTutorialMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.institution_id]);
 
   const fetchData = async () => {
     try {
@@ -54,14 +40,6 @@ const ApplicationSubmission = ({ user }) => {
   const handleSubmit = async (workflowId) => {
     if (!selectedCV) {
       toast.error('Please select a CV');
-      return;
-    }
-
-    if (useMock) {
-      setMyApplications(prev => [...prev, { id: 'app-demo-' + Date.now(), workflow_id: workflowId, student_id: user.id, status: 'SUBMITTED', cv_id: selectedCV }]);
-      toast.success('Application submitted successfully!');
-      setSelectedWorkflow(null);
-      setSelectedCV('');
       return;
     }
 
@@ -94,7 +72,7 @@ const ApplicationSubmission = ({ user }) => {
       ${workflows.length === 0 ? html`
         <div className="space-y-4" data-tour-id="workflows-list">
           <div className="bg-[var(--app-surface)] p-12 rounded-[var(--app-radius-lg)] border border-[var(--app-border-soft)] shadow-[var(--app-shadow-subtle)] text-center">
-            <p className="text-[var(--app-text-muted)] text-lg">${useMock ? 'Demo: No open placement cycles available.' : 'No open placement cycles available at the moment.'}</p>
+            <p className="text-[var(--app-text-muted)] text-lg">No open placement cycles available at the moment.</p>
           </div>
         </div>
       ` : html`

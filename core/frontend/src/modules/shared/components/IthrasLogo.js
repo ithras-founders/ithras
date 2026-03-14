@@ -23,10 +23,11 @@ const themeClasses = {
 const IthrasLogo = ({ size = 'md', theme = 'light', className = '' }) => {
   const sizeClass = sizeClasses[size] || sizeClasses.md;
   const textClass = themeClasses[theme] || themeClasses.light;
+  const lightThemeStyle = theme === 'light' ? { textShadow: '0 1px 2px rgba(0,0,0,0.2)' } : {};
   return html`
-    <span className=${`font-medium tracking-wide inline-flex items-baseline ${sizeClass} ${textClass} ${className}`} style=${{ letterSpacing: '0.08em' }}>
+    <span className=${`font-semibold tracking-wide inline-flex items-baseline ${sizeClass} ${textClass} ${className}`} style=${{ letterSpacing: '0.08em', ...lightThemeStyle }}>
       <span className="relative inline-block align-baseline">
-        <span className="absolute left-1/2 bottom-full -translate-x-1/2 mb-0 flex items-center justify-center" style=${{ width: '0.2em', height: '0.2em', minWidth: '8px', minHeight: '8px' }}>
+        <span className="absolute left-1/2 bottom-full -translate-x-1/2 mb-0 flex items-center justify-center" style=${{ width: '0.2em', height: '0.2em', minWidth: '10px', minHeight: '10px' }}>
           <span className="w-full h-full rounded-full" style=${{ backgroundColor: TITTLE_COLOR }} />
         </span>
         <span>ı</span>

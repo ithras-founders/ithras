@@ -20,7 +20,7 @@ const AlphaBadge = ({ theme = 'dark', variant = 'badge', className = '' }) => {
     ? { backgroundColor: 'rgba(255, 255, 255, 0.15)', color: 'rgba(253, 224, 71, 0.95)', borderColor: 'rgba(253, 224, 71, 0.4)' }
     : { backgroundColor: 'rgba(245, 158, 11, 0.15)', color: 'rgb(217, 119, 6)', borderColor: 'rgba(245, 158, 11, 0.35)' };
   const superscriptStyle = isLight
-    ? { color: 'rgba(253, 224, 71, 0.95)' }
+    ? { color: 'rgba(255, 235, 59, 1)' }
     : { color: 'rgb(217, 119, 6)' };
   const tooltipStyle = isLight
     ? { backgroundColor: 'rgba(0,0,0,0.85)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }

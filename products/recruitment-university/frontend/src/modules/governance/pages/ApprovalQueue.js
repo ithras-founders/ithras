@@ -14,8 +14,6 @@ import {
 } from '/core/frontend/src/modules/shared/services/api.js';
 import { useToast, SkeletonLoader } from '/core/frontend/src/modules/shared/index.js';
 import Modal from '/core/frontend/src/modules/shared/primitives/Modal.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 
 const html = htm.bind(React.createElement);
 
@@ -51,7 +49,6 @@ const isProfileApproval = (approval) =>
 
 const ApprovalQueue = ({ user }) => {
   const toast = useToast();
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [activeTab, setActiveTab] = useState('pending');
   const [approvals, setApprovals] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
@@ -61,17 +58,11 @@ const ApprovalQueue = ({ user }) => {
   const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
-    if (isTutorialMode) {
-      const mock = getTutorialData('PLACEMENT_TEAM') ?? getTutorialMockData('PLACEMENT_TEAM');
-      setApprovals(mock.approvals || []);
-      setLoading(false);
-      return;
-    }
     fetchApprovals();
-  }, [isTutorialMode, getTutorialData, user?.institution_id]);
+  }, [user?.institution_id]);
 
   useEffect(() => {
-    if (activeTab === 'history' && historyItems.length === 0 && !isTutorialMode) {
+    if (activeTab === 'history' && historyItems.length === 0) {
       fetchHistory();
     }
   }, [activeTab]);

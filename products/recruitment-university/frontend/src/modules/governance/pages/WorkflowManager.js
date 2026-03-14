@@ -11,8 +11,6 @@ const WorkflowManager = ({ user }) => {
   const toast = useToast();
   const { confirm } = useDialog();
   const { data, loading, refetch } = useFetchWithTutorial({
-    role: 'PLACEMENT_TEAM',
-    getMockData: (mock) => ({ workflows: mock?.workflows || [], companies: mock?.companies || [] }),
     fetch: async () => {
       const [w, cRes] = await Promise.all([
         getWorkflows({ institution_id: user?.institution_id }),
@@ -21,7 +19,6 @@ const WorkflowManager = ({ user }) => {
       return { workflows: w || [], companies: cRes?.items ?? [] };
     },
     deps: [user?.institution_id],
-    useDemoUser: false,
     enabled: !!user?.institution_id,
   });
   const workflows = data?.workflows ?? [];

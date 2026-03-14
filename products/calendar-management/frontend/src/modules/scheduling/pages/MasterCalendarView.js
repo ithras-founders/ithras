@@ -6,16 +6,12 @@ import {
   getCompanies,
   getCycles,
 } from '/core/frontend/src/modules/shared/services/api.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
-
 const html = htm.bind(React.createElement);
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const SLOT_TYPES = { INTERVIEW: 'Interview', PRESENTATION: 'Presentation', NETWORKING: 'Networking' };
 
 const MasterCalendarView = ({ user }) => {
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [institutions, setInstitutions] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [cycles, setCycles] = useState([]);
@@ -33,7 +29,6 @@ const MasterCalendarView = ({ user }) => {
   ];
 
   const fetchFilters = useCallback(async () => {
-    if (isTutorialMode) return;
     try {
       const [instRes, compRes, cycleData] = await Promise.all([
         getInstitutions({ limit: 500 }).catch(() => ({ items: [] })),
@@ -46,10 +41,9 @@ const MasterCalendarView = ({ user }) => {
     } catch (e) {
       console.error('Failed to fetch filters:', e);
     }
-  }, [isTutorialMode]);
+  }, []);
 
   const fetchAggregate = useCallback(async () => {
-    if (isTutorialMode) return;
     setLoading(true);
     try {
       const start = new Date(selectedMonth);
@@ -72,21 +66,11 @@ const MasterCalendarView = ({ user }) => {
     } finally {
       setLoading(false);
     }
-  }, [isTutorialMode, filterInst, filterCompanies, filterProcessStage, selectedMonth]);
+  }, [filterInst, filterCompanies, filterProcessStage, selectedMonth]);
 
   useEffect(() => {
-    if (isTutorialMode) {
-      const mock = getTutorialData('PLACEMENT_TEAM') ?? getTutorialMockData('PLACEMENT_TEAM');
-      const cal = mock.masterCalendar || {};
-      setInstitutions(cal.institutions || []);
-      setCompanies(cal.companies || []);
-      setCycles(mock.cycles || []);
-      setAggregate({ summary: cal.summary || {}, slots: cal.slots || [] });
-      setLoading(false);
-      return;
-    }
     fetchFilters();
-  }, [isTutorialMode, fetchFilters]);
+  }, [fetchFilters]);
 
   useEffect(() => {
     fetchAggregate();

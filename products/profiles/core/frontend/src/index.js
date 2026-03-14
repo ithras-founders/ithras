@@ -32,13 +32,13 @@ function LazyProfile({ loader, props: renderProps }) {
  * Wraps content in ToastProvider so AccountSettingsPage and other profile views
  * have toast context (avoids React #311 when loaded via dynamic import).
  */
-const ProfilesShell = ({ view, navigate, user, onUserUpdate }) => {
+const ProfilesShell = ({ view, navigate, user, onUserUpdate, onLogout }) => {
   const wrapWithToast = (content) => html`<${ToastProvider}>${content}<//>`;
   if (view === 'account-settings' || view === 'account-settings-contact' || view === 'account-settings-messaging') {
     if (!user) {
       return html`<div className="p-12 text-center text-[var(--app-text-muted)]">Please sign in to manage your account settings.</div>`;
     }
-    return wrapWithToast(html`<${AccountSettingsPage} user=${sanitizeUser(user)} navigate=${navigate} onUserUpdate=${onUserUpdate} subview=${view} />`);
+    return wrapWithToast(html`<${AccountSettingsPage} user=${sanitizeUser(user)} navigate=${navigate} onUserUpdate=${onUserUpdate} onLogout=${onLogout} subview=${view} />`);
   }
   if (view?.startsWith('profile/')) {
     return wrapWithToast(html`<${LazyProfile}

@@ -5,14 +5,14 @@ import {
   getRoles, deleteUser, deleteCompany, deleteInstitution,
 } from '/core/frontend/src/modules/shared/services/api.js';
 import { useToast, useDialog } from '/core/frontend/src/modules/shared/index.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 import InstitutionDetailView from './InstitutionDetailView.js';
 import CompanyDetailView from './CompanyDetailView.js';
 import UserDetailView from './UserDetailView.js';
 import { MigrationsPortal } from '/products/system-admin/migrations/frontend/index.js';
 import { TestingPortal } from '/products/system-admin/testing/frontend/index.js';
 import { DatabaseManagement } from '/products/system-admin/database/frontend/index.js';
+import CommunityManagementPortal from './CommunityManagementPortal.js';
+import PrepManagementPortal from './PrepManagementPortal.js';
 import { UserRole } from '/core/frontend/src/modules/shared/types.js';
 import { PeopleTab, InstitutionsTab, CompaniesTab, AccessControlTab } from './tabs/index.js';
 import PendingApprovalsView from './PendingApprovalsView.js';
@@ -22,7 +22,6 @@ const html = htm.bind(React.createElement);
 const SystemAdminPortal = ({ user, activeView, activeProfile, navigate }) => {
   const toast = useToast();
   const { confirm } = useDialog();
-  const { isTutorialMode } = useTutorialContext();
 
   const viewParts = (activeView || '').split('/').filter(Boolean);
   const baseTab = viewParts[1] || 'institutions';
@@ -46,30 +45,17 @@ const SystemAdminPortal = ({ user, activeView, activeProfile, navigate }) => {
   const restrictedInstitutionId = isInstitutionAdmin ? (displayUser?.institution_id || activeProfile?.institution_id) : null;
 
   const fetchData = useCallback(async () => {
-    if (isTutorialMode) {
-      const mock = getTutorialMockData('SYSTEM_ADMIN');
-      setInstitutions(mock.institutions || []);
-      setCompanies(mock.companies || []);
-      setRoles(mock.roles || []);
-      const progMap = {};
-      (mock.institutions || []).forEach(inst => {
-        progMap[inst.id] = inst.programs || [];
-      });
-      setProgramsByInstitution(progMap);
-      return;
-    }
     try {
       const rolesData = await getRoles().catch(() => []);
       setRoles(Array.isArray(rolesData) ? rolesData : []);
     } catch (error) {
       console.error('Failed to fetch roles:', error);
     }
-  }, [isTutorialMode]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const fetchInstitutionsAndPrograms = useCallback(async () => {
-    if (isTutorialMode) return;
     try {
       const instRes = await getInstitutions({ limit: 500 }).catch(() => ({ items: [] }));
       let instList = instRes?.items ?? [];
@@ -85,10 +71,9 @@ const SystemAdminPortal = ({ user, activeView, activeProfile, navigate }) => {
     } catch (err) {
       console.error('Failed to fetch institutions:', err);
     }
-  }, [restrictedInstitutionId, isTutorialMode]);
+  }, [restrictedInstitutionId]);
 
   const fetchContextForDetailViews = useCallback(async () => {
-    if (isTutorialMode) return;
     if (!isDrillDown && !isUserDetail) return;
     try {
       const [instRes, compRes] = await Promise.all([
@@ -109,7 +94,7 @@ const SystemAdminPortal = ({ user, activeView, activeProfile, navigate }) => {
     } catch (err) {
       console.error('Failed to fetch context for detail views:', err);
     }
-  }, [isDrillDown, isUserDetail, restrictedInstitutionId, isTutorialMode]);
+  }, [isDrillDown, isUserDetail, restrictedInstitutionId]);
 
   useEffect(() => {
     if (isDrillDown || isUserDetail) fetchContextForDetailViews();
@@ -138,6 +123,23 @@ const SystemAdminPortal = ({ user, activeView, activeProfile, navigate }) => {
   if (activeView === 'system-admin/migrations') {
     return html`
       <${MigrationsPortal} />
+    `;
+  }
+
+  if (activeView === 'system-admin/community') {
+    return html`
+      <${CommunityManagementPortal}
+        onBack=${() => navigate && navigate('system-admin/institutions')}
+      />
+    `;
+  }
+
+  if (activeView === 'system-admin/prep-management') {
+    return html`
+      <${PrepManagementPortal}
+        onBack=${() => navigate && navigate('system-admin/institutions')}
+        navigate=${navigate}
+      />
     `;
   }
 

@@ -4,6 +4,7 @@ import { getUsers, getInstitutions, getPrograms, getBatches } from '/core/fronte
 import { UserRole } from '/core/frontend/src/modules/shared/types.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { toDisplayString } from '../utils/displayUtils.js';
+import { iconMap } from '../ui/icons/iconMap.js';
 
 const html = htm.bind(React.createElement);
 
@@ -154,9 +155,13 @@ const GlobalSearchBar = ({ user, navigate, onClose }) => {
     setSectorFilter('');
   };
 
+  const SearchIcon = iconMap.search;
   return html`
     <div className="relative" ref=${panelRef}>
-      <div className="flex items-center gap-2">
+      <div className="relative flex items-center">
+        <div className="absolute left-3 pointer-events-none text-[var(--app-text-muted)]">
+          <${SearchIcon} className="w-4 h-4" />
+        </div>
         <input
           ref=${inputRef}
           type="text"
@@ -164,7 +169,7 @@ const GlobalSearchBar = ({ user, navigate, onClose }) => {
           value=${query}
           onInput=${(e) => setQuery(e.target.value)}
           onFocus=${() => setOpen(true)}
-          className="w-48 md:w-64 lg:w-80 px-4 py-2 rounded-xl border border-[var(--app-border-soft)] bg-[var(--app-surface)] text-sm placeholder-[var(--app-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)]/30"
+          className="w-48 md:w-64 lg:w-80 pl-10 pr-4 py-2 rounded-lg border border-[var(--app-border-soft)] bg-white/70 backdrop-blur-md text-sm placeholder-[var(--app-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)]/30"
           aria-label="Search users"
         />
       </div>

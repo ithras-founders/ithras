@@ -9,23 +9,23 @@ import WorkflowTemplatesView from '../components/WorkflowTemplatesView.js';
 import RequestApplicationsView from '../components/RequestApplicationsView.js';
 import WorkflowManager from './WorkflowManager.js';
 import StudentsView from './StudentsView.js';
-import { getActivePolicy, getPendingProposals, getCompanies } from '/core/frontend/src/modules/shared/services/api.js';
+import { getActivePolicy, getPendingProposals, getCompanies, getCycles } from '/core/frontend/src/modules/shared/services/api.js';
 import { UserRole, PolicyStatus, RestrictionLevel } from '/core/frontend/src/modules/shared/types.js';
 import { useToast, SkeletonLoader } from '/core/frontend/src/modules/shared/index.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 
 const html = htm.bind(React.createElement);
 
+const ACTIVE_CYCLE_STATUSES = ['APPLICATIONS_OPEN', 'SHORTLISTING', 'INTERVIEWS', 'OFFERS', 'SCHEDULED', 'PENDING'];
+
 const AdminPortal = ({ user, activeView, navigate }) => {
   const toast = useToast();
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [proposal, setProposal] = useState(null);
   const [currentPolicy, setCurrentPolicy] = useState(null);
   const [companies, setCompanies] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [showPolicyEditor, setShowPolicyEditor] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [cycles, setCycles] = useState([]);
 
   const fetchData = async () => {
     try {
@@ -45,17 +45,13 @@ const AdminPortal = ({ user, activeView, navigate }) => {
     }
   };
 
+  useEffect(() => { fetchData(); }, []);
+
   useEffect(() => {
-    if (isTutorialMode) {
-      const mock = getTutorialData('PLACEMENT_TEAM') ?? getTutorialMockData('PLACEMENT_TEAM');
-      setCurrentPolicy(mock.policy);
-      setProposal(mock.proposals?.length > 0 ? mock.proposals[0] : null);
-      setCompanies(mock.companies || []);
-      setLoading(false);
-      return;
+    if (activeView === 'cycle_ops' || activeView === 'recruitment_cycles') {
+      getCycles().then((data) => setCycles(Array.isArray(data) ? data : [])).catch(() => setCycles([]));
     }
-    fetchData();
-  }, [isTutorialMode, getTutorialData]);
+  }, [activeView]);
 
   if (loading) {
     return html`<div className="p-6"><${SkeletonLoader} variant="cards" lines=${6} /></div>`;
@@ -233,11 +229,9 @@ const AdminPortal = ({ user, activeView, navigate }) => {
   }
 
   if (activeView === 'cycle_ops' || activeView === 'recruitment_cycles') {
-    const mockData = isTutorialMode ? (getTutorialData('PLACEMENT_TEAM') ?? getTutorialMockData('PLACEMENT_TEAM')) : null;
-    const cycleOps = mockData?.cycleOps;
-    const activeCycles = isTutorialMode ? (cycleOps?.activeCycles || []) : [];
-    const closedCycles = isTutorialMode ? (cycleOps?.closedCycles || []) : [];
-    const slotTransitions = isTutorialMode ? (cycleOps?.slotTransitions || []) : [];
+    const activeCycles = cycles.filter((c) => ACTIVE_CYCLE_STATUSES.includes(c.status));
+    const closedCycles = cycles.filter((c) => c.status === 'CLOSED');
+    const slotTransitions = [];
 
     const statusBadge = (status) => {
       const map = {
@@ -260,8 +254,7 @@ const AdminPortal = ({ user, activeView, navigate }) => {
 
         <div className="border-t border-[var(--app-border-soft)] pt-10">
         <div className="flex items-center justify-between mb-6">
-          <button className="px-6 py-2.5 bg-[var(--app-accent)] text-white rounded-[var(--app-radius-sm)] text-xs font-semibold uppercase tracking-wider hover:bg-[var(--app-accent-hover)] transition-colors"
-            onClick=${() => isTutorialMode && toast.success('Demo mode — cycle creation simulated')}>
+          <button className="px-6 py-2.5 bg-[var(--app-accent)] text-white rounded-[var(--app-radius-sm)] text-xs font-semibold uppercase tracking-wider hover:bg-[var(--app-accent-hover)] transition-colors">
             + New Cycle
           </button>
         </div>
@@ -300,11 +293,10 @@ const AdminPortal = ({ user, activeView, navigate }) => {
                     </div>
                     <div className="flex gap-2">
                       <button className="px-3 py-1.5 text-xs font-medium bg-[var(--app-bg-elevated)] border border-[var(--app-border-soft)] rounded-[var(--app-radius-sm)] hover:bg-[var(--app-surface-muted)]"
-                        onClick=${() => isTutorialMode && toast.success('Demo mode — settings opened')}>
+                        onClick=${() => {}}>
                         Settings
                       </button>
-                      <button className="px-3 py-1.5 text-xs font-medium text-[var(--app-accent)] bg-[var(--app-accent-soft)] rounded-[var(--app-radius-sm)] hover:bg-[rgba(0,113,227,0.14)]"
-                        onClick=${() => isTutorialMode && toast.success('Demo mode — timeline view opened')}>
+                      <button className="px-3 py-1.5 text-xs font-medium text-[var(--app-accent)] bg-[var(--app-accent-soft)] rounded-[var(--app-radius-sm)] hover:bg-[rgba(0,113,227,0.14)]">
                         View Timeline
                       </button>
                     </div>

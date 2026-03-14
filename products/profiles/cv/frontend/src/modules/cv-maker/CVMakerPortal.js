@@ -15,9 +15,6 @@ import {
 } from '/core/frontend/src/modules/shared/services/api.js';
 import { UserRole } from '/core/frontend/src/modules/shared/types.js';
 import { useToast, SkeletonLoader } from '/core/frontend/src/modules/shared/index.js';
-import { isDemoUser } from '/core/frontend/src/modules/shared/utils/demoUtils.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 import { migrateCVData, deriveEditableSections } from '/core/frontend/src/modules/shared/cv/index.js';
 import TemplatePicker from './pages/TemplatePicker.js';
 import VisualSectionCard from './components/VisualSectionCard.js';
@@ -31,13 +28,12 @@ const STORAGE_KEY_LAST_TEMPLATE = 'cv-maker-last-template';
 
 const CVMakerPortal = ({ user }) => {
   const toast = useToast();
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [templates, setTemplates] = useState([]);
   const [allCVs, setAllCVs] = useState([]);
   const [activeCV, setActiveCV] = useState(null);
   const [loading, setLoading] = useState(true);
   const [screen, setScreen] = useState('profile');
-  const [activeTab, setActiveTab] = useState(isTutorialMode ? 'cvs' : 'profile');
+  const [activeTab, setActiveTab] = useState('profile');
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [selectedCV, setSelectedCV] = useState(null);
   const [selectedSectionId, setSelectedSectionId] = useState(null);
@@ -84,20 +80,9 @@ const CVMakerPortal = ({ user }) => {
   }, [displayUser?.profile_photo_url]);
 
   useEffect(() => {
-    if (isTutorialMode || isDemoUser(user)) {
-      const mock = getTutorialData('CANDIDATE') ?? getTutorialMockData('CANDIDATE');
-      setTemplates([
-        { id: 'tpl-demo', name: 'IIM Calcutta Standard', sections: [] },
-        { id: 'tpl-consulting', name: 'Consulting Format', sections: [] },
-        { id: 'tpl-finance', name: 'Finance Format', sections: [] },
-      ]);
-      setAllCVs(mock.cvs || []);
-      setLoading(false);
-      return;
-    }
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, user?.institution_id, isTutorialMode]);
+  }, [user?.id, user?.institution_id]);
 
   const resolvePdfUrl = (url) => {
     if (!url) return '';

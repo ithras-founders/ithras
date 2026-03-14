@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import htm from 'htm';
 import { login } from '../../shared/services/api.js';
-import { TutorialRoleSelector } from '../../tutorials/index.js';
-import { ROLES_FOR_LOGIN_DEMO } from '../../tutorials/context/tutorialSteps.js';
 import IthrasLogo from '../../shared/components/IthrasLogo.js';
 import AlphaBadge from '../../shared/components/AlphaBadge.js';
 import { Input, Button } from '../../shared/primitives/index.js';
@@ -20,12 +18,11 @@ const DEMO_CREDENTIALS = [
   { email: 'founders@ithras.com', role: 'System Admin', password: 'password' },
 ];
 
-const Login = ({ onLogin, onStartDemo, onGoToRegister, onGoToAboutUs }) => {
+const Login = ({ onLogin, onGoToRegister, onGoToAboutUs }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showDemoSelector, setShowDemoSelector] = useState(false);
   const [showDemoCreds, setShowDemoCreds] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -198,25 +195,9 @@ const Login = ({ onLogin, onStartDemo, onGoToRegister, onGoToAboutUs }) => {
                 Create account
               <//>
             ` : null}
-            ${onStartDemo ? html`
-              <${Button} variant="ghost" className="w-full" onClick=${() => setShowDemoSelector(true)}>
-                Explore with a guided tour
-              <//>
-            ` : null}
           </div>
         </div>
       </div>
-
-      ${showDemoSelector && onStartDemo ? html`
-        <${TutorialRoleSelector}
-          roles=${ROLES_FOR_LOGIN_DEMO}
-          onSelect=${(role) => {
-            setShowDemoSelector(false);
-            onStartDemo(role);
-          }}
-          onClose=${() => setShowDemoSelector(false)}
-        />
-      ` : null}
     </div>
   `;
 };

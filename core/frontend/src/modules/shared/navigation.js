@@ -15,8 +15,8 @@ export const VALID_VIEW_IDS = new Set([
   'hr-outreach',
   'profile',
   'preparation',
-  'guided-demos',
-  'tutorials',
+  'preparation/community',
+  'preparation/community/post',
   'active_processes',
   'applications',
   'cv',
@@ -40,6 +40,8 @@ export const VALID_VIEW_IDS = new Set([
   'database',
   'system-admin/testing',
   'system-admin/migrations',
+  'system-admin/community',
+  'system-admin/prep-management',
   'pitch-deck',
   'investor-deck',
   'cv-verification',
@@ -52,6 +54,7 @@ export const VALID_VIEW_IDS = new Set([
   'account-settings-contact',
   'account-settings-messaging',
   'messages',
+  'feed/communities',
 ]);
 
 /**
@@ -65,8 +68,8 @@ export function pathToView(pathname) {
   if (normalized === '/' || normalized === '') return 'dashboard';
   const view = normalized.slice(1); // strip leading slash
   if (VALID_VIEW_IDS.has(view)) return view;
-  // Allow dynamic views: institution, company, system-admin (incl. system-admin/people/user/:id), telemetry
-  if (view.startsWith('institution') || view.startsWith('company') || view.startsWith('system') || view.startsWith('telemetry') || view.startsWith('profile')) return view;
+  // Allow dynamic views: institution, company, system-admin, telemetry, profile, preparation
+  if (view.startsWith('institution') || view.startsWith('company') || view.startsWith('system') || view.startsWith('telemetry') || view.startsWith('profile') || view.startsWith('preparation') || view.startsWith('feed')) return view;
   return null;
 }
 

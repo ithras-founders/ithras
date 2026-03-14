@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import htm from 'htm';
 import { UserRole } from '../types.js';
 import NotificationBell from './NotificationBell.js';
@@ -8,11 +7,14 @@ import GlobalSearchBar from './GlobalSearchBar.js';
 import { deriveRoleFlags } from '../permissions.js';
 import { pathToView } from '../navigation.js';
 import { resolveNavContext, getRecruiterModeNavItems } from '../modeConfig.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
 import IthrasLogo from './IthrasLogo.js';
 import AlphaBadge from './AlphaBadge.js';
 import { useApp } from '../context/AppContext.js';
 import { toDisplayString } from '../utils/displayUtils.js';
+import FeedLeftNav from '/products/feed/core/frontend/src/FeedLeftNav.js';
+import FeedUtilityWing from '/products/feed/global/frontend/src/global/FeedUtilityWing.js';
+import { FeedSidebarRefreshContext } from '/products/feed/core/frontend/src/FeedSidebarRefreshContext.js';
+import { iconMap } from '../ui/icons/iconMap.js';
 
 const html = htm.bind(React.createElement);
 
@@ -27,7 +29,8 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
   const activeProfile = activeProfileProp || ctx.activeProfile;
   const onSwitchProfile = onSwitchProfileProp || ctx.onSwitchProfile;
   const onUserUpdate = ctx.onUserUpdate;
-  const { isTutorialMode, endTutorial } = useTutorialContext();
+  const rightUtilityBarOpen = ctx.rightUtilityBarOpen;
+  const setRightUtilityBarOpen = ctx.setRightUtilityBarOpen;
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) || 'false');
@@ -42,10 +45,20 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
       return { Business: false, 'Profile Management': false, 'Institutional Recruitment': false, Technology: false }; // localStorage may be unavailable
     }
   });
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef(null);
-
   const nav = navigateProp || ctx.navigate || setView;
+  const headerRef = useRef(null);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const setHeaderHeight = () => {
+      document.body.style.setProperty('--app-header-height', `${el.offsetHeight}px`);
+    };
+    setHeaderHeight();
+    const ro = new ResizeObserver(setHeaderHeight);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     try {
@@ -62,17 +75,6 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
   const toggleNavGroup = (label) => {
     setNavGroupsCollapsed(prev => ({ ...prev, [label]: !prev[label] }));
   };
-
-  useEffect(() => {
-    if (!profileMenuOpen) return;
-    const handleClickOutside = (e) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
-        setProfileMenuOpen(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [profileMenuOpen]);
 
   const displayName = toDisplayString(user?.name) || toDisplayString(user?.email) || 'User';
   const roleLabel = toDisplayString(activeProfile?.role?.name || activeProfile?.role || user?.role) || 'USER';
@@ -97,12 +99,13 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
       ];
     }
 
-    const feedIcon = html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0v6a2 2 0 01-2 2m0 0V5a2 2 0 012-2m0 6a2 2 0 012 2v6m-6-4a2 2 0 012-2m0 6V5a2 2 0 012 2m-6-4a2 2 0 012 2" /></svg>`;
-    const calendarIcon = html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`;
-    const networkIcon = html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>`;
-    const messagesIcon = html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>`;
-    const homeIcon = html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>`;
-    const profileIcon = html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>`;
+    const feedIcon = html`<${iconMap.rss} className="w-5 h-5" />`;
+    const calendarIcon = html`<${iconMap.calendar} className="w-5 h-5" />`;
+    const networkIcon = html`<${iconMap.candidates} className="w-5 h-5" />`;
+    const messagesIcon = html`<${iconMap.mail} className="w-5 h-5" />`;
+    const homeIcon = html`<${iconMap.home} className="w-5 h-5" />`;
+    const profileIcon = html`<${iconMap.profile} className="w-5 h-5" />`;
+    const preparationIcon = html`<${iconMap.bookOpen} className="w-5 h-5" />`;
     const hrJobIcon = html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>`;
     const hrDiscoveryIcon = html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>`;
     const hrOutreachIcon = html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>`;
@@ -160,7 +163,7 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
         ...(isProfessionalForNav ? [{ id: 'hr-outreach', label: 'Recruiter', icon: html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>` }] : []),
         { id: 'profile/me', label: 'My Profile', icon: profileIcon },
         { id: 'calendar', label: 'My Calendar', icon: calendarIcon },
-        { id: 'preparation', label: 'Preparation', icon: html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>` }
+        { id: 'preparation', label: 'Preparation', icon: preparationIcon }
       );
     } else {
       items.push(
@@ -171,8 +174,8 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
 
     if (!flags.isGeneralUser && flags.isCandidate && !flags.isInstitutionallyRestrictedCandidate) {
       items.push(
-        { id: 'profile/me', label: 'Profile', icon: html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>` },
-        { id: 'preparation', label: 'Preparation', icon: html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>` },
+        { id: 'profile/me', label: 'Profile', icon: profileIcon },
+        { id: 'preparation', label: 'Preparation', icon: preparationIcon },
         { id: 'active_processes', label: 'Active Processes', icon: html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>` },
         { id: 'applications', label: 'My Applications', icon: html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>` },
         { id: 'calendar', label: 'My Calendar', icon: html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>` },
@@ -185,7 +188,7 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
         { id: 'messages', label: 'Messages', icon: messagesIcon },
         { id: 'profile/me', label: 'Profile', icon: profileIcon },
         { id: 'calendar', label: 'My Calendar', icon: calendarIcon },
-        { id: 'preparation', label: 'Preparation', icon: html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>` }
+        { id: 'preparation', label: 'Preparation', icon: preparationIcon }
       );
     } else if (flags.isLimitedRecruiter) {
       items.push(
@@ -233,6 +236,7 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
         biz('telemetry', 'Telemetry', html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>`),
         biz('database', 'Database', dbIcon),
         biz('system-admin/migrations', 'Migrations', dbIcon),
+        biz('system-admin/prep-management', 'Prep Management', html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>`),
         biz('simulator', 'Simulator', html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0v6a2 2 0 01-2 2m0 0V5a2 2 0 012-2m0 6a2 2 0 012 2v6m-6-4a2 2 0 012-2m0 6V5a2 2 0 012 2m-6-4a2 2 0 012 2" /></svg>`),
         biz('system-admin/testing', 'Testing', html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 4l2 2 4-4" /></svg>`),
       );
@@ -265,7 +269,7 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
           { id: 'my-network', label: 'My Network', icon: networkIcon },
           { id: 'profile/me', label: 'My Profile', icon: profileIcon },
           { id: 'calendar', label: 'My Calendar', icon: calendarIcon },
-          { id: 'preparation', label: 'Preparation', icon: html`<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>` }
+          { id: 'preparation', label: 'Preparation', icon: preparationIcon }
         );
       }
     }
@@ -281,8 +285,6 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
   const pageLabelForView = (v) => {
     const exact = navItems.find((i) => i.id && i.id === v)?.label;
     if (exact) return exact;
-    if (v === 'guided-demos') return 'Guided Demos';
-    if (v === 'tutorials') return 'Help & Tutorials';
     if (v === 'about-us') return 'About Us';
     if (v === 'profile/me') return 'My Profile';
     if (v?.startsWith('profile/')) return 'Profile';
@@ -298,6 +300,8 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
     if (v === 'database') return 'Database Management';
     if (v === 'system-admin/testing') return 'Testing';
     if (v === 'system-admin/migrations') return 'Migrations';
+    if (v === 'system-admin/prep-management') return 'Prep Management';
+    if (v === 'system-admin/community') return 'Community Management';
     if (v === 'system-admin/institutions') return 'Institution Management';
     if (v === 'system-admin/companies') return 'Organisation Management';
     if (v === 'system-admin/pending-approvals') return 'Pending Approvals';
@@ -312,7 +316,6 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
   const pageLabel = pageLabelForView(effectiveViewForLabel);
 
   const handleNavClick = (id) => {
-    if (isTutorialMode) return;
     if (id === 'investor-deck') {
       nav?.('investor-deck');
       return;
@@ -326,8 +329,24 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
 
   const toggleSidebar = () => setSidebarCollapsed((c) => !c);
 
-  return html`
+  const isFeedView = activeView === 'feed' || activeView?.startsWith('feed/') || activeView === 'messages' || activeView === 'my-network';
+
+  const [feedSidebarRefreshTrigger, setFeedSidebarRefreshTrigger] = useState(0);
+  const refreshFeedSidebar = useCallback(() => setFeedSidebarRefreshTrigger((t) => t + 1), []);
+
+  const showFeedSidebar = isFeedView && !isSystemAdminUser;
+  const showLeftSidebar = isSystemAdminUser || showFeedSidebar;
+  const mainMargin = showLeftSidebar ? (sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-[280px]') : 'lg:ml-0';
+  const mainMarginRight = isFeedView && rightUtilityBarOpen ? 'lg:mr-[300px]' : '';
+  const viewParts = (activeView || '').split('/').filter(Boolean);
+  const feedCommunityChannel = viewParts[0] === 'feed' && viewParts[1] === 'communities' && viewParts[2] ? viewParts[2] : null;
+  const feedCommunityCode = viewParts[0] === 'feed' && viewParts[1] === 'community' && viewParts[2] ? viewParts[2] : null;
+
+  const topBarNavItems = isSystemAdminUser ? [] : navItems.filter((i) => i.id && !i.type && i.id !== 'profile/me');
+
+  const layoutContent = html`
     <div className="flex min-h-screen app-shell-bg overflow-x-hidden relative text-[var(--app-text-primary)]">
+      ${isSystemAdminUser ? html`
       <aside className=${`
         fixed inset-y-0 left-0 app-sidebar-glass flex flex-col z-50 transition-[width,transform] duration-300 ease-in-out
         ${sidebarCollapsed ? 'w-[72px]' : 'w-[280px]'}
@@ -358,8 +377,8 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
           </div>
         </div>
 
-        <nav className=${`flex-1 min-h-0 overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-2 pt-2 pb-2' : 'px-4 pt-3 pb-4'} ${isTutorialMode ? 'pointer-events-none opacity-50' : ''}`}>
-          ${!isTutorialMode ? html`
+        <nav className=${`flex-1 min-h-0 overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-2 pt-2 pb-2' : 'px-4 pt-3 pb-4'}`}>
+          ${html`
             <div className=${`mb-3 w-full ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
               <${ModeSwitcher}
                 profiles=${profiles}
@@ -372,7 +391,7 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
                 compact=${sidebarCollapsed}
               />
             </div>
-          ` : null}
+          `}
           <div className="space-y-1">
           ${(() => {
             let currentGroup = null;
@@ -401,7 +420,7 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
                 data-tour-id=${`nav-${item.id}`}
                 onClick=${() => handleNavClick(item.id)}
                 title=${sidebarCollapsed ? item.label : undefined}
-                className=${`w-full flex items-center app-nav-item transition-all duration-200 app-focus-ring text-sm font-medium ${sidebarCollapsed ? 'justify-center px-0 py-3' : 'gap-3 px-4'} ${effectiveViewForLabel === item.id ? 'sidebar-item-active' : 'text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text-primary)]'}`}
+                className=${`w-full min-w-0 flex items-center app-nav-item transition-all duration-200 app-focus-ring text-sm font-medium ${sidebarCollapsed ? 'justify-center px-0 py-3' : 'gap-3 px-4'} ${effectiveViewForLabel === item.id ? 'sidebar-item-active' : 'text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text-primary)]'}`}
               >
                 ${item.icon}
                 ${!sidebarCollapsed ? html`<span className="truncate">${item.label}</span>` : ''}
@@ -411,46 +430,83 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
           })()}
           </div>
         </nav>
-
-        <div className=${`flex-shrink-0 ${sidebarCollapsed ? 'p-2' : 'p-4'}`}>
-          ${isTutorialMode ? html`
-            <button 
-              onClick=${endTutorial}
-              className=${`w-full py-2.5 bg-[rgba(220,38,38,0.08)] text-[var(--app-danger)] text-xs font-semibold rounded-[var(--app-radius-sm)] hover:bg-[rgba(220,38,38,0.14)] transition-colors app-focus-ring flex items-center justify-center gap-2 border border-[rgba(220,38,38,0.2)]`}
-              title=${sidebarCollapsed ? 'Exit Tour' : undefined}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-              ${!sidebarCollapsed ? 'Exit Tour' : ''}
-            </button>
-          ` : html`
-            <div className=${sidebarCollapsed ? 'space-y-2' : 'app-sidebar-footer-card space-y-2'}>
-              <button 
-                onClick=${() => nav?.('guided-demos')} 
-                className=${`w-full py-2.5 bg-[var(--app-surface-muted)] text-[var(--app-text-secondary)] text-xs font-medium rounded-[var(--app-radius-sm)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text-primary)] transition-colors app-focus-ring flex items-center justify-center gap-2`}
-                title=${sidebarCollapsed ? 'Guided Demos' : undefined}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                ${!sidebarCollapsed ? 'Guided Demos' : ''}
-              </button>
-              <button 
-                onClick=${() => nav?.('tutorials')} 
-                className=${`w-full py-2 text-[var(--app-text-muted)] text-xs font-medium rounded-[var(--app-radius-sm)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text-secondary)] transition-colors app-focus-ring flex items-center justify-center gap-2`}
-                title=${sidebarCollapsed ? 'Help & Tutorials' : undefined}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                ${!sidebarCollapsed ? 'Help & Tutorials' : ''}
-              </button>
-            </div>
-          `}
+        <div className=${`flex-shrink-0 border-t border-[var(--app-border-soft)] ${sidebarCollapsed ? 'p-2' : 'p-4'}`}>
+          <button
+            onClick=${() => nav?.('account-settings')}
+            className=${`w-full py-2.5 bg-[var(--app-surface-muted)] text-[var(--app-text-secondary)] text-xs font-medium rounded-[var(--app-radius-sm)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text-primary)] transition-colors app-focus-ring flex items-center justify-center gap-2 ${sidebarCollapsed ? 'px-0' : ''}`}
+            title=${sidebarCollapsed ? 'Settings' : undefined}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            ${!sidebarCollapsed ? 'Settings' : ''}
+          </button>
         </div>
       </aside>
+      ` : null}
+
+      ${showFeedSidebar ? html`
+      <aside className=${`
+        hidden lg:flex fixed inset-y-0 left-0 flex-col z-50 transition-[width,transform] duration-300 ease-in-out bg-white
+        ${sidebarCollapsed ? 'w-[72px]' : 'w-[280px]'}
+        ${sidebarCollapsed ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'}
+      `}>
+        <div className=${`flex-shrink-0 border-b border-[var(--app-border-soft)] relative ${sidebarCollapsed ? 'pt-4 pb-2 px-2' : 'p-4'}`}>
+          <div className=${`flex items-center ${sidebarCollapsed ? 'flex-col gap-2 justify-center' : 'justify-center gap-2'}`}>
+            <div className=${`flex items-center min-w-0 ${sidebarCollapsed ? 'flex-col gap-2' : 'justify-center flex-1'}`}>
+              <button
+                onClick=${() => nav?.(homeView)}
+                className="inline-flex items-baseline gap-0.5 min-w-0 hover:opacity-80 transition-opacity cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)] focus:ring-offset-2 rounded"
+                title="Go to home"
+              >
+                <${IthrasLogo} size="sm" theme="dark" />
+                ${!sidebarCollapsed ? html`<${AlphaBadge} theme="dark" variant="superscript" />` : null}
+              </button>
+              ${sidebarCollapsed ? html`
+                <button onClick=${toggleSidebar} className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-[var(--app-radius-sm)]" title="Expand">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                </button>
+              ` : ''}
+            </div>
+            ${!sidebarCollapsed ? html`
+              <button onClick=${toggleSidebar} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-600 hover:bg-slate-100 rounded-[var(--app-radius-sm)]" title="Collapse">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7M18 19l-7-7 7-7" /></svg>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+        <nav className=${`flex-1 min-h-0 overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-2 pt-4 pb-4' : 'px-4 pt-4 pb-4'}`}>
+          <${FeedLeftNav}
+            user=${user}
+            navigate=${nav}
+            activeView=${activeView}
+            profiles=${profiles}
+            activeProfile=${activeProfile}
+            onSwitchProfile=${onSwitchProfile}
+            collapsed=${sidebarCollapsed}
+            onCollapsedChange=${setSidebarCollapsed}
+            onJoinLeave=${refreshFeedSidebar}
+            refreshTrigger=${feedSidebarRefreshTrigger}
+            darkSidebar=${false}
+          />
+        </nav>
+        <div className=${`flex-shrink-0 border-t border-[var(--app-border-soft)] ${sidebarCollapsed ? 'p-2' : 'p-4'}`}>
+          <button
+            onClick=${() => nav?.('account-settings')}
+            className=${`w-full py-2.5 bg-[var(--app-surface-muted)] text-[var(--app-text-secondary)] text-xs font-medium rounded-[var(--app-radius-sm)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text-primary)] transition-colors app-focus-ring flex items-center justify-center gap-2 ${sidebarCollapsed ? 'px-0' : ''}`}
+            title=${sidebarCollapsed ? 'Settings' : undefined}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            ${!sidebarCollapsed ? 'Settings' : ''}
+          </button>
+        </div>
+      </aside>
+      ` : null}
 
       <div className=${`
         flex-1 flex flex-col min-h-screen transition-[margin] duration-300 ease-in-out
-        ${sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-[280px]'}
-        ${activeView === 'tutorials' ? 'relative z-[60]' : ''}
+        ${mainMargin} ${mainMarginRight}
       `}>
-        <header className="flex-shrink-0 relative z-20 overflow-visible flex items-center gap-2 md:gap-3 px-4 py-3 md:px-5 md:py-3 bg-[var(--app-surface)] border-b border-[var(--app-border-soft)]">
+        <header ref=${headerRef} className="flex-shrink-0 relative z-20 overflow-visible flex items-center gap-2 md:gap-3 px-4 py-3 md:px-5 md:py-3 bg-[var(--app-surface)] border-b border-[var(--app-border-soft)]">
+          ${isSystemAdminUser ? html`
           <button
             onClick=${toggleSidebar}
             className="p-2 -ml-2 text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] rounded-[var(--app-radius-sm)] transition-colors app-focus-ring lg:hidden"
@@ -458,103 +514,157 @@ const Layout = ({ children, activeView, user: userProp, onLogout: onLogoutProp, 
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <div className="flex-1 min-w-0 flex items-center">
-            ${user && !isTutorialMode ? html`
+          ` : !showFeedSidebar ? html`
+          <button
+            onClick=${() => nav?.(homeView)}
+            className="inline-flex items-baseline gap-0.5 hover:opacity-80 transition-opacity -ml-1"
+            title="Go to home"
+          >
+            <${IthrasLogo} size="sm" theme="dark" />
+            <${AlphaBadge} theme="dark" variant="superscript" />
+          </button>
+          ` : null}
+          ${!isSystemAdminUser ? html`
+          <div className="flex-1 min-w-0 flex items-center max-w-md">
+            ${user ? html`
               <${GlobalSearchBar} user=${user} navigate=${nav} />
             ` : null}
           </div>
-          <div className="flex items-center gap-1 ml-auto">
-            ${isTutorialMode ? html`
-              <div className="flex items-center gap-2 mr-2">
-                <span className="px-2.5 py-1 bg-[var(--app-accent-soft)] text-[var(--app-accent)] text-[10px] font-bold uppercase tracking-wider rounded-full">Guided Tour</span>
-              </div>
-            ` : html`
-              ${user ? html`
+          ` : null}
+          <div className=${`flex items-center gap-3 md:gap-5 transition-all duration-300 ${isFeedView ? `flex-1 ${rightUtilityBarOpen ? 'justify-center' : 'justify-end'}` : 'ml-auto shrink-0'}`}>
+          ${!isSystemAdminUser ? html`
+            <div className="flex items-center gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
+              ${topBarNavItems.map((item) => html`
+                <button
+                  key=${item.id}
+                  data-tour-id=${`nav-${item.id}`}
+                  onClick=${() => handleNavClick(item.id)}
+                  title=${item.label}
+                  className=${`flex flex-col items-center gap-0.5 py-2 px-2.5 rounded-lg transition-colors app-focus-ring shrink-0 min-w-0 ${effectiveViewForLabel === item.id || (item.id === 'feed' && activeView?.startsWith('feed')) ? 'bg-[var(--app-accent-soft)] text-[var(--app-accent)]' : 'text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text-primary)]'}`}
+                >
+                  ${item.icon}
+                  <span className="text-[10px] font-medium truncate max-w-full">${item.label}</span>
+                </button>
+              `)}
+              ${user && !topBarNavItems.some((i) => i.id === 'messages') ? html`
                 <button
                   onClick=${() => nav?.('messages')}
-                  title="Inbox"
-                  className="p-2 text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)] hover:bg-[var(--app-surface-muted)] rounded-[var(--app-radius-sm)] transition-colors"
+                  title="Messages"
+                  className=${`flex flex-col items-center gap-0.5 py-2 px-2.5 rounded-lg transition-colors app-focus-ring shrink-0 min-w-0 ${effectiveViewForLabel === 'messages' ? 'bg-[var(--app-accent-soft)] text-[var(--app-accent)]' : 'text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text-primary)]'}`}
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  <span className="text-[10px] font-medium whitespace-nowrap">Messages</span>
                 </button>
               ` : null}
-              <${NotificationBell} user=${user} navigate=${nav} />
-            `}
-            ${!isTutorialMode ? html`
-              <div ref=${profileMenuRef} className="relative">
-              <button
-                onClick=${(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }}
-                className="flex items-center gap-2 p-1.5 rounded-[var(--app-radius-md)] hover:bg-[var(--app-surface-muted)] transition-colors app-focus-ring"
-                title="Settings"
-              >
-                ${avatarUrl ? html`
-                  <img src=${avatarUrl} alt="Profile" loading="lazy" className="w-8 h-8 md:w-9 md:h-9 rounded-[var(--app-radius-sm)] object-cover border border-[var(--app-border-soft)]" />
-                ` : html`
-                  <div className="w-8 h-8 md:w-9 md:h-9 bg-[var(--app-accent-soft)] text-[var(--app-accent)] rounded-[var(--app-radius-sm)] flex items-center justify-center font-semibold">
-                    ${avatarInitial}
+              ${user ? html`
+                <div className="flex flex-col items-center justify-center gap-0.5 py-2 px-2.5 rounded-lg shrink-0 min-w-0 text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] hover:text-[var(--app-text-primary)] transition-colors">
+                  <div className="flex items-center justify-center min-h-[20px] [&_button]:p-0 [&_svg]:w-5 [&_svg]:h-5">
+                    <${NotificationBell} user=${user} navigate=${nav} />
                   </div>
-                `}
-                <svg className=${`w-4 h-4 text-[var(--app-text-muted)] hidden sm:block transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              ${profileMenuOpen ? html`
-                <div className="absolute right-0 mt-1 py-1 w-64 bg-[var(--app-surface)] border border-[var(--app-border-soft)] rounded-[var(--app-radius-md)] shadow-[var(--app-shadow-card)] z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-[var(--app-border-soft)] flex items-center gap-3">
-                    ${avatarUrl ? html`
-                      <img src=${avatarUrl} alt="" loading="lazy" className="w-12 h-12 rounded-[var(--app-radius-sm)] object-cover border border-[var(--app-border-soft)] flex-shrink-0" />
-                    ` : html`
-                      <div className="w-12 h-12 bg-[var(--app-accent-soft)] text-[var(--app-accent)] rounded-[var(--app-radius-sm)] flex items-center justify-center font-semibold text-lg flex-shrink-0">
-                        ${avatarInitial}
-                      </div>
-                    `}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-[var(--app-text-primary)] truncate">${displayName}</p>
-                      <p className="text-[10px] text-[var(--app-text-muted)] truncate uppercase tracking-wider">${roleLabel}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick=${() => { nav?.('account-settings'); setProfileMenuOpen(false); }}
-                    className="w-full px-4 py-2.5 text-left text-sm font-semibold text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] flex items-center gap-2 app-focus-ring"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    Settings
-                  </button>
-                  <button
-                    onClick=${() => { nav?.('profile/me'); setProfileMenuOpen(false); }}
-                    className="w-full px-4 py-2.5 text-left text-sm font-semibold text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] flex items-center gap-2 app-focus-ring"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                    Profile
-                  </button>
-                  <button
-                    onClick=${() => { onLogout?.(); setProfileMenuOpen(false); }}
-                    className="w-full px-4 py-2.5 text-left text-sm font-semibold text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] flex items-center gap-2 app-focus-ring border-t border-[var(--app-border-soft)]"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                    Sign Out
-                  </button>
+                  <span className="text-[10px] font-medium whitespace-nowrap">Notifications</span>
                 </div>
               ` : null}
-              </div>
-            ` : html`
-              <button
-                onClick=${endTutorial}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--app-danger)] bg-[rgba(220,38,38,0.06)] hover:bg-[rgba(220,38,38,0.12)] border border-[rgba(220,38,38,0.15)] rounded-[var(--app-radius-sm)] transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                Exit
-              </button>
-            `}
+            </div>
+          ` : null}
+          ${isFeedView && user ? html`
+            <div className="flex items-center gap-2 shrink-0 border-l border-[var(--app-border-soft)] pl-3">
+              ${rightUtilityBarOpen ? html`
+                <button
+                  onClick=${(e) => { e.stopPropagation(); setRightUtilityBarOpen?.(false); }}
+                  className="p-2 text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] rounded-[var(--app-radius-sm)] shrink-0"
+                  title="Collapse"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7M18 19l-7-7 7-7" /></svg>
+                </button>
+              ` : html`
+                <button
+                  onClick=${(e) => { e.stopPropagation(); setRightUtilityBarOpen?.(true); }}
+                  className="flex items-center gap-2 py-2 pl-2 pr-3 rounded-full border border-[var(--app-border-soft)] hover:bg-[var(--app-surface-muted)] hover:border-[var(--app-border-strong)] transition-colors app-focus-ring shrink-0"
+                  title="Open profile panel"
+                >
+                  ${avatarUrl ? html`
+                    <img src=${avatarUrl} alt="Profile" loading="lazy" className="rounded-full object-cover border border-[var(--app-border-soft)] w-10 h-10 flex-shrink-0" />
+                  ` : html`
+                    <div className="rounded-full bg-[var(--app-accent-soft)] text-[var(--app-accent)] flex items-center justify-center font-semibold w-10 h-10 flex-shrink-0">${avatarInitial}</div>
+                  `}
+                  <div className="hidden sm:flex flex-col items-start min-w-0">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--app-text-muted)] leading-tight">Profile</span>
+                    <span className="text-sm font-bold text-[var(--cobalt-600)] truncate">My Profile</span>
+                  </div>
+                  <svg className="w-4 h-4 flex-shrink-0 text-[var(--app-text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  </svg>
+                </button>
+              `}
+            </div>
+          ` : !isFeedView && user ? html`
+            <button
+              onClick=${(e) => { e.stopPropagation(); nav?.('profile/me'); }}
+              className="p-1.5 rounded-[var(--app-radius-sm)] hover:bg-[var(--app-surface-muted)] shrink-0"
+              title="Profile"
+            >
+              ${avatarUrl ? html`
+                <img src=${avatarUrl} alt="Profile" loading="lazy" className="rounded-full object-cover border border-[var(--app-border-soft)] w-8 h-8 md:w-9 md:h-9 flex-shrink-0" />
+              ` : html`
+                <div className="rounded-full bg-[var(--app-accent-soft)] text-[var(--app-accent)] flex items-center justify-center font-semibold w-8 h-8 md:w-9 md:h-9 flex-shrink-0">${avatarInitial}</div>
+              `}
+            </button>
+          ` : null}
           </div>
         </header>
-        <main className=${`flex-1 overflow-y-auto min-h-0 relative z-0 ${isTutorialMode ? 'pointer-events-none' : ''}`}>
-          <div className="app-page-container app-shell-main min-h-full">
+        <main className="flex-1 overflow-y-auto min-h-0 relative z-0">
+          <div className=${`app-page-container app-shell-main min-h-full ${isFeedView ? 'feed-layout' : ''} ${isFeedView && rightUtilityBarOpen ? 'feed-utility-open' : ''}`}>
             ${children}
           </div>
         </main>
       </div>
+
+      ${isFeedView ? html`
+      <aside className=${`
+        hidden lg:flex fixed inset-y-0 right-0 flex-col z-50 bg-white border-l border-[var(--app-border-soft)] overflow-hidden
+        transition-[width] duration-300 ease-in-out
+        ${rightUtilityBarOpen ? 'w-[300px]' : 'w-0'}
+      `}>
+        ${rightUtilityBarOpen ? html`
+        <div className="w-[300px] flex flex-col flex-1 min-h-0 shrink-0">
+          <div className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b border-[var(--app-border-soft)] h-[var(--app-header-height,60px)]">
+            <button
+              onClick=${(e) => { e.stopPropagation(); setRightUtilityBarOpen?.(false); }}
+              className="p-2 -ml-2 text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)] rounded-[var(--app-radius-sm)] shrink-0"
+              title="Collapse"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7M18 19l-7-7 7-7" /></svg>
+            </button>
+            ${avatarUrl ? html`
+              <img src=${avatarUrl} alt="" className="rounded-full object-cover border border-[var(--app-border-soft)] w-9 h-9 flex-shrink-0" />
+            ` : html`
+              <div className="rounded-full bg-[var(--app-accent-soft)] text-[var(--app-accent)] flex items-center justify-center font-semibold text-sm w-9 h-9 flex-shrink-0">${avatarInitial}</div>
+            `}
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <span className="font-semibold text-[var(--app-text-primary)] truncate text-sm leading-tight">${displayName}</span>
+              <span className="text-[var(--app-text-muted)] shrink-0">·</span>
+              <button
+                onClick=${(e) => { e.stopPropagation(); nav?.('profile/me'); }}
+                className="text-xs font-semibold text-[var(--cobalt-600)] hover:underline shrink-0 whitespace-nowrap"
+              >
+                View profile
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto p-3">
+            <${FeedUtilityWing} user=${user} communityCode=${feedCommunityCode} channelCode=${feedCommunityChannel} navigate=${nav} />
+          </div>
+        </div>
+        ` : null}
+      </aside>
+      ` : null}
     </div>
+  `;
+
+  return html`
+    <${FeedSidebarRefreshContext.Provider} value=${{ refresh: refreshFeedSidebar }}>
+      ${layoutContent}
+    <//>
   `;
 };
 

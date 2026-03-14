@@ -18,9 +18,12 @@ products:
   candidates:
     - routers: app.modules.candidates.routers
       modules: [shortlists, applications, offers]
-  general-feed:
+  feed-global:
     - routers: app.modules.feed.routers
       modules: [posts, network]
+  feed-channel:
+    - routers: app.modules.feed.routers
+      modules: [channel]
   recruitment-lateral:
     - routers: app.modules.recruitment.routers
       modules: [ai_shortlist, schedule, job_profiles, discovery, outreach, talent_pools]
@@ -39,3 +42,6 @@ products:
   simulator:
     - routers: app.modules.simulator.routers
       modules: [simulator]
+  preparation:
+    - routers: app.modules.preparation.routers
+      modules: [intake, cv_readiness, interview_prep, wat, community, community_admin, community_management, progress, cat_prep]

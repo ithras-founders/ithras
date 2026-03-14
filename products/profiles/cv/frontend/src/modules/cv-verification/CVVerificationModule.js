@@ -4,8 +4,6 @@ import { getCVs, getCV, verifyCV, getUsers, getCVTemplate, verifyCVEntry } from 
 import { UserRole } from '/core/frontend/src/modules/shared/types.js';
 import { useToast } from '/core/frontend/src/modules/shared/index.js';
 import { DynamicCVPreview } from '/core/frontend/src/modules/shared/cv/index.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 
 const html = htm.bind(React.createElement);
 
@@ -139,7 +137,6 @@ const extractVerifiablePoints = (cvData, template) => {
 
 const CVVerificationModule = ({ user }) => {
   const toast = useToast();
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [cvs, setCVs] = useState([]);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -154,17 +151,8 @@ const CVVerificationModule = ({ user }) => {
   const [showRejectCVModal, setShowRejectCVModal] = useState(false);
 
   useEffect(() => {
-    if (isTutorialMode) {
-      const mock = getTutorialData('PLACEMENT_TEAM') ?? getTutorialMockData('PLACEMENT_TEAM');
-      const allCvs = mock.cvSubmissions || [];
-      const filtered = filterStatus ? allCvs.filter(cv => cv.status === filterStatus) : allCvs;
-      setCVs(filtered);
-      setStudents(mock.cvStudents || []);
-      setLoading(false);
-      return;
-    }
     fetchData();
-  }, [filterStatus, isTutorialMode]);
+  }, [filterStatus]);
 
   useEffect(() => {
     if (selectedCV?.template_id && !selectedTemplate) {

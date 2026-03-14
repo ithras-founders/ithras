@@ -2,22 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import htm from 'htm';
 import { getAuditLogs, getEntityAuditTrail } from '/core/frontend/src/modules/shared/services/api.js';
 import { getTelemetryAuditLogs } from '/core/frontend/src/modules/shared/services/api/telemetry.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
 
 const html = htm.bind(React.createElement);
-
-const DEMO_AUDIT_LOGS = [
-  { id: 'al1', action: 'CV_VERIFIED', entity_type: 'cv', entity_id: 'cv-priya-001', user_name: 'Dr. Rajesh Kumar', timestamp: new Date(Date.now() - 180000).toISOString(), details: { student: 'Priya Sharma', template: 'Standard CV' } },
-  { id: 'al2', action: 'APPROVAL_APPROVED', entity_type: 'approval', entity_id: 'appr-jd-001', user_name: 'Dr. Rajesh Kumar', timestamp: new Date(Date.now() - 900000).toISOString(), details: { type: 'JD Submission', company: 'Apex Consulting', role: 'Associate Consultant' } },
-  { id: 'al3', action: 'APPLICATION_CREATED', entity_type: 'application', entity_id: 'app-arjun-001', user_name: 'Arjun Mehta', timestamp: new Date(Date.now() - 1800000).toISOString(), details: { workflow: 'Apex Placements 2025', role: 'Associate Consultant' } },
-  { id: 'al4', action: 'WORKFLOW_UPDATED', entity_type: 'workflow', entity_id: 'wf-gs-001', user_name: 'Dr. Rajesh Kumar', timestamp: new Date(Date.now() - 3600000).toISOString(), details: { workflow: 'Goldman Sachs IB 2025', change: 'Stage added: Final Interview' } },
-  { id: 'al5', action: 'CV_CREATED', entity_type: 'cv', entity_id: 'cv-sneha-001', user_name: 'Sneha Patel', timestamp: new Date(Date.now() - 5400000).toISOString(), details: { template: 'Consulting Format' } },
-  { id: 'al6', action: 'SHORTLIST_RESPONSE', entity_type: 'shortlist', entity_id: 'sl-rohan-001', user_name: 'Vikram Singh', timestamp: new Date(Date.now() - 7200000).toISOString(), details: { company: 'Apex Consulting', student: 'Rohan Gupta', status: 'Accepted' } },
-  { id: 'al7', action: 'USER_LOGIN', entity_type: 'user', entity_id: 'usr-divya-001', user_name: 'Divya Reddy', timestamp: new Date(Date.now() - 10800000).toISOString() },
-  { id: 'al8', action: 'POLICY_UPDATED', entity_type: 'policy', entity_id: 'pol-001', user_name: 'Dr. Rajesh Kumar', timestamp: new Date(Date.now() - 14400000).toISOString(), details: { change: 'Tier 1 cap increased from 3 to 4' } },
-  { id: 'al9', action: 'APPROVAL_CREATED', entity_type: 'approval', entity_id: 'appr-stage-002', user_name: 'Ananya Das', timestamp: new Date(Date.now() - 18000000).toISOString(), details: { type: 'Stage Progression', from: 'Shortlist', to: 'Interview', students: 3 } },
-  { id: 'al10', action: 'CV_VERIFIED', entity_type: 'cv', entity_id: 'cv-aditya-001', user_name: 'Dr. Rajesh Kumar', timestamp: new Date(Date.now() - 21600000).toISOString(), details: { student: 'Aditya Kumar', template: 'Standard CV' } },
-];
 
 const ACTION_COLORS = {
   USER_LOGIN: 'bg-[var(--app-accent-soft)] text-[var(--app-accent)]',
@@ -99,7 +85,6 @@ const AuditTrailPanel = ({
   showFilters = true,
   apiSource = 'audit',
 }) => {
-  const { isTutorialMode } = useTutorialContext();
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -110,14 +95,6 @@ const AuditTrailPanel = ({
     if (externalLogs) {
       setLogs(externalLogs);
       setTotal(externalLogs.length);
-      return;
-    }
-    if (isTutorialMode) {
-      const filtered = actionFilter
-        ? DEMO_AUDIT_LOGS.filter(l => l.action === actionFilter)
-        : DEMO_AUDIT_LOGS;
-      setLogs(filtered.slice(0, displayLimit));
-      setTotal(filtered.length);
       return;
     }
     setLoading(true);
@@ -142,7 +119,7 @@ const AuditTrailPanel = ({
     } finally {
       setLoading(false);
     }
-  }, [entityType, entityId, institutionId, companyId, userId, actionFilter, displayLimit, externalLogs, apiSource, isTutorialMode]);
+  }, [entityType, entityId, institutionId, companyId, userId, actionFilter, displayLimit, externalLogs, apiSource]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 

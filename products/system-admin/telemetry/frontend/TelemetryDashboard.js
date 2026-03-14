@@ -8,8 +8,6 @@ import {
   getTelemetrySessions,
   getTelemetryAlerts,
 } from '/core/frontend/src/modules/shared/services/api/telemetry.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 import {
   OverviewTab, ApiViewTab, PageViewTab, UserViewTab,
   DatabaseViewTab, AuditTab, JourneysTab, SessionsTab, AlertsTab,
@@ -24,7 +22,6 @@ const SLUG_TO_INDEX = Object.fromEntries(TAB_SLUGS.map((s, i) => [s, i]));
 
 // ─── Main Dashboard ────────────────────────────────────────────────────────────
 const TelemetryDashboard = ({ activeView, navigate }) => {
-  const { isTutorialMode } = useTutorialContext();
   const subPath = activeView?.split('/')[1] || 'overview';
   const activeTab = SLUG_TO_INDEX[subPath] ?? 0;
   const [timeRange, setTimeRange] = useState('1h');
@@ -42,22 +39,6 @@ const TelemetryDashboard = ({ activeView, navigate }) => {
   const [alertData, setAlertData] = useState(null);
 
   const fetchData = useCallback(async () => {
-    if (isTutorialMode) {
-      const mock = getTutorialMockData('SYSTEM_ADMIN');
-      const td = mock.telemetryData || {};
-      setSummary(td.summary || null);
-      setMetrics(td.metrics || null);
-      setPageMetrics(td.pages?.pages || []);
-      setClientApi(td.clientApi?.endpoints || []);
-      setTimeseries(td.timeseries || []);
-      setActiveUsers(td.activeUsers || null);
-      setDbHealth(td.dbHealth || null);
-      setFunnelData(td.funnels || null);
-      setSessionData(td.sessions || null);
-      setAlertData(td.alerts || null);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
@@ -93,7 +74,7 @@ const TelemetryDashboard = ({ activeView, navigate }) => {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, activeTab, isTutorialMode]);
+  }, [timeRange, activeTab]);
 
   useEffect(() => {
     fetchData();

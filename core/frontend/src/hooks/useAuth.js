@@ -2,9 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { switchProfile, validateSession } from '../modules/shared/services/api.js';
 import { setTelemetryUser } from '../modules/shared/services/telemetry.js';
 import { pathToView } from '../modules/shared/navigation.js';
-import { getTutorialMockData } from '../modules/tutorials/context/tutorialMockData.js';
-
-const isDemoUser = (u) => u && (u.id === 'demo' || u.company_id === 'demo-company');
 
 /**
  * Manages authentication, session, profile switching, and demo mode.
@@ -15,9 +12,6 @@ export function useAuth(navigate, setView) {
   const [user, setUser] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [activeProfile, setActiveProfile] = useState(null);
-  const [demoMode, setDemoMode] = useState(false);
-  const [pageDemoView, setPageDemoView] = useState(null);
-  const [realUserBeforeDemo, setRealUserBeforeDemo] = useState(null);
 
   // Auth expired listener
   useEffect(() => {
@@ -26,7 +20,6 @@ export function useAuth(navigate, setView) {
       setProfiles([]);
       setActiveProfile(null);
       setTelemetryUser(null);
-      setDemoMode(false);
       window.history.replaceState(null, '', '/');
       setView('dashboard');
     };
@@ -36,7 +29,6 @@ export function useAuth(navigate, setView) {
 
   // Restore session from localStorage
   useEffect(() => {
-    if (demoMode) return;
     const saved = localStorage.getItem('ithras_session');
     if (saved) {
       const parsed = (() => { try { return JSON.parse(saved); } catch { /* localStorage parse may fail */ return null; } })();
@@ -80,7 +72,7 @@ export function useAuth(navigate, setView) {
           localStorage.removeItem('ithras_session');
         });
     }
-  }, [demoMode, setView]);
+  }, [setView]);
 
   const handleLogin = useCallback((loginResponse) => {
     const userData = loginResponse.user || loginResponse;
@@ -112,48 +104,11 @@ export function useAuth(navigate, setView) {
     setUser(null);
     setProfiles([]);
     setActiveProfile(null);
-    setDemoMode(false);
-    setRealUserBeforeDemo(null);
     setTelemetryUser(null);
     localStorage.removeItem('ithras_session');
     window.history.replaceState(null, '', '/');
     setView('dashboard');
   }, [setView]);
-
-  const handleStartDemo = useCallback((role) => {
-    const mock = getTutorialMockData(role);
-    if (mock && mock.user) {
-      if (user && !isDemoUser(user)) setRealUserBeforeDemo(user);
-      setTelemetryUser(null);
-      setUser(mock.user);
-      setDemoMode(true);
-      setPageDemoView(null);
-      const startView = role === 'SYSTEM_ADMIN' ? 'system-admin/institutions' : 'dashboard';
-      navigate(startView);
-    }
-  }, [user, navigate]);
-
-  const handleStartPageDemo = useCallback((role, pageView) => {
-    const mock = getTutorialMockData(role);
-    if (mock && mock.user) {
-      if (user && !isDemoUser(user)) setRealUserBeforeDemo(user);
-      setTelemetryUser(null);
-      setUser(mock.user);
-      setDemoMode(true);
-      setPageDemoView(pageView);
-      navigate(pageView);
-    }
-  }, [user, navigate]);
-
-  const handleTutorialEnd = useCallback(() => {
-    navigate('dashboard');
-    setPageDemoView(null);
-    if (demoMode) {
-      setUser(realUserBeforeDemo ?? null);
-      setRealUserBeforeDemo(null);
-      setDemoMode(false);
-    }
-  }, [demoMode, realUserBeforeDemo, navigate]);
 
   const handleSwitchProfile = useCallback(async (profileId) => {
     try {
@@ -189,9 +144,8 @@ export function useAuth(navigate, setView) {
   }, []);
 
   return {
-    user, profiles, activeProfile, demoMode, pageDemoView,
+    user, profiles, activeProfile,
     handleLogin, handleLogout,
-    handleStartDemo, handleStartPageDemo, handleTutorialEnd,
     handleSwitchProfile, handleUserUpdate,
   };
 }

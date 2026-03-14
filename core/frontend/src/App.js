@@ -12,16 +12,6 @@ import { AppProvider, useApp } from './modules/shared/context/AppContext.js';
 import { useSetup } from './hooks/useSetup.js';
 import { useViewRouter } from './hooks/useViewRouter.js';
 import { useAuth } from './hooks/useAuth.js';
-import {
-  TutorialProvider,
-  useTutorialContext,
-  GuidedTour,
-  GuidedDemosPage,
-  CandidateTutorials,
-  RecruiterTutorials,
-  PlacementTeamTutorials,
-  SystemAdminTutorials,
-} from './modules/tutorials/index.js';
 import InvestorPitchDeck from './modules/investor/InvestorPitchDeck.js';
 import InstitutionPitchDeck from './modules/investor/InstitutionPitchDeck.js';
 import UniversityInvestorPitchDeck from './modules/investor/UniversityInvestorPitchDeck.js';
@@ -35,11 +25,11 @@ const App = () => {
   const { setupStatus, showSetup, setupError } = useSetup();
   const { view, setView, navigate } = useViewRouter();
   const {
-    user, profiles, activeProfile, demoMode, pageDemoView,
+    user, profiles, activeProfile,
     handleLogin, handleLogout,
-    handleStartDemo, handleStartPageDemo, handleTutorialEnd,
     handleSwitchProfile, handleUserUpdate,
   } = useAuth(navigate, setView);
+  const [rightUtilityBarOpen, setRightUtilityBarOpen] = useState(true);
 
   const viewEntryRef = useRef({ view, product: null, ts: Date.now() });
 
@@ -96,35 +86,26 @@ const App = () => {
     if (showRegister) {
       return html`<${Register} onRegister=${handleLogin} onBack=${() => { window.location.href = '/'; }} />`;
     }
-    return html`<${Login} onLogin=${handleLogin} onStartDemo=${handleStartDemo} onGoToRegister=${() => { window.location.href = '/register'; }} onGoToAboutUs=${() => { window.location.href = '/about-us'; }} />`;
+    return html`<${Login} onLogin=${handleLogin} onGoToRegister=${() => { window.location.href = '/register'; }} onGoToAboutUs=${() => { window.location.href = '/about-us'; }} />`;
   }
 
-  const appCtx = { user, profiles, activeProfile, navigate, onSwitchProfile: handleSwitchProfile, onLogout: handleLogout, onUserUpdate: handleUserUpdate };
+  const appCtx = { user, profiles, activeProfile, navigate, onSwitchProfile: handleSwitchProfile, onLogout: handleLogout, onUserUpdate: handleUserUpdate, rightUtilityBarOpen, setRightUtilityBarOpen };
 
   return html`
     <${AppProvider} value=${appCtx}>
-      <${TutorialProvider}
-        realUser=${user}
-        onTutorialEnd=${handleTutorialEnd}
-        initialDemoRole=${demoMode ? user?.role : null}
-        initialScopeView=${demoMode ? pageDemoView : null}
-      >
-        <${TutorialAppBody}
-          view=${view}
-          navigate=${navigate}
-          viewEntryRef=${viewEntryRef}
-          handleStartPageDemo=${handleStartPageDemo}
-        />
-      <//>
+      <${AppBody}
+        view=${view}
+        navigate=${navigate}
+        viewEntryRef=${viewEntryRef}
+      />
     <//>
   `;
 };
 
-const TutorialAppBody = ({ view, navigate, viewEntryRef, handleStartPageDemo }) => {
+const AppBody = ({ view, navigate, viewEntryRef }) => {
   const { user, profiles, activeProfile, onSwitchProfile, onLogout, onUserUpdate } = useApp();
   const nav = navigate;
-  const { effectiveUser, isTutorialMode, demoRole, demoScopeView, endTutorial } = useTutorialContext();
-  const displayUser = effectiveUser || user;
+  const displayUser = user;
 
   const resolveRoleId = (r) => (r && typeof r === 'object' && r.id) ? r.id : (r || '');
   const displayRoleId = resolveRoleId(displayUser?.role);
@@ -154,7 +135,6 @@ const TutorialAppBody = ({ view, navigate, viewEntryRef, handleStartPageDemo }) 
 
   const [loadedModule, setLoadedModule] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [tourReady, setTourReady] = useState(false);
 
   useEffect(() => {
     const prev = viewEntryRef.current;
@@ -191,59 +171,24 @@ const TutorialAppBody = ({ view, navigate, viewEntryRef, handleStartPageDemo }) 
       .catch((err) => { console.error(`Failed to load product ${activeProduct}:`, err); setLoadedModule(null); setLoading(false); });
   }, [activeProduct]);
 
-  useEffect(() => {
-    if (!isTutorialMode) { setTourReady(false); return; }
-    if (loading) return;
-    const delay = activeProduct === 'candidates' ? 600 : 300;
-    const timer = setTimeout(() => setTourReady(true), delay);
-    return () => clearTimeout(timer);
-  }, [isTutorialMode, loading, activeProduct]);
-
   const isGovernanceUser = roleFlags.isGovernanceUser;
 
   const renderWithLayout = (children) => html`
-    <${React.Fragment}>
-      <${ErrorBoundary}>
-        <${Layout}
+    <${ErrorBoundary}>
+      <${Layout}
         user=${displayUser}
         activeView=${view}
         navigate=${nav}
       >
         ${children}
       <//>
-      <//>
-      <${GuidedTour}
-        run=${isTutorialMode}
-        demoRole=${demoRole}
-        setView=${nav}
-        onComplete=${endTutorial}
-        contentReady=${tourReady}
-        view=${view}
-        scopeView=${demoScopeView}
-      />
     <//>
   `;
 
   if (loading) return renderWithLayout(html`<div className="p-20 text-center animate-pulse">Loading...</div>`);
 
-  if (view === 'guided-demos') {
-    return renderWithLayout(html`<${GuidedDemosPage} user=${displayUser} navigate=${nav} onStartPageTutorial=${handleStartPageDemo} />`);
-  }
-
   if (view === 'about-us') {
     return renderWithLayout(html`<${AboutUsPage} />`);
-  }
-
-  if (view === 'tutorials') {
-    const TutorialPage = displayUser?.role === UserRole.CANDIDATE ? CandidateTutorials
-      : displayUser?.role === UserRole.RECRUITER ? RecruiterTutorials
-      : displayUser?.role === UserRole.PLACEMENT_TEAM || displayUser?.role === UserRole.PLACEMENT_ADMIN ? PlacementTeamTutorials
-      : displayUser?.role === UserRole.SYSTEM_ADMIN ? SystemAdminTutorials
-      : null;
-    return renderWithLayout(TutorialPage
-      ? html`<${TutorialPage} user=${displayUser} navigate=${nav} />`
-      : html`<div className="p-20 text-center text-[var(--app-text-muted)]">Tutorials are available for Student, Recruiter, Placement Team, and System Admin roles.</div>`
-    );
   }
 
   if (activeProduct === 'calendar-management' && loadedModule) {
@@ -273,13 +218,13 @@ const TutorialAppBody = ({ view, navigate, viewEntryRef, handleStartPageDemo }) 
   if (activeProduct === 'preparation' && (roleFlags.isCandidate || roleFlags.isRestrictedUser) && loadedModule) {
     const { PreparationPortal } = loadedModule || {};
     if (!PreparationPortal) return renderWithLayout(html`<div className="p-20 text-center">Loading...</div>`);
-    return renderWithLayout(html`<${PreparationPortal} user=${displayUser} />`);
+    return renderWithLayout(html`<${PreparationPortal} user=${displayUser} view=${view} navigate=${nav} />`);
   }
 
-  if (activeProduct === 'general-feed' && (roleFlags.isGeneralUser || roleFlags.isCandidate || roleFlags.isRecruiter || roleFlags.isRestrictedUser) && loadedModule) {
+  if (activeProduct === 'feed' && (roleFlags.isGeneralUser || roleFlags.isCandidate || roleFlags.isRecruiter || roleFlags.isRestrictedUser) && loadedModule) {
     const { GeneralFeedPortal } = loadedModule || {};
     if (!GeneralFeedPortal) return renderWithLayout(html`<div className="p-20 text-center">Loading...</div>`);
-    return renderWithLayout(html`<${GeneralFeedPortal} user=${displayUser} view=${view} navigate=${nav} />`);
+    return renderWithLayout(html`<${GeneralFeedPortal} user=${displayUser} view=${view} navigate=${nav} profiles=${profiles} activeProfile=${activeProfile} onSwitchProfile=${onSwitchProfile} />`);
   }
 
   if (activeProduct === 'candidates' && loadedModule) {
@@ -339,7 +284,7 @@ const TutorialAppBody = ({ view, navigate, viewEntryRef, handleStartPageDemo }) 
     const ProfilesShell = loadedModule?.default;
     if (!ProfilesShell) return renderWithLayout(html`<div className="p-20 text-center">Loading...</div>`);
     const profileView = (view === 'cv' || view === 'cv-maker') ? 'profile/me' : view;
-    return renderWithLayout(html`<${ProfilesShell} view=${profileView} navigate=${nav} user=${displayUser} onUserUpdate=${onUserUpdate} />`);
+    return renderWithLayout(html`<${ProfilesShell} view=${profileView} navigate=${nav} user=${displayUser} onUserUpdate=${onUserUpdate} onLogout=${onLogout} />`);
   }
 
   if (activeProduct === 'entity-about' && loadedModule) {

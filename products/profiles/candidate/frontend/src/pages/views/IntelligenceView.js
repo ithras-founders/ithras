@@ -1,55 +1,18 @@
 import React, { useState } from 'react';
 import htm from 'htm';
 import { getCycleAnalytics } from '/core/frontend/src/modules/shared/services/api.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 
 const html = htm.bind(React.createElement);
 
-const IntelligenceView = ({ cycles, isTutorialMode, isDemoUser, getTutorialData }) => {
+const IntelligenceView = ({ cycles }) => {
+  const cycleStats = { totalCompanies: 0, totalRoles: 0, totalApplications: 0, avgCompensation: 'N/A' };
+  const placementSummary = [];
+  const displayCycles = cycles || [];
+
   const [selectedCycleAnalytics, setSelectedCycleAnalytics] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
-  const useMock = isTutorialMode || isDemoUser;
-  const mock = useMock ? (getTutorialData?.('CANDIDATE') ?? getTutorialMockData('CANDIDATE')) : null;
-  const cycleStats = useMock && mock?.cycleStats ? mock.cycleStats : { totalCompanies: 0, totalRoles: 0, totalApplications: 0, avgCompensation: 'N/A' };
-  const placementSummary = useMock && mock?.placementSummary ? mock.placementSummary : [];
-  const displayCycles = cycles.length > 0 ? cycles : (mock?.cycles || []);
-
   const loadCycleAnalytics = async (cycleId) => {
-    if (isTutorialMode || isDemoUser) {
-      setSelectedCycleAnalytics({
-        cycle_id: cycleId,
-        cycle_name: 'Final Placements 2024-25',
-        total_jobs: 156,
-        total_applications: 892,
-        total_offers: 184,
-        accepted_offers: 162,
-        offer_rate_pct: 20.6,
-        median_ctc: 2800000,
-        sector_distribution: [
-          { sector: 'Consulting', count: 42 },
-          { sector: 'Finance', count: 38 },
-          { sector: 'Technology', count: 35 },
-          { sector: 'FMCG', count: 18 },
-          { sector: 'Analytics', count: 12 },
-          { sector: 'Other', count: 11 },
-        ],
-        stage_funnel: [
-          { stage: 'SUBMITTED', count: 340 },
-          { stage: 'SHORTLISTED', count: 280 },
-          { stage: 'IN_PROGRESS', count: 88 },
-          { stage: 'SELECTED', count: 184 },
-        ],
-        top_recruiters: [
-          { company_id: 'c1', company_name: 'Apex Consulting', offers: 12 },
-          { company_id: 'c2', company_name: 'Goldman Sachs', offers: 8 },
-          { company_id: 'c3', company_name: 'Amazon', offers: 10 },
-          { company_id: 'c5', company_name: 'Bain & Company', offers: 8 },
-          { company_id: 'c4', company_name: 'Hindustan Unilever', offers: 5 },
-        ],
-      });
-      return;
-    }
     setLoadingAnalytics(true);
     try {
       const data = await getCycleAnalytics(cycleId);
@@ -88,7 +51,7 @@ const IntelligenceView = ({ cycles, isTutorialMode, isDemoUser, getTutorialData 
         <div className="space-y-4">
           ${displayCycles.length === 0 ? html`
             <div className="bg-[var(--app-surface)] p-12 rounded-[var(--app-radius-lg)] border border-[var(--app-border-soft)] shadow-[var(--app-shadow-subtle)] text-center">
-              <p className="text-[var(--app-text-muted)]">${useMock ? 'Demo: No active cycles.' : 'No active cycles.'}</p>
+              <p className="text-[var(--app-text-muted)]">No active cycles.</p>
             </div>
           ` : displayCycles.map(c => html`
             <button

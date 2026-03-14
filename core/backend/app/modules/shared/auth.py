@@ -263,6 +263,22 @@ def require_role(*allowed_roles: str):
     return _check
 
 
+def require_users_list_access():
+    """Dependency: allow listing users if user has placement/recruiter/admin role OR preparation.community.admin."""
+
+    def _check(user: models.User = Depends(get_current_user), db: Session = Depends(database.get_db)):
+        if _user_has_role(db, user.id, ["PLACEMENT_TEAM", "PLACEMENT_ADMIN", "RECRUITER", "SYSTEM_ADMIN"]):
+            return user
+        if _user_has_permission(db, user.id, "preparation.community.admin"):
+            return user
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied: role or preparation.community.admin required",
+        )
+
+    return _check
+
+
 def get_institution_scope(
     user: models.User = Depends(get_current_user),
 ) -> str | None:

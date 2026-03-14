@@ -732,7 +732,7 @@ export const CTASlide = () => html`
         href="/"
         className="inline-flex items-center gap-2 px-8 py-4 bg-[var(--app-accent)] text-white rounded-[var(--app-radius-md)] font-semibold text-base hover:opacity-90 transition-opacity"
       >
-        Start guided demo
+        Get started
       </a>
       <a
         href="mailto:hello@ithraslabs.in?subject=Institution%20Demo%20Request"

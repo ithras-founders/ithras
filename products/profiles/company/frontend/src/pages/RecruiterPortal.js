@@ -3,15 +3,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import htm from 'htm';
 import { getCompanies, getJobs, getCycles, getInstitutions } from '/core/frontend/src/modules/shared/services/api.js';
 import { ProcessStatus, CycleCategory } from '/core/frontend/src/modules/shared/types.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
-import { isDemoUser } from '/core/frontend/src/modules/shared/utils/demoUtils.js';
 import ApplicationRequestsApprovalQueue from '../components/ApplicationRequestsApprovalQueue.js';
 
 const html = htm.bind(React.createElement);
 
 const RecruiterPortal = ({ user, activeView }) => {
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [selectedTargetId, setSelectedTargetId] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -20,15 +16,6 @@ const RecruiterPortal = ({ user, activeView }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isTutorialMode) {
-      const mock = getTutorialData('RECRUITER') ?? getTutorialMockData('RECRUITER');
-      setJobs(mock.jobs || []);
-      setCycles(mock.cycles || []);
-      setCompanies(mock.companies || []);
-      setInstitutions(mock.institutions || []);
-      setLoading(false);
-      return;
-    }
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -49,20 +36,17 @@ const RecruiterPortal = ({ user, activeView }) => {
       }
     };
     fetchData();
-  }, [user?.id, isTutorialMode]);
+  }, [user?.id]);
 
   const selectedTarget = useMemo(() => 
     institutions.find(i => i.id === selectedTargetId), [selectedTargetId, institutions]);
 
   const renderTargetGate = () => {
-    const mock = isTutorialMode ? (getTutorialData('RECRUITER') ?? getTutorialMockData('RECRUITER')) : null;
-    const institutionStats = mock?.institutionStats || {};
     return html`
     <div className="space-y-12 animate-in pb-20">
        <p data-tour-id="recruiter-header" className="text-sm text-[var(--app-text-secondary)] mb-6">Multi-institution pipelines</p>
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" data-tour-id="institution-cards">
-          ${(institutions.length > 0 || !isTutorialMode) ? institutions.map(inst => {
-            const stats = institutionStats[inst.id] || {};
+          ${institutions.length > 0 ? institutions.map(inst => {
             return html`
             <button 
               key=${inst.id} 
@@ -74,13 +58,7 @@ const RecruiterPortal = ({ user, activeView }) => {
                  <span className=${`px-4 py-1.5 text-white text-[9px] font-semibold uppercase rounded-xl ${inst.tier === 'Lateral' ? 'bg-indigo-600' : 'bg-[var(--app-text-primary)]'}`}>${inst.tier}</span>
               </div>
               <h4 className="text-3xl font-semibold text-[var(--app-text-primary)] tracking-tighter leading-tight">${inst.name}</h4>
-              ${(stats.totalHires !== undefined || stats.pendingApplications !== undefined) ? html`
-                <div className="mt-4 flex gap-4 text-[11px] font-bold">
-                  ${stats.totalHires !== undefined ? html`<span className="text-[var(--app-accent)]">${stats.totalHires} hires</span>` : ''}
-                  ${stats.roles !== undefined ? html`<span className="text-[var(--app-text-secondary)]">${stats.roles} roles</span>` : ''}
-                  ${stats.pendingApplications !== undefined ? html`<span className="text-amber-600">${stats.pendingApplications} pending</span>` : ''}
-                </div>
-              ` : html`<p className="text-[11px] font-bold text-[var(--app-text-muted)] uppercase tracking-widest mt-4">Connected Active Registry</p>`}
+              <p className="text-[11px] font-bold text-[var(--app-text-muted)] uppercase tracking-widest mt-4">Connected Active Registry</p>
               
               <div className="mt-12 flex items-center gap-3 text-[var(--app-accent)] text-[10px] font-semibold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
                 Configure Pipeline
@@ -90,7 +68,7 @@ const RecruiterPortal = ({ user, activeView }) => {
           `;
           }) : html`
             <div className="p-12 bg-[var(--app-surface)] rounded-[var(--app-radius-lg)] border border-[var(--app-border-soft)] shadow-[var(--app-shadow-subtle)] text-center col-span-full">
-              <p className="text-[var(--app-text-muted)]">Demo: Select an institution to begin.</p>
+              <p className="text-[var(--app-text-muted)]">No institutions found.</p>
             </div>
           `}
        </div>
@@ -159,7 +137,6 @@ const RecruiterPortal = ({ user, activeView }) => {
   const [showSlotForm, setShowSlotForm] = useState(false);
 
   const fetchSlots = async () => {
-    if (isTutorialMode || isDemoUser(user)) return;
     setSlotsLoading(true);
     try {
       const { apiRequest } = await import('/core/frontend/src/modules/shared/services/api/apiBase.js');

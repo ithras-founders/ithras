@@ -1,38 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getActivePolicy, getCompanies, getJobs, getCompanyHires, getUserShortlists, getCycles, getOffers, getApplications, getCVs, getApplicationStageProgress } from '/core/frontend/src/modules/shared/services/api.js';
-import { isDemoUser } from '/core/frontend/src/modules/shared/utils/demoUtils.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
-
-const DEFAULT_STAGES = [
-  { name: 'Application', stage_number: 1 },
-  { name: 'Shortlist', stage_number: 2 },
-  { name: 'Interview', stage_number: 3 },
-  { name: 'Offer', stage_number: 4 },
-];
-
-const getMockStageProgress = (app) => {
-  const status = app.status || 'SUBMITTED';
-  let currentIdx = 0;
-  if (status === 'SUBMITTED') currentIdx = 1;
-  else if (status === 'SHORTLISTED') currentIdx = 2;
-  else if (status === 'OFFERED' || status === 'PENDING') currentIdx = 3;
-  return {
-    application_id: app.id,
-    application_status: status,
-    stages: DEFAULT_STAGES.map((s, i) => ({
-      ...s,
-      stage_id: `s${i + 1}`,
-      stage_type: s.name.toUpperCase().replace(' ', '_'),
-      is_current: i === currentIdx,
-      progress_status: i < currentIdx ? 'PASSED' : i === currentIdx ? 'IN_PROGRESS' : 'NOT_STARTED',
-      moved_at: i < currentIdx ? new Date().toISOString() : null,
-    })),
-  };
-};
 
 export function useCandidateData(user) {
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [activePolicy, setActivePolicy] = useState(null);
   const [companies, setCompanies] = useState([]);
@@ -86,25 +55,10 @@ export function useCandidateData(user) {
   }, [user?.id]);
 
   useEffect(() => {
-    if (isTutorialMode || isDemoUser(user)) {
-      const mock = getTutorialData('CANDIDATE') ?? getTutorialMockData('CANDIDATE');
-      setActivePolicy(mock.policy);
-      setCompanies(mock.companies || []);
-      setJobs(mock.jobs || []);
-      setCycles(mock.cycles || []);
-      setActiveShortlists(mock.shortlists || []);
-      setOffers(mock.offers || []);
-      setApplications(mock.applications || []);
-      setCVs(mock.cvs || []);
-      setHistoricalHires(mock.historicalHires || []);
-      setLoading(false);
-      return;
-    }
     fetchData();
-  }, [user?.id, isTutorialMode, fetchData]);
+  }, [user?.id, fetchData]);
 
   useEffect(() => {
-    if (isTutorialMode || isDemoUser(user)) return;
     if (!selectedCompanyId) {
       setHistoricalHires([]);
       return;
@@ -112,15 +66,10 @@ export function useCandidateData(user) {
     getCompanyHires(selectedCompanyId)
       .then((hires) => setHistoricalHires(hires || []))
       .catch(() => setHistoricalHires([]));
-  }, [selectedCompanyId, isTutorialMode, user?.id]);
+  }, [selectedCompanyId, user?.id]);
 
   const loadStageProgress = useCallback(async (appId) => {
     if (stageProgressCache[appId]) return;
-    if (isTutorialMode || isDemoUser(user)) {
-      const app = applications.find((a) => a.id === appId);
-      if (app) setStageProgressCache((c) => ({ ...c, [appId]: getMockStageProgress(app) }));
-      return;
-    }
     setLoadingStageProgress(appId);
     try {
       const data = await getApplicationStageProgress(appId);
@@ -130,7 +79,7 @@ export function useCandidateData(user) {
     } finally {
       setLoadingStageProgress(null);
     }
-  }, [applications, isTutorialMode, user, stageProgressCache]);
+  }, [stageProgressCache]);
 
   const toggleApplicationExpand = (appId) => {
     const next = expandedApplicationId === appId ? null : appId;
@@ -161,9 +110,6 @@ export function useCandidateData(user) {
     stageProgressCache,
     loadStageProgress,
     loadingStageProgress,
-    isTutorialMode,
-    isDemoUser: isDemoUser(user),
-    getTutorialData,
     user,
   };
 }

@@ -10,7 +10,7 @@ const html = htm.bind(React.createElement);
 const safeStr = (v) => (v == null ? '' : String(v));
 
 const AccountSettingsPage = (props) => {
-  const { user, navigate, onUserUpdate, subview = 'account-settings' } = props ?? {};
+  const { user, navigate, onUserUpdate, onLogout, subview = 'account-settings' } = props ?? {};
   const toast = useToast();
 
   const safeName = safeStr(user?.name ?? '').trim() || '';
@@ -197,6 +197,17 @@ const AccountSettingsPage = (props) => {
             </div>
           `}
         <//>` : null}
+
+        <div className="pt-6 border-t border-[var(--app-border-soft)]">
+          <h3 className="text-sm font-semibold text-[var(--app-text-primary)] mb-2">Sign out</h3>
+          <p className="text-sm text-[var(--app-text-secondary)] mb-4">Sign out of your account on this device.</p>
+          <button
+            onClick=${() => onLogout?.()}
+            className="px-4 py-2 text-sm font-medium text-[var(--app-danger)] border border-[var(--app-danger)]/30 rounded-[var(--app-radius-sm)] hover:bg-[var(--app-danger-soft)] transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     <//>
   `;

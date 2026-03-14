@@ -4,6 +4,7 @@
   "workspaces": [
     "core/frontend",
     "products/*/frontend",
+    "products/*/*/frontend",
     "products/*/core",
     "tests/e2e"
   ],

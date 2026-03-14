@@ -14,8 +14,6 @@ import {
   DynamicCVPreview,
   getDummyCVDataForTemplate,
 } from '/core/frontend/src/modules/shared/cv/index.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 
 const html = htm.bind(React.createElement);
 
@@ -38,7 +36,6 @@ function groupTemplates(templates) {
 
 const CVTemplatesViewer = ({ user }) => {
   const toast = useToast();
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [previewTemplate, setPreviewTemplate] = useState(null);
@@ -51,22 +48,14 @@ const CVTemplatesViewer = ({ user }) => {
   const [visibilityOverrides, setVisibilityOverrides] = useState({});
 
   useEffect(() => {
-    if (isTutorialMode) {
-      const mock = getTutorialData('PLACEMENT_TEAM') ?? getTutorialMockData('PLACEMENT_TEAM');
-      setTemplates((mock.cvTemplates || []).filter((t) => t.status === 'PUBLISHED'));
-      setLoading(false);
-      return;
-    }
     loadTemplates();
-  }, [isTutorialMode]);
+  }, []);
 
   useEffect(() => {
-    if (!isTutorialMode) {
-      getInstitutions({ limit: 100 })
-        .then((r) => setInstitutions(r?.items ?? []))
-        .catch(() => setInstitutions([]));
-    }
-  }, [isTutorialMode]);
+    getInstitutions({ limit: 100 })
+      .then((r) => setInstitutions(r?.items ?? []))
+      .catch(() => setInstitutions([]));
+  }, []);
 
   useEffect(() => {
     async function loadStructure() {
@@ -120,10 +109,6 @@ const CVTemplatesViewer = ({ user }) => {
   };
 
   const handlePreview = async (template) => {
-    if (isTutorialMode) {
-      setPreviewTemplate(template);
-      return;
-    }
     try {
       const full = await getCVTemplate(template.id);
       setPreviewTemplate(full);
@@ -176,17 +161,15 @@ const CVTemplatesViewer = ({ user }) => {
         </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
-        ${!isTutorialMode ? html`
-          <button
-            onClick=${() => setVisibilitySettingsTemplate(tpl)}
-            className="p-2 rounded-[var(--app-radius-sm)] hover:bg-[var(--app-surface-muted)] text-[var(--app-text-muted)]"
-            title="Visibility settings"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-1.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h1.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v1.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-1.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-          </button>
-        ` : null}
+        <button
+          onClick=${() => setVisibilitySettingsTemplate(tpl)}
+          className="p-2 rounded-[var(--app-radius-sm)] hover:bg-[var(--app-surface-muted)] text-[var(--app-text-muted)]"
+          title="Visibility settings"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-1.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h1.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v1.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-1.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
         <button
           onClick=${() => handlePreview(tpl)}
           className="px-4 py-2 text-sm font-medium bg-[var(--app-accent)] text-white rounded-[var(--app-radius-sm)] hover:bg-[var(--app-accent-hover)]"

@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ithras | Professional Career Platform</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
     <meta name="api-url" content="/api">
     <script type="importmap">
     {
       "imports": {
         "/src/modules/shared/": "/core/frontend/src/modules/shared/",
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom": "https://esm.sh/react-dom@18.2.0",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "react": "https://cdn.jsdelivr.net/npm/react@18.2.0/+esm",
+        "react-dom": "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/+esm",
+        "react-dom/client": "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/client/+esm",
         "htm": "https://esm.sh/htm@3.1.1",
         "@google/genai": "https://esm.sh/@google/genai",
         "@dnd-kit/core": "https://esm.sh/@dnd-kit/core@6.1.0?deps=react@18.2.0&external=react",
@@ -20,7 +20,6 @@
         "@dnd-kit/utilities": "https://esm.sh/@dnd-kit/utilities@3.2.2",
         "recharts": "https://esm.sh/recharts@2.12.7?deps=react@18.2.0",
         "react-colorful": "https://esm.sh/react-colorful@5.6.1?deps=react@18.2.0",
-        "react-joyride": "https://esm.sh/react-joyride@2.9.3?deps=react@18.2.0",
         "html2canvas": "https://esm.sh/html2canvas@1.4.1",
         "jspdf": "https://esm.sh/jspdf@2.5.2",
         "lucide-react": "https://esm.sh/lucide-react@0.468.0?deps=react@18.2.0&external=react"
@@ -30,7 +29,7 @@
     <script>
         window.API_URL = '/api';
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/public/tailwind.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/react-colorful@5.6.1/dist/index.css">
     <style>
@@ -206,6 +205,34 @@
           --chart-alert: #ff375f;
           --chart-grid: rgba(0, 0, 0, 0.06);
           --chart-axis: #86868b;
+
+          /* ===== FEED WORKSPACE: SLATE + COBALT (Pro-SaaS) ===== */
+          --slate-900: #0f172a;
+          --slate-800: #1e293b;
+          --slate-700: #334155;
+          --slate-600: #475569;
+          --slate-500: #64748b;
+          --slate-400: #94a3b8;
+          --slate-200: #e2e8f0;
+          --slate-100: #f1f5f9;
+          --cobalt-600: #2563eb;
+          --cobalt-500: #3b82f6;
+          --cobalt-400: #60a5fa;
+          --cobalt-soft: rgba(37, 99, 235, 0.08);
+          --cobalt-softer: rgba(37, 99, 235, 0.04);
+          --feed-accent: var(--cobalt-600);
+          --feed-accent-hover: var(--cobalt-500);
+          --feed-accent-soft: var(--cobalt-soft);
+          /* High-performance pro tool - off-white main canvas */
+          --feed-bg: #F9FAFB;
+          --feed-surface: #ffffff;
+          --feed-border: var(--slate-200);
+          --feed-card-border: #E2E8F0;
+          --feed-card-shadow: 0 1px 3px rgba(0,0,0,0.06);
+          --feed-text-primary: #0F172A;
+          --feed-text-secondary: var(--slate-700);
+          --indigo-500: #6366f1;
+          --indigo-600: #4f46e5;
         }
         * { box-sizing: border-box; }
         body {
@@ -311,6 +338,17 @@
         @media (min-width: 768px) {
           .app-page-container { padding: 2rem; }
         }
+        .app-page-container.feed-layout {
+          padding-left: 0;
+          padding-right: 0;
+        }
+        @media (min-width: 768px) {
+          .app-page-container.feed-layout { padding-left: 0; padding-right: 0; }
+        }
+        .app-page-container.feed-layout.feed-utility-open {
+          max-width: none;
+          padding-top: 0;
+        }
         .app-mode-card {
           border-radius: 1rem;
           border: 1px solid var(--app-border-soft);
@@ -363,6 +401,9 @@
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        .cv-score-ring {
+          transition: stroke-dashoffset 0.7s ease-out;
         }
         .animate-in {
           animation: fadeIn 0.3s ease-out forwards;

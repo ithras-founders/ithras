@@ -14,7 +14,7 @@ export const productRegistry = {
   'system-admin': () => import('/products/system-admin/core/frontend/src/index.js'),
   'candidates': () => import('/products/profiles/candidate/frontend/src/index.js'),
   'profiles': () => import('/products/profiles/core/frontend/src/index.js'),
-  'general-feed': () => import('/products/general-feed/frontend/src/index.js'),
+  'feed': () => import('/products/feed/global/frontend/src/index.js'),
   'preparation': () => import('/products/preparation/frontend/src/index.js'),
   'entity-about': () => import('/core/frontend/src/modules/entity-about/index.js'),
 };

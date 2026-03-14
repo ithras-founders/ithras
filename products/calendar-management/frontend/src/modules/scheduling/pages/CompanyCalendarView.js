@@ -2,15 +2,11 @@ import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { getCalendarSlots, getSlotAvailability, createCalendarSlot, bookSlot, getCompanies, getJobs } from '/core/frontend/src/modules/shared/services/api.js';
 import { useToast } from '/core/frontend/src/modules/shared/index.js';
-import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
-import { isDemoUser } from '/core/frontend/src/modules/shared/utils/demoUtils.js';
-import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
 
 const html = htm.bind(React.createElement);
 
 const CompanyCalendarView = ({ user }) => {
   const toast = useToast();
-  const { isTutorialMode, getTutorialData } = useTutorialContext();
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -21,27 +17,10 @@ const CompanyCalendarView = ({ user }) => {
   const [jobs, setJobs] = useState([]);
 
   useEffect(() => {
-    if (isTutorialMode || isDemoUser(user)) {
-      const mock = getTutorialData?.('RECRUITER') ?? getTutorialMockData('RECRUITER');
-      const now = new Date();
-      const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
-      const dayAfter = new Date(now); dayAfter.setDate(now.getDate() + 2);
-      const nextWeek = new Date(now); nextWeek.setDate(now.getDate() + 5);
-      setSlots([
-        { id: 'slot1', start_time: new Date(tomorrow.setHours(10, 0)).toISOString(), end_time: new Date(tomorrow.setHours(11, 0)).toISOString(), slot_type: 'INTERVIEW', status: 'AVAILABLE', job_id: 'j1' },
-        { id: 'slot2', start_time: new Date(tomorrow.setHours(14, 0)).toISOString(), end_time: new Date(tomorrow.setHours(15, 30)).toISOString(), slot_type: 'PRESENTATION', status: 'BOOKED', job_id: 'j2' },
-        { id: 'slot3', start_time: new Date(dayAfter.setHours(9, 0)).toISOString(), end_time: new Date(dayAfter.setHours(10, 0)).toISOString(), slot_type: 'INTERVIEW', status: 'AVAILABLE', job_id: 'j1' },
-        { id: 'slot4', start_time: new Date(nextWeek.setHours(11, 0)).toISOString(), end_time: new Date(nextWeek.setHours(12, 30)).toISOString(), slot_type: 'NETWORKING', status: 'AVAILABLE', job_id: null },
-      ]);
-      setCompanies(mock.companies || []);
-      setJobs(mock.jobs || []);
-      setLoading(false);
-      return;
-    }
     fetchSlots();
     fetchCompanies();
     fetchJobs();
-  }, [user?.company_id, selectedDate, isTutorialMode, getTutorialData]);
+  }, [user?.company_id, selectedDate]);
 
   const fetchSlots = async () => {
     try {

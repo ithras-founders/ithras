@@ -1,11 +1,14 @@
 /** Feed API: posts, likes, comments, views, engagement */
 import { apiRequest, getApiBaseUrl } from './apiBase.js';
 
-export const createFeedPost = (text, imageUrls = []) =>
-  apiRequest('/v1/feed/posts', {
+export const createFeedPost = (text, imageUrls = [], postType = null) => {
+  const body = { text: text || '', image_urls: imageUrls || [] };
+  if (postType && postType !== 'standard') body.post_type = postType;
+  return apiRequest('/v1/feed/posts', {
     method: 'POST',
-    body: JSON.stringify({ text: text || '', image_urls: imageUrls || [] }),
+    body: JSON.stringify(body),
   });
+};
 
 export const getFeedPosts = (params = {}) => {
   const search = new URLSearchParams();
@@ -74,6 +77,28 @@ export const getNetworkConnections = (params = {}) => {
   if (params.offset != null) search.set('offset', params.offset);
   const qs = search.toString();
   return apiRequest(`/v1/feed/network/connections${qs ? `?${qs}` : ''}`);
+};
+
+// Channel feed management (visibility, filters)
+export const listFeedChannels = (params = {}) => {
+  const search = new URLSearchParams();
+  if (params.visibility) search.set('visibility', params.visibility);
+  const qs = search.toString();
+  return apiRequest(`/v1/feed/channels${qs ? `?${qs}` : ''}`);
+};
+
+export const setChannelVisibility = (channelId, visibility) =>
+  apiRequest(`/v1/feed/channels/${encodeURIComponent(channelId)}/visibility`, {
+    method: 'PUT',
+    body: JSON.stringify({ visibility }),
+  });
+
+export const getChannelPosts = (channelId, params = {}) => {
+  const search = new URLSearchParams();
+  if (params.limit != null) search.set('limit', params.limit);
+  if (params.offset != null) search.set('offset', params.offset);
+  const qs = search.toString();
+  return apiRequest(`/v1/feed/channels/${encodeURIComponent(channelId)}/posts${qs ? `?${qs}` : ''}`);
 };
 
 export const uploadFeedImage = async (file) => {
