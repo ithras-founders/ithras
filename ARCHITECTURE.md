@@ -11,15 +11,48 @@ ithras/
 ├── core/                    # Shared infrastructure
 │   ├── backend/             # FastAPI app, shared models, schemas
 │   └── frontend/            # Shell, layout, shared UI, API services
-├── products/                # Six independent products
-│   ├── calendar-scheduling/
-│   ├── cv-builder/
-│   ├── placement-governance/
-│   ├── institution-management/
-│   ├── company-management/
+├── products/                # Product implementations loaded via registries
+│   ├── calendar-management/
+│   ├── recruitment-university/
+│   ├── recruitment-lateral/
+│   ├── profiles/
+│   ├── general-feed/
 │   └── system-admin/
 └── docker-compose.yml       # DB, backend, frontend
 ```
+
+
+## Registry is source of truth
+
+Treat these as canonical for product boundaries and wiring:
+
+- `core/backend/app/product_registry.yaml` defines backend product key -> router module mapping.
+- `core/frontend/src/productRegistry.js` defines frontend product key -> lazy entry module mapping.
+
+If any older docs mention legacy product names (for example `calendar-scheduling`, `cv-builder`, `placement-governance`) or stale paths, update docs to match these registry files.
+
+| Product key | Backend router module | Frontend entry module |
+|---|---|---|
+| `calendar-management` | `app.modules.scheduling.routers` | `/products/calendar-management/frontend/src/modules/scheduling/index.js` |
+| `cv` | `app.modules.cv_builder.routers` | — |
+| `cv-maker` | — | `/products/profiles/cv/frontend/src/modules/cv-maker/index.js` |
+| `cv-templates-viewer` | — | `/products/profiles/cv/frontend/src/modules/cv-templates-viewer/index.js` |
+| `cv-verification` | — | `/products/profiles/cv/frontend/src/modules/cv-verification/index.js` |
+| `recruitment-university` | `app.modules.governance.routers` | `/products/recruitment-university/frontend/src/modules/governance/index.js` |
+| `institution-management` | `app.modules.institution.routers` | `/products/profiles/institution/frontend/src/InstitutionAdminPortal.js` |
+| `company-management` | `app.modules.company.routers` | `/products/profiles/company/frontend/src/index.js` |
+| `candidates` | `app.modules.candidates.routers` | `/products/profiles/candidate/frontend/src/index.js` |
+| `general-feed` | `app.modules.feed.routers` | `/products/general-feed/frontend/src/index.js` |
+| `recruitment-lateral` | `app.modules.recruitment.routers` | `/products/recruitment-lateral/frontend/src/index.js` |
+| `user-management` | `app.modules.user_management.routers` | — |
+| `database` | `app.modules.database.routers` | — |
+| `migrations` | `app.modules.migrations.routers` | — |
+| `testing` | `app.modules.testing.routers` | — |
+| `simulator` | `app.modules.simulator.routers` | — |
+| `system-admin` | — | `/products/system-admin/core/frontend/src/index.js` |
+| `profiles` | — | `/products/profiles/core/frontend/src/index.js` |
+| `preparation` | — | `/products/preparation/frontend/src/index.js` |
+| `entity-about` | — | `/core/frontend/src/modules/entity-about/index.js` |
 
 ## Data Flow
 
@@ -102,11 +135,11 @@ The product loader expects routers at `backend/app/modules/<name>/routers/`; stu
 
 ## How to Add a New Product
 
-1. Create `products/{product-name}/backend/app/modules/` with routers
-2. Create `products/{product-name}/frontend/src/modules/` with UI
-3. Register in `core/backend/app/main.py` (or `product_registry.yaml`)
-4. Add routing in `core/frontend/src/App.js`
-5. Add nginx locations if needed (usually `/products/` covers all)
+1. Create backend router modules under the target product package and expose a router module path.
+2. Create the frontend entry module under the target product package.
+3. Register backend key/module in `core/backend/app/product_registry.yaml`.
+4. Register frontend key/import in `core/frontend/src/productRegistry.js`.
+5. Wire UI navigation/routes in `core/frontend/src/App.js` as needed.
 
 ## Cursor Usage
 
@@ -116,11 +149,11 @@ Create `ithras/.cursorignore` to exclude products you are not working on. Exampl
 
 ```
 # Uncomment products to exclude from context
-# products/calendar-scheduling/
-# products/cv-builder/
-products/placement-governance/
-products/institution-management/
-products/company-management/
+# products/calendar-management/
+# products/recruitment-university/
+products/recruitment-lateral/
+products/profiles/
+products/general-feed/
 products/system-admin/
 ```
 
