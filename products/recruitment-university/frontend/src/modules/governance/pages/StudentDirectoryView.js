@@ -3,6 +3,7 @@ import htm from 'htm';
 import { getUsers, getPrograms, getBatches, getCVs, getApplications } from '/core/frontend/src/modules/shared/services/api.js';
 import { UserRole } from '/core/frontend/src/modules/shared/types.js';
 import { SkeletonLoader } from '/core/frontend/src/modules/shared/index.js';
+import { Button, Select, SectionCard, StatusBadge } from '/core/frontend/src/modules/shared/primitives/index.js';
 
 const html = htm.bind(React.createElement);
 
@@ -91,7 +92,6 @@ const StudentDirectoryView = ({ user }) => {
   }, [fetchStudents]);
 
   const getProgramName = (id) => programs.find((p) => p.id === id)?.name || '-';
-  const getBatchName = (id) => (id ? batches.find((b) => b.id === id)?.name : null) || '-';
 
   if (!institutionId) {
     return html`
@@ -109,38 +109,36 @@ const StudentDirectoryView = ({ user }) => {
 
   return html`
     <div className="space-y-8 animate-in pb-20">
-      <div className="bg-[var(--app-surface)] p-6 rounded-[var(--app-radius-lg)] border border-[var(--app-border-soft)] shadow-[var(--app-shadow-subtle)]">
+      <${SectionCard} className="shadow-[var(--app-shadow-subtle)]">
         <div className="flex flex-wrap gap-4 items-end mb-6">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-[var(--app-text-secondary)] uppercase tracking-wider">Program</label>
-            <select
+            <${Select}
+              label="Program"
               value=${programFilter}
               onChange=${(e) => setProgramFilter(e.target.value)}
-              className="min-w-[200px] px-4 py-2.5 border border-[var(--app-border-soft)] rounded-xl text-sm bg-[var(--app-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)]/30 focus:border-[var(--app-accent)]"
-            >
-              <option value="">All Programs</option>
-              ${programs.map((p) => html`<option key=${p.id} value=${p.id}>${p.name}</option>`)}
-            </select>
+              options=${programs.map((p) => ({ value: p.id, label: p.name }))}
+              placeholder="All Programs"
+              className="min-w-[200px]"
+            />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-[var(--app-text-secondary)] uppercase tracking-wider">Batch</label>
-            <select
+            <${Select}
+              label="Batch"
               value=${batchFilter}
               onChange=${(e) => setBatchFilter(e.target.value)}
               disabled=${!programFilter}
-              className="min-w-[200px] px-4 py-2.5 border border-[var(--app-border-soft)] rounded-xl text-sm bg-[var(--app-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)]/30 focus:border-[var(--app-accent)] disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <option value="">All Batches</option>
-              ${batches.map((b) => html`<option key=${b.id} value=${b.id}>${b.name}</option>`)}
-            </select>
+              options=${batches.map((b) => ({ value: b.id, label: b.name }))}
+              placeholder="All Batches"
+              className="min-w-[200px] disabled:cursor-not-allowed"
+            />
           </div>
           ${hasActiveFilters ? html`
-            <button
+            <${Button}
               onClick=${() => { setProgramFilter(''); setBatchFilter(''); }}
-              className="px-4 py-2.5 text-sm font-medium text-[var(--app-accent)] hover:bg-[var(--app-accent-soft)] rounded-xl transition-colors"
+              variant="ghost"
             >
               Clear filters
-            </button>
+            <//>
           ` : null}
           <span className="text-sm text-[var(--app-text-muted)] font-semibold ml-auto self-center">
             ${students.length} student${students.length !== 1 ? 's' : ''}
@@ -178,10 +176,10 @@ const StudentDirectoryView = ({ user }) => {
                       <td className="p-4 text-[var(--app-text-secondary)]">${getProgramName(s.program_id)}</td>
                       <td className="p-4 text-[var(--app-text-secondary)]">${batch?.name || '-'}</td>
                       <td className="p-4">
-                        <span className="px-2 py-1 bg-[var(--app-accent-soft)] text-[var(--app-accent)] rounded-lg text-xs font-bold">${studentCvs.length}</span>
+                        <${StatusBadge} variant="accent">${studentCvs.length}<//>
                       </td>
                       <td className="p-4">
-                        <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs font-bold">${studentApps.length}</span>
+                        <${StatusBadge} variant="warning">${studentApps.length}<//>
                       </td>
                     </tr>
                   `;
@@ -190,7 +188,7 @@ const StudentDirectoryView = ({ user }) => {
             </table>
           </div>
         `}
-      </div>
+      <//>
     </div>
   `;
 };

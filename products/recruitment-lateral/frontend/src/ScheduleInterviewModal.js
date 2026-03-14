@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import htm from 'htm';
 import { scheduleInterview } from '/core/frontend/src/modules/shared/services/api.js';
 import { useToast } from '/core/frontend/src/modules/shared/index.js';
-import Modal from '/core/frontend/src/modules/shared/primitives/Modal.js';
+import { Button, Input, Modal } from '/core/frontend/src/modules/shared/primitives/index.js';
 
 const html = htm.bind(React.createElement);
 
@@ -54,53 +54,54 @@ const ScheduleInterviewModal = ({ onClose, onSuccess, application, workflow, use
     <${Modal} open=${true} onClose=${onClose} title="Schedule interview" size="md">
       <form onSubmit=${handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-[var(--app-text-muted)] uppercase mb-1">Date</label>
-            <input
+            <${Input}
+              label="Date"
               type="date"
               value=${startDate}
               onChange=${(e) => setStartDate(e.target.value)}
               min=${today}
               required
-              className="w-full px-4 py-2 rounded-xl border border-[var(--app-border-soft)] bg-[var(--app-surface-muted)] text-sm"
+              className="bg-[var(--app-surface-muted)]"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--app-text-muted)] uppercase mb-1">Time</label>
-            <input
+            <${Input}
+              label="Time"
               type="time"
               value=${startTime}
               onChange=${(e) => setStartTime(e.target.value)}
               required
-              className="w-full px-4 py-2 rounded-xl border border-[var(--app-border-soft)] bg-[var(--app-surface-muted)] text-sm"
+              className="bg-[var(--app-surface-muted)]"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--app-text-muted)] uppercase mb-1">Duration (min)</label>
-            <input
+            <${Input}
+              label="Duration (min)"
               type="number"
               min=${15}
               max=${120}
               step=${15}
               value=${duration}
               onChange=${(e) => setDuration(parseInt(e.target.value, 10) || 30)}
-              className="w-full px-4 py-2 rounded-xl border border-[var(--app-border-soft)] bg-[var(--app-surface-muted)] text-sm"
+              className="bg-[var(--app-surface-muted)]"
             />
           </div>
           <div className="flex gap-3 pt-4">
-            <button
+            <${Button}
               type="button"
               onClick=${onClose}
-              className="flex-1 px-4 py-2 rounded-xl border border-[var(--app-border-soft)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-muted)]"
+              variant="secondary"
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
+            <//>
+            <${Button}
               type="submit"
               disabled=${submitting}
-              className="flex-1 px-4 py-2 rounded-xl bg-[var(--app-accent)] text-white font-semibold hover:bg-[var(--app-accent-hover)] disabled:opacity-50"
+              className="flex-1"
             >
               ${submitting ? 'Scheduling...' : 'Schedule'}
-            </button>
+            <//>
           </div>
         </form>
     <//>

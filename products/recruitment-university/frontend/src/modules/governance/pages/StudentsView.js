@@ -11,6 +11,7 @@ import { UserRole } from '/core/frontend/src/modules/shared/types.js';
 import { SkeletonLoader } from '/core/frontend/src/modules/shared/index.js';
 import { useTutorialContext } from '/core/frontend/src/modules/tutorials/index.js';
 import { getTutorialMockData } from '/core/frontend/src/modules/tutorials/context/tutorialMockData.js';
+import { Button, Input, Select, StatusBadge } from '/core/frontend/src/modules/shared/primitives/index.js';
 
 const html = htm.bind(React.createElement);
 
@@ -124,39 +125,37 @@ const StudentsView = ({ user, navigate }) => {
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-semibold text-[var(--app-text-muted)] uppercase tracking-wider">Filters</span>
           ${(programFilter || batchFilter || search) ? html`
-            <button onClick=${() => { setProgramFilter(''); setBatchFilter(''); setSearch(''); }} className="text-xs font-semibold text-[var(--app-accent)] hover:underline">
+            <${Button} onClick=${() => { setProgramFilter(''); setBatchFilter(''); setSearch(''); }} variant="ghost" size="sm">
               Clear all
-            </button>
+            <//>
           ` : null}
         </div>
         <div className="flex flex-wrap gap-3 items-center">
-          <input
+          <${Input}
             type="text"
             placeholder="Search by name, email, or roll number..."
             value=${search}
             onChange=${(e) => setSearch(e.target.value)}
-            aria-label="Search students"
-            className="flex-1 min-w-[200px] px-4 py-3 border border-[var(--app-border-soft)] rounded-xl text-sm bg-[var(--app-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)]/30"
+            ariaLabel="Search students"
+            className="flex-1 min-w-[200px]"
           />
-          <select
+          <${Select}
             value=${programFilter}
             onChange=${(e) => setProgramFilter(e.target.value)}
-            aria-label="Filter by program"
-            className="px-4 py-3 min-w-[180px] border border-[var(--app-border-soft)] rounded-xl text-sm bg-[var(--app-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)]/30"
-          >
-            <option value="">All Programs</option>
-            ${programs.map((p) => html`<option key=${p.id} value=${p.id}>${p.name}</option>`)}
-          </select>
-          <select
+            ariaLabel="Filter by program"
+            className="min-w-[180px]"
+            placeholder="All Programs"
+            options=${programs.map((p) => ({ value: p.id, label: p.name }))}
+          />
+          <${Select}
             value=${batchFilter}
             onChange=${(e) => setBatchFilter(e.target.value)}
             disabled=${!programFilter && batches.length === 0}
-            aria-label="Filter by batch"
-            className="px-4 py-3 min-w-[180px] border border-[var(--app-border-soft)] rounded-xl text-sm bg-[var(--app-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)]/30 disabled:opacity-50"
-          >
-            <option value="">All Batches</option>
-            ${batches.map((b) => html`<option key=${b.id} value=${b.id}>${b.name}</option>`)}
-          </select>
+            ariaLabel="Filter by batch"
+            className="min-w-[180px]"
+            placeholder="All Batches"
+            options=${batches.map((b) => ({ value: b.id, label: b.name }))}
+          />
           <span className="text-sm text-[var(--app-text-muted)] font-semibold">${filtered.length} student${filtered.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
@@ -199,8 +198,8 @@ const StudentsView = ({ user, navigate }) => {
                       <td className="p-4 text-[var(--app-text-secondary)]">${s.roll_number || '-'}</td>
                       <td className="p-4 text-[var(--app-text-secondary)]">${progName}</td>
                       <td className="p-4 text-[var(--app-text-secondary)]">${batchName}</td>
-                      <td className="p-4"><span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-bold">${studentCvs.length}</span></td>
-                      <td className="p-4"><span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-xs font-bold">${studentApps.length}</span></td>
+                      <td className="p-4"><${StatusBadge} variant="accent">${studentCvs.length}<//></td>
+                      <td className="p-4"><${StatusBadge} variant="warning">${studentApps.length}<//></td>
                     </tr>
                   `;
                 })}
