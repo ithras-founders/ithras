@@ -1,0 +1,173 @@
+:root {
+  /* ===== RAW COLOR PALETTE ===== */
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-gray-0: #ffffff;
+  --color-gray-25: #fcfcfd;
+  --color-gray-50: #f8f8fa;
+  --color-gray-75: #f6f6f8;
+  --color-gray-100: #f5f5f7;
+  --color-gray-150: #f1f1f3;
+  --color-gray-200: #ebebee;
+  --color-gray-300: #dcdce1;
+  --color-gray-400: #b6b6bf;
+  --color-gray-500: #86868b;
+  --color-gray-600: #6e6e73;
+  --color-gray-700: #4f4f55;
+  --color-gray-800: #2f2f35;
+  --color-gray-900: #1d1d1f;
+  --color-blue-50: #f2f8ff;
+  --color-blue-100: #dcecff;
+  --color-blue-500: #0071e3;
+  --color-blue-600: #0077ed;
+  --color-blue-700: #0068d1;
+  --color-green-500: #34c759;
+  --color-green-700: #248a3d;
+  --color-orange-500: #ff9f0a;
+  --color-orange-700: #b56b00;
+  --color-red-500: #ff3b30;
+  --color-red-700: #b3261e;
+  --color-cyan-500: #5ac8fa;
+  --color-cyan-700: #0b7fa9;
+
+  /* ===== SEMANTIC ALIASES ===== */
+  --bg-app: var(--color-gray-100);
+  --bg-surface: var(--color-gray-0);
+  --bg-surface-muted: var(--color-gray-25);
+  --bg-surface-subtle: var(--color-gray-50);
+  --bg-surface-hover: var(--color-gray-150);
+  --text-primary: var(--color-gray-900);
+  --text-secondary: var(--color-gray-700);
+  --text-muted: var(--color-gray-600);
+  --text-faint: var(--color-gray-500);
+  --border-soft: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.09);
+  --border-strong: rgba(0, 0, 0, 0.14);
+  --accent: var(--color-blue-500);
+  --accent-hover: var(--color-blue-600);
+  --accent-soft: rgba(0, 113, 227, 0.08);
+  --accent-softer: rgba(0, 113, 227, 0.04);
+  --status-success-bg: rgba(52, 199, 89, 0.08);
+  --status-success-text: var(--color-green-700);
+  --status-warning-bg: rgba(255, 159, 10, 0.08);
+  --status-warning-text: var(--color-orange-700);
+  --status-danger-bg: rgba(255, 59, 48, 0.08);
+  --status-danger-text: var(--color-red-700);
+  --status-info-bg: rgba(90, 200, 250, 0.08);
+  --status-info-text: var(--color-cyan-700);
+
+  /* ===== APP TOKENS (backward compat + design system) ===== */
+  --app-bg: var(--bg-app);
+  --app-bg-elevated: var(--color-white);
+  --app-surface: var(--bg-surface);
+  --app-surface-muted: var(--bg-surface-muted);
+  --app-surface-subtle: var(--bg-surface-subtle);
+  --app-surface-hover: var(--bg-surface-hover);
+  --app-text-primary: var(--text-primary);
+  --app-text-secondary: var(--text-secondary);
+  --app-text-muted: var(--text-muted);
+  --app-text-faint: var(--text-faint);
+  --app-border-soft: var(--border-soft);
+  --app-border-strong: var(--border-default);
+  --app-accent: var(--accent);
+  --app-accent-hover: var(--accent-hover);
+  --app-accent-soft: var(--accent-soft);
+  --app-danger: var(--color-red-500);
+  --app-danger-soft: var(--status-danger-bg);
+  --app-success: var(--color-green-500);
+  --app-success-soft: var(--status-success-bg);
+  --app-warning: var(--color-orange-500);
+  --app-warning-soft: var(--status-warning-bg);
+
+  /* Spacing: 4px grid */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --app-space-1: var(--space-1);
+  --app-space-2: var(--space-2);
+  --app-space-3: var(--space-3);
+  --app-space-4: var(--space-4);
+  --app-space-5: var(--space-5);
+  --app-space-6: var(--space-6);
+  --app-space-8: var(--space-8);
+  --app-space-10: var(--space-10);
+  --app-space-12: var(--space-12);
+
+  /* Radius */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+  --app-radius-sm: var(--radius-sm);
+  --app-radius-md: var(--radius-md);
+  --app-radius-lg: var(--radius-lg);
+  --app-radius-xl: var(--radius-xl);
+  --app-radius-2xl: 18px;
+  --app-radius-3xl: var(--radius-xl);
+  --app-radius-card: 24px;
+
+  /* Shadows */
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --shadow-raised: 0 6px 24px rgba(0, 0, 0, 0.06);
+  --shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-focus: 0 0 0 4px rgba(0, 113, 227, 0.12);
+  --app-shadow-subtle: var(--shadow-subtle);
+  --app-shadow-card: var(--shadow-card);
+  --app-shadow-primary: 0 2px 12px rgba(0, 113, 227, 0.22);
+  --app-shadow-floating: var(--shadow-floating);
+
+  /* Motion */
+  --transition-fast: 160ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-base: 220ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-slow: 320ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --app-transition-fast: var(--transition-fast);
+  --app-transition-base: var(--transition-base);
+
+  /* Typography */
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --line-tight: 1.25;
+  --line-snug: 1.35;
+  --line-base: 1.47;
+  --line-relaxed: 1.6;
+  --tracking-tight: -0.03em;
+  --tracking-medium: -0.02em;
+  --tracking-base: -0.01em;
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --app-text-xs: var(--text-xs);
+  --app-text-sm: var(--text-sm);
+  --app-text-base: var(--text-base);
+  --app-text-lg: var(--text-lg);
+  --app-text-xl: var(--text-xl);
+  --app-text-2xl: var(--text-2xl);
+  --app-text-3xl: var(--text-3xl);
+
+  /* Chart palette */
+  --chart-primary: #0071e3;
+  --chart-secondary: #5e5ce6;
+  --chart-success: #34c759;
+  --chart-warning: #ff9f0a;
+  --chart-alert: #ff375f;
+  --chart-grid: rgba(0, 0, 0, 0.06);
+  --chart-axis: #86868b;
+}
