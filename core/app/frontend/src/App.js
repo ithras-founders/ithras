@@ -32,6 +32,7 @@ import CompliancePage from '/admin/frontend/src/telemetry/sections/CompliancePag
 import FeedView from '/products/feed/frontend/index.js';
 import NetworkView from '/products/network/frontend/index.js';
 import MessagingView from '/products/messaging/frontend/index.js';
+import AboutUsPage from '/core/app/frontend/src/AboutUsPage.js';
 
 const html = htm.bind(React.createElement);
 
@@ -82,6 +83,7 @@ const App = () => {
   if (iMatch) return html`<${AboutInstitutionPage} slug=${iMatch[1]} />`;
   if (oMatch) return html`<${AboutCompanyPage} slug=${oMatch[1]} />`;
 
+  if (path === '/about') return html`<${AboutUsPage} user=${user} onLogout=${handleLogout} />`;
 
   if (!user) {
     const showRegister = path === '/register' || path.startsWith('/register');
