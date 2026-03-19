@@ -97,8 +97,7 @@ For production, consider switching to Secret Manager references (`--set-secrets`
 gcloud builds submit . \
   --config=cloudbuild.yaml \
   --project=my-gcp-project \
-  --substitutions=\
-_CLOUD_SQL_INSTANCE=my-project:europe-west1:ithras-db,\
+  --substitutions=_CLOUD_SQL_INSTANCE=my-project:europe-west1:ithras-db,\
 _DATABASE_URL="postgresql://ithras:PASSWORD@/placement_db?host=/cloudsql/my-project:europe-west1:ithras-db",\
 _JWT_SECRET=$(openssl rand -hex 32),\
 _GEMINI_API_KEY=AIza...,\
