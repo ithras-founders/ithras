@@ -141,6 +141,9 @@ steps:
           --add-cloudsql-instances "${_CLOUD_SQL_INSTANCE}"
           --min-instances "${_MIN_INSTANCES}"
           --max-instances "${_MAX_INSTANCES}"
+          --cpu 1
+          --memory 1Gi
+          --cpu-boost
           --set-env-vars "DATABASE_URL=${_DATABASE_URL},JWT_SECRET=${_JWT_SECRET},GEMINI_API_KEY=${_GEMINI_API_KEY},REDIS_URL=${_REDIS_URL},REQUIRE_DATABASE=true,DB_SETUP=TRUE,DEMO_PASSWORD=${_DEMO_PASSWORD},LOG_FORMAT=json,UPLOAD_DIR=/app/uploads"
         )
         if [ -n "${_SERVICE_ACCOUNT}" ]; then
