@@ -205,10 +205,8 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
         boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
       }}
     >
-      <!-- ── Header: community badge + info + bookmark ── -->
       <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-0">
         <div className="flex items-start gap-3 min-w-0 flex-1">
-          <!-- Community logo badge -->
           <div
             className="flex-shrink-0 flex items-center justify-center rounded-xl text-sm font-bold select-none"
             style=${{
@@ -223,7 +221,6 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
           </div>
 
           <div className="flex-1 min-w-0">
-            <!-- Community + channel -->
             <div className="flex flex-wrap items-center gap-1.5 text-sm">
               <span className="font-semibold truncate" style=${{ color: 'var(--app-text-primary)' }}>
                 ${communityName}
@@ -236,9 +233,7 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
               ` : null}
             </div>
 
-            <!-- Author + time + type pill -->
             <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-              <!-- Author avatar (small circular) -->
               <div
                 className="flex-shrink-0 flex items-center justify-center rounded-full font-semibold select-none"
                 style=${{
@@ -268,7 +263,6 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
           </div>
         </div>
 
-        <!-- Bookmark -->
         <button
           type="button"
           onClick=${handleSave}
@@ -281,7 +275,6 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
         </button>
       </div>
 
-      <!-- ── Content ── -->
       <div className="px-5 pt-4">
         ${post.title ? html`
           <h2
@@ -308,7 +301,6 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
           </p>
         ` : null}
 
-        <!-- Tags -->
         ${(post.tags || []).length > 0 ? html`
           <div className="flex flex-wrap gap-1.5 mt-3">
             ${(post.tags || []).map((tag, i) => html`
@@ -324,12 +316,10 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
         ` : null}
       </div>
 
-      <!-- ── Reactions + footer ── -->
       <div
         className="mt-4 px-5 pb-4 flex items-center justify-between gap-4 border-t pt-3"
         style=${{ borderColor: 'rgba(0,0,0,0.06)' }}
       >
-        <!-- Reaction buttons -->
         <div className="flex items-center gap-1 flex-wrap">
           ${REACTIONS.map(({ type, emoji, label }) => {
             const active = userReactions.includes(type);
@@ -356,7 +346,6 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
           })}
         </div>
 
-        <!-- Comments + Views -->
         <div className="flex items-center gap-3 flex-shrink-0">
           <button
             type="button"
@@ -382,7 +371,6 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
         </div>
       </div>
 
-      <!-- ── Comments section (expandable) ── -->
       ${commentsOpen ? html`
         <div
           className="px-5 pb-5 pt-1 space-y-4 border-t"
@@ -434,7 +422,6 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
             </div>
           `}
 
-          <!-- Reply input -->
           <form onSubmit=${handleAddComment} className="flex gap-2.5 items-center pt-1">
             <div
               className="flex-shrink-0 flex items-center justify-center rounded-full font-semibold select-none"
