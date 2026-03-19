@@ -140,7 +140,7 @@ steps:
           BACKEND_URL=$(gcloud run services describe "${_BACKEND_SERVICE}" \
             --region "${_REGION}" \
             --format "value(status.url)")
-          echo "Auto-detected backend URL: $BACKEND_URL"
+          echo "Auto-detected backend URL: $$BACKEND_URL"
         fi
 
         ARGS=(
@@ -150,7 +150,7 @@ steps:
           --platform managed
           --allow-unauthenticated
           --port 8080
-          --set-env-vars "BACKEND_URL=${BACKEND_URL}"
+          --set-env-vars "BACKEND_URL=$${BACKEND_URL}"
         )
         if [ -n "${_SERVICE_ACCOUNT}" ]; then
           ARGS+=(--service-account "${_SERVICE_ACCOUNT}")

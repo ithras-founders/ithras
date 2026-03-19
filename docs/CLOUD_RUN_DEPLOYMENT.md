@@ -25,10 +25,10 @@ Both are deployed via `cloudbuild.yaml` at the repo root using Cloud Build.
 
 ## One-Time Infrastructure Setup
 
-Run `deploy/setup.sh` once to provision all GCP resources:
+Run `deploy/setup.sh` once to provision all GCP resources. If `PROJECT_ID` is not exported, the script will fall back to your active `gcloud` project configuration:
 
 ```bash
-export PROJECT_ID=my-gcp-project
+export PROJECT_ID=my-gcp-project  # optional if `gcloud config set project` is already set
 export REGION=europe-west1
 export DB_PASSWORD=$(openssl rand -hex 16)
 
@@ -40,7 +40,7 @@ This creates:
 - Cloud SQL Postgres 15 instance (`ithras-db`)
 - Database `placement_db` + user `ithras`
 - Service account `ithras-backend-sa` with `cloudsql.client` + `secretmanager.secretAccessor` roles
-- Cloud Build service account IAM bindings (`run.admin`, `iam.serviceAccountUser`, `artifactregistry.writer`)
+- Cloud Build IAM bindings for both the legacy Cloud Build service account and the Compute Engine default service account (`cloudbuild.builds.builder`, `run.admin`, `iam.serviceAccountUser`, `artifactregistry.writer`)
 - `ithras-database-url` secret in Secret Manager
 
 ---
@@ -105,6 +105,8 @@ _GEMINI_API_KEY=AIza...,\
 _SERVICE_ACCOUNT=ithras-backend-sa@my-project.iam.gserviceaccount.com,\
 _DB_SETUP_FIRST_RUN=TRUE
 ```
+
+> **Important:** In newer Google Cloud projects, manual `gcloud builds submit` runs often execute as the Compute Engine default service account (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`) instead of the legacy Cloud Build account. If you see `storage.objects.get` or similar Cloud Storage permission errors during source upload/build startup, rerun `deploy/setup.sh` or grant the same Cloud Build IAM roles to whichever account `gcloud builds get-default-service-account` returns.
 
 ### Option B — Cloud Build trigger (recommended for CI/CD)
 
@@ -194,6 +196,14 @@ Cloud SQL: ithras-db        (Postgres 15)
 ---
 
 ## Troubleshooting
+
+### `storage.objects.get` denied for `PROJECT_NUMBER-compute@developer.gserviceaccount.com`
+
+Your project is using the **Compute Engine default service account** as the default Cloud Build service account. Grant that service account the same Cloud Build/deploy roles as the legacy Cloud Build account, or rerun `deploy/setup.sh` from this repository, which now configures both. You can verify the active default with:
+
+```bash
+gcloud builds get-default-service-account --project=my-gcp-project
+```
 
 ### Backend won't start — "Cloud SQL socket not available"
 

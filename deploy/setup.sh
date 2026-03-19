@@ -6,14 +6,18 @@
 # Prerequisites: gcloud CLI installed and authenticated, project selected.
 #
 # Usage:
-#   export PROJECT_ID=my-gcp-project
+#   export PROJECT_ID=my-gcp-project   # optional if `gcloud config set project ...` is already set
 #   export REGION=europe-west1
 #   export DB_PASSWORD=<strong-password>
 #   bash deploy/setup.sh
 
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:?Set PROJECT_ID}"
+PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
+if [[ -z "$PROJECT_ID" || "$PROJECT_ID" == "(unset)" ]]; then
+  echo "ERROR: Set PROJECT_ID or run 'gcloud config set project YOUR_PROJECT_ID'" >&2
+  exit 1
+fi
 REGION="${REGION:-europe-west1}"
 INSTANCE_NAME="${CLOUD_SQL_INSTANCE:-ithras-db}"
 DB_NAME="${DB_NAME:-placement_db}"
@@ -107,16 +111,25 @@ for ROLE in \
     --quiet 2>/dev/null || true
 done
 
-# Grant Cloud Build the ability to deploy to Cloud Run
-CB_SA="${PROJECT_ID}@cloudbuild.gserviceaccount.com"
-for ROLE in \
-  roles/run.admin \
-  roles/iam.serviceAccountUser \
-  roles/artifactregistry.writer; do
-  gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-    --member="serviceAccount:${CB_SA}" \
-    --role="$ROLE" \
-    --quiet 2>/dev/null || true
+# Grant Cloud Build the ability to run builds and deploy to Cloud Run.
+# Newer projects often use the Compute Engine default service account for
+# gcloud/cloudbuild-triggered builds instead of the legacy Cloud Build account.
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+CB_SAS=(
+  "${PROJECT_ID}@cloudbuild.gserviceaccount.com"
+  "${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+)
+for CB_SA in "${CB_SAS[@]}"; do
+  for ROLE in \
+    roles/cloudbuild.builds.builder \
+    roles/run.admin \
+    roles/iam.serviceAccountUser \
+    roles/artifactregistry.writer; do
+    gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+      --member="serviceAccount:${CB_SA}" \
+      --role="$ROLE" \
+      --quiet 2>/dev/null || true
+  done
 done
 
 # ── Store secrets in Secret Manager ──────────────────────────────────────────
