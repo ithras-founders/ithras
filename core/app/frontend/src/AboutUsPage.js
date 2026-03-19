@@ -111,21 +111,37 @@ const FEATURES = [
   },
 ];
 
-/* ── Founder data (update with real details) ─────────────────────── */
+/* ── Founder data ─────────────────────────────────────────────────── */
 const FOUNDERS = [
   {
-    initials: 'FK',
-    name: 'Founder Name',
-    role: 'Chief Executive Officer & Co-Founder',
-    bio: 'Visionary behind the Ithras platform. Drives strategy, product direction, and institutional partnerships that power the verified professional graph.',
+    initials: 'SG',
+    name: 'Shashank Gandham',
+    role: 'Co-Founder',
+    company: 'Engagement Manager @ McKinsey & Co.',
+    education: 'MBA, IIM Calcutta · BTech, CoEP Pune',
+    bio: 'Placement Committee member at IIM-C who interacted with HRs on hiring pain points. Evaluated hiring processes at multiple organisations as part of McKinsey engagements.',
+    linkedin: 'https://www.linkedin.com/in/shashankgandham/',
     accent: '#0071e3',
   },
   {
-    initials: 'CF',
-    name: 'Co-Founder Name',
-    role: 'Chief Technology Officer & Co-Founder',
-    bio: 'Architect of the trust infrastructure and AI recruitment engine. Leads engineering, data systems, and the cohort-based discovery platform.',
+    initials: 'AA',
+    name: 'Abhishek Achanta',
+    role: 'Co-Founder',
+    company: 'Product @ MakeMYTrip · Ex-Amazon',
+    education: 'MBA, IIM Calcutta · BTech, IIIT Jabalpur',
+    bio: 'Product mindset with direct experience in lateral hiring. Has close friends in HR network providing deep ecosystem insights.',
+    linkedin: 'https://www.linkedin.com/in/abhishek-achanta/',
     accent: '#5e5ce6',
+  },
+  {
+    initials: 'MK',
+    name: 'Matthew Kallarackal',
+    role: 'Co-Founder',
+    company: 'Growth & Revenue @ MakeMYTrip',
+    education: 'MBA, IIM Lucknow · BTech, NITK Surathkal',
+    bio: 'Built Skaut — an adjacent hiring/upskilling marketplace in Kerala. Experience in marketplace dynamics and talent platforms.',
+    linkedin: 'https://www.linkedin.com/in/matthew-kallarackal/',
+    accent: '#34c759',
   },
 ];
 
@@ -178,49 +194,95 @@ const FeatureCard = ({ icon: Icon, color, bg, title, description }) => html`
   </div>
 `;
 
-const FounderCard = ({ initials, name, role, bio, accent }) => html`
+const LinkedInIcon = () => html`
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+  </svg>
+`;
+
+const FounderCard = ({ initials, name, role, company, education, bio, linkedin, accent }) => html`
   <div
     style=${{
       background: 'var(--app-surface)',
       border: '1px solid var(--app-border-soft)',
       borderRadius: '20px',
-      padding: '32px 28px',
+      padding: '28px 24px',
       boxShadow: 'var(--app-shadow-card)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       textAlign: 'center',
-      gap: '16px',
+      gap: '14px',
     }}
   >
     <div
       style=${{
-        width: '80px',
-        height: '80px',
+        width: '72px',
+        height: '72px',
         borderRadius: '50%',
         background: `linear-gradient(135deg, ${accent}22, ${accent}44)`,
         border: `2px solid ${accent}33`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '26px',
+        fontSize: '22px',
         fontWeight: 700,
         color: accent,
         letterSpacing: '-0.01em',
+        flexShrink: 0,
       }}
     >
       ${initials}
     </div>
-    <div>
-      <div style=${{ fontSize: '18px', fontWeight: 700, color: 'var(--app-text-primary)', marginBottom: '4px' }}>
+    <div style=${{ width: '100%' }}>
+      <div style=${{ fontSize: '17px', fontWeight: 700, color: 'var(--app-text-primary)', marginBottom: '3px' }}>
         ${name}
       </div>
-      <div style=${{ fontSize: '13px', fontWeight: 500, color: accent, marginBottom: '12px' }}>
+      <div style=${{ fontSize: '12px', fontWeight: 600, color: accent, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
         ${role}
       </div>
-      <p style=${{ margin: 0, fontSize: '14px', color: 'var(--app-text-secondary)', lineHeight: 1.6 }}>
+      <div style=${{ fontSize: '13px', color: 'var(--app-text-secondary)', marginBottom: '4px', fontWeight: 500 }}>
+        ${company}
+      </div>
+      <div style=${{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '3px 10px',
+        borderRadius: '999px',
+        background: `${accent}10`,
+        color: accent,
+        fontSize: '12px',
+        fontWeight: 500,
+        marginBottom: '12px',
+      }}>
+        🎓 ${education}
+      </div>
+      <p style=${{ margin: '0 0 14px', fontSize: '13px', color: 'var(--app-text-secondary)', lineHeight: 1.65, textAlign: 'left' }}>
         ${bio}
       </p>
+      <a
+        href=${linkedin}
+        target="_blank"
+        rel="noopener noreferrer"
+        style=${{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 14px',
+          borderRadius: '8px',
+          background: 'rgba(0,119,181,0.08)',
+          color: '#0077b5',
+          fontSize: '12px',
+          fontWeight: 600,
+          textDecoration: 'none',
+          transition: 'background 160ms',
+        }}
+        onMouseEnter=${(e) => { e.currentTarget.style.background = 'rgba(0,119,181,0.15)'; }}
+        onMouseLeave=${(e) => { e.currentTarget.style.background = 'rgba(0,119,181,0.08)'; }}
+      >
+        <${LinkedInIcon} /> LinkedIn
+      </a>
     </div>
   </div>
 `;
@@ -447,7 +509,7 @@ const AboutUsPage = ({ user, onLogout }) => {
       </section>
 
       <!-- Founders -->
-      <section style=${{ padding: '64px 24px', maxWidth: '800px', margin: '0 auto' }}>
+      <section style=${{ padding: '64px 24px', maxWidth: '1100px', margin: '0 auto' }}>
         <div style=${{ textAlign: 'center', marginBottom: '48px' }}>
           <h2 style=${{
             margin: '0 0 10px',
@@ -464,7 +526,7 @@ const AboutUsPage = ({ user, onLogout }) => {
         </div>
         <div style=${{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: '24px',
         }}>
           ${FOUNDERS.map((f) => html`<${FounderCard} key=${f.name} ...${f} />`)}
