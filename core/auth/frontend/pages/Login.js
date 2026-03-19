@@ -28,7 +28,11 @@ const CvIcon = () => html`
 const PrepIcon = () => html`
   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10"/>
-    <path d="M12 6v6l4 2"/>
+    <circle cx="12" cy="12" r="4"/>
+    <line x1="12" y1="2" x2="12" y2="6"/>
+    <line x1="12" y1="18" x2="12" y2="22"/>
+    <line x1="2" y1="12" x2="6" y2="12"/>
+    <line x1="18" y1="12" x2="22" y2="12"/>
   </svg>
 `;
 
@@ -36,7 +40,7 @@ const FEATURES = [
   {
     Icon: CommunityIcon,
     label: 'Community',
-    sub: 'Connect with peers and professionals',
+    sub: 'Connect with peers & professionals',
   },
   {
     Icon: CvIcon,
@@ -113,10 +117,11 @@ const Login = ({ onLogin, onShowRegister }) => {
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center p-16" style=${{ background: BLUE_PANEL }}>
         <div className="max-w-md text-center">
 
-          <div className="mb-10 flex flex-col items-center gap-3">
+          <div className="mb-10 inline-flex items-center gap-3">
             <${IthrasLogo} size="lg" theme="light" />
             <div
               className="relative"
+              style=${{ alignSelf: 'flex-end', marginBottom: '4px' }}
               onMouseEnter=${() => setAlphaHovered(true)}
               onMouseLeave=${() => setAlphaHovered(false)}
             >
@@ -124,7 +129,7 @@ const Login = ({ onLogin, onShowRegister }) => {
                 style=${{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  padding: '2px 9px',
+                  padding: '2px 8px',
                   borderRadius: '999px',
                   fontSize: '11px',
                   fontWeight: 600,
