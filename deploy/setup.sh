@@ -6,14 +6,18 @@
 # Prerequisites: gcloud CLI installed and authenticated, project selected.
 #
 # Usage:
-#   export PROJECT_ID=my-gcp-project
+#   export PROJECT_ID=my-gcp-project   # optional if `gcloud config set project ...` is already set
 #   export REGION=europe-west1
 #   export DB_PASSWORD=<strong-password>
 #   bash deploy/setup.sh
 
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:?Set PROJECT_ID}"
+PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
+if [[ -z "$PROJECT_ID" || "$PROJECT_ID" == "(unset)" ]]; then
+  echo "ERROR: Set PROJECT_ID or run 'gcloud config set project YOUR_PROJECT_ID'" >&2
+  exit 1
+fi
 REGION="${REGION:-europe-west1}"
 INSTANCE_NAME="${CLOUD_SQL_INSTANCE:-ithras-db}"
 DB_NAME="${DB_NAME:-placement_db}"

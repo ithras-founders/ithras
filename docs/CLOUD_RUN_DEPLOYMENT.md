@@ -25,10 +25,10 @@ Both are deployed via `cloudbuild.yaml` at the repo root using Cloud Build.
 
 ## One-Time Infrastructure Setup
 
-Run `deploy/setup.sh` once to provision all GCP resources:
+Run `deploy/setup.sh` once to provision all GCP resources. If `PROJECT_ID` is not exported, the script will fall back to your active `gcloud` project configuration:
 
 ```bash
-export PROJECT_ID=my-gcp-project
+export PROJECT_ID=my-gcp-project  # optional if `gcloud config set project` is already set
 export REGION=europe-west1
 export DB_PASSWORD=$(openssl rand -hex 16)
 
