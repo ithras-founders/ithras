@@ -148,6 +148,7 @@ def register(req: RegisterRequest, db=Depends(get_db)):
     user = _user_row_to_response(row)
     user["user_type"] = "professional"
     user["profile_slug"] = profile_slug
+    user["account_status"] = "pending"
     access_token = create_token_for_db_user(
         user["user_numerical"],
         user["username"],
@@ -229,19 +230,23 @@ def login(req: LoginRequest, db=Depends(get_db)):
 
 @router.get("/me", summary="Validate token and return current user")
 def me(user=Depends(get_current_user), db=Depends(get_db)):
-    """Returns user from JWT payload, with profile_slug from DB for routing."""
+    """Returns user from JWT payload, with profile_slug and account_status from DB for routing."""
     user_type = getattr(user, "user_type", "professional")
     profile_slug = None
+    account_status = "approved"
     try:
         uid = int(user.id) if user.id else None
         if uid:
             r = db.execute(
-                text("SELECT profile_slug FROM users WHERE user_numerical = :uid"),
+                text("SELECT profile_slug, COALESCE(account_status, 'approved') as account_status FROM users WHERE user_numerical = :uid"),
                 {"uid": uid},
             )
             row = r.fetchone()
-            if row and hasattr(row, "profile_slug"):
-                profile_slug = row.profile_slug
+            if row:
+                if hasattr(row, "profile_slug"):
+                    profile_slug = row.profile_slug
+                if hasattr(row, "account_status"):
+                    account_status = row.account_status
     except (ValueError, TypeError):
         pass
     return {
@@ -252,6 +257,7 @@ def me(user=Depends(get_current_user), db=Depends(get_db)):
             "full_name": user.name,
             "user_type": user_type,
             "profile_slug": profile_slug,
+            "account_status": account_status,
             "phone": None,
             "is_active": True,
             "role": "CANDIDATE",

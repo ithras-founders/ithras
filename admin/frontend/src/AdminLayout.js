@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { AppShell } from '/shared/components/appShell/index.js';
+import { apiRequest } from '/shared/services/apiBase.js';
 import { Building2, Briefcase, Users, MessageCircle, Activity, BarChart3, User, FileText, Shield, Layers, Network, History, Cpu, AlertTriangle, Search, Flag, Download } from 'lucide-react';
 
 const html = htm.bind(React.createElement);
@@ -62,6 +63,8 @@ function getAdminActiveTab(path) {
  */
 const AdminLayout = ({ children, activeTab, user, onLogout }) => {
   const [path, setPath] = useState(typeof window !== 'undefined' ? window.location.pathname : '/admin');
+  const [pendingCount, setPendingCount] = useState(0);
+
   useEffect(() => {
     const handler = () => setPath(window.location.pathname || '/admin');
     window.addEventListener('popstate', handler);
@@ -72,7 +75,22 @@ const AdminLayout = ({ children, activeTab, user, onLogout }) => {
     };
   }, []);
 
-  const navItems = getAdminNavItems(path);
+  useEffect(() => {
+    apiRequest('/v1/admin/users', { quiet: true })
+      .then((res) => setPendingCount(res?.pending_count || 0))
+      .catch(() => {});
+  }, []);
+
+  const usersNavWithBadge = pendingCount > 0
+    ? [{ key: 'users', label: 'User Management', href: '/admin/users', icon: Users, badge: pendingCount }]
+    : USERS_NAV;
+
+  const navItems = (() => {
+    const base = getAdminNavItems(path);
+    if (base === USERS_NAV && pendingCount > 0) return usersNavWithBadge;
+    return base;
+  })();
+
   const resolvedActiveTab = getAdminActiveTab(path);
 
   return html`
@@ -83,6 +101,7 @@ const AdminLayout = ({ children, activeTab, user, onLogout }) => {
       navItems=${navItems}
       showSettings=${true}
       topBarVariant=${'admin'}
+      pendingUsersCount=${pendingCount}
     >
       ${children}
     </${AppShell}>

@@ -35,7 +35,7 @@ const MessagesIcon = () => html`
   </svg>
 `;
 
-const NavButton = ({ href, label, icon, isActive }) => {
+const NavButton = ({ href, label, icon, isActive, badge = 0 }) => {
   const handleClick = (e) => {
     e.preventDefault();
     window.history.pushState(null, '', href);
@@ -45,13 +45,32 @@ const NavButton = ({ href, label, icon, isActive }) => {
     <a
       href=${href}
       onClick=${handleClick}
-      className="flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-lg min-w-[56px] transition-colors hover:bg-[var(--app-surface-hover)]"
+      className="relative flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-lg min-w-[56px] transition-colors hover:bg-[var(--app-surface-hover)]"
       style=${{
         background: isActive ? 'var(--app-accent-soft)' : 'transparent',
         color: isActive ? 'var(--app-accent)' : 'var(--app-text-secondary)',
       }}
     >
-      <span className="flex-shrink-0"><${icon} /></span>
+      <span className="flex-shrink-0 relative">
+        <${icon} />
+        ${badge > 0 ? html`
+          <span style=${{
+            position: 'absolute',
+            top: '-4px',
+            right: '-6px',
+            background: '#F59E0B',
+            color: '#fff',
+            borderRadius: '999px',
+            fontSize: '9px',
+            fontWeight: 700,
+            padding: '0 4px',
+            minWidth: '14px',
+            textAlign: 'center',
+            lineHeight: '14px',
+            pointerEvents: 'none',
+          }}>${badge > 99 ? '99+' : badge}</span>
+        ` : null}
+      </span>
       <span className="text-xs font-medium">${label}</span>
     </a>
   `;
@@ -65,6 +84,7 @@ const NavButton = ({ href, label, icon, isActive }) => {
  *   onLogout: () => void,
  *   searchPlaceholder?: string,
  *   variant?: 'admin' | 'general',
+ *   pendingUsersCount?: number,
  * }}
  */
 const TopBar = ({
@@ -74,6 +94,7 @@ const TopBar = ({
   onLogout,
   searchPlaceholder = 'Search...',
   variant,
+  pendingUsersCount = 0,
 }) => {
   const path = typeof window !== 'undefined' ? (window.location.pathname || '') : '';
   const isAdminMode = variant === 'admin' || (variant == null && path.startsWith('/admin'));
@@ -88,7 +109,7 @@ const TopBar = ({
 
   const navButtons = isAdminMode
     ? html`
-        <${NavButton} key="users" href="/admin/users" label="Users" icon=${Users} isActive=${isUsers} />
+        <${NavButton} key="users" href="/admin/users" label="Users" icon=${Users} isActive=${isUsers} badge=${pendingUsersCount} />
         <${NavButton} key="entities" href="/admin/institutions" label="Entities" icon=${Building2} isActive=${isEntities} />
         <${NavButton} key="communities" href="/admin/communities" label="Communities" icon=${MessageCircle} isActive=${isCommunities} />
         <${NavButton} key="technology" href="/admin/technology" label="Technology" icon=${Activity} isActive=${isTechnology} />

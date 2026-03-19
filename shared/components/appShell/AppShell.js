@@ -23,6 +23,7 @@ const html = htm.bind(React.createElement);
  *   showSettings?: boolean,
  *   sidebarContent?: React.ReactNode,
  *   topBarVariant?: 'admin' | 'general',
+ *   pendingUsersCount?: number,
  * }}
  */
 const AppShell = ({
@@ -35,6 +36,7 @@ const AppShell = ({
   showSettings,
   sidebarContent,
   topBarVariant,
+  pendingUsersCount = 0,
 }) => {
   const hasNavItems = navItems && navItems.length > 0;
   const showSettingsSection = showSettings !== undefined ? showSettings : hasNavItems;
@@ -64,6 +66,7 @@ const AppShell = ({
         onLogout=${onLogout}
         searchPlaceholder=${searchPlaceholder}
         variant=${resolvedTopBarVariant}
+        pendingUsersCount=${pendingUsersCount}
       />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div

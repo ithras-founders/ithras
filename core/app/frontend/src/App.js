@@ -105,6 +105,30 @@ const App = () => {
     return html`<${Login} onLogin=${handleLogin} onShowRegister=${() => { window.location.href = '/register'; }} />`;
   }
 
+  // Professional users in registration flow (steps 2–3) — allow before pending check so they can complete profile
+  if (user?.user_type === 'professional' && (path === '/register' || path === '/register/education' || path === '/register/experience')) {
+    return html`
+      <${RegistrationFlow}
+        user=${user}
+        onStep1Success=${() => {}}
+        onComplete=${() => { window.location.href = '/pending-approval'; }}
+        onShowLogin=${null}
+      />
+    `;
+  }
+
+  // Block pending/rejected professional users from all authenticated content
+  if (user?.user_type === 'professional') {
+    const accountStatus = user?.account_status;
+    if (accountStatus === 'pending' || accountStatus === 'rejected') {
+      if (path !== '/pending-approval') {
+        window.history.replaceState(null, '', '/pending-approval');
+        window.dispatchEvent(new CustomEvent('ithras:path-changed'));
+      }
+      return html`<${PendingApprovalPage} onBack=${() => { handleLogout(); }} />`;
+    }
+  }
+
   // Feed (requires auth)
   if (path === '/feed' || path.startsWith('/feed/')) {
     return html`<${FeedView} user=${user} onLogout=${handleLogout} />`;
@@ -118,18 +142,6 @@ const App = () => {
   // Messages (requires auth)
   if (path === '/messages' || path.startsWith('/messages/')) {
     return html`<${MessagingView} user=${user} onLogout=${handleLogout} />`;
-  }
-
-  // Professional users in registration flow (steps 2–3)
-  if (user?.user_type === 'professional' && (path === '/register' || path === '/register/education' || path === '/register/experience')) {
-    return html`
-      <${RegistrationFlow}
-        user=${user}
-        onStep1Success=${() => {}}
-        onComplete=${() => { window.location.href = '/pending-approval'; }}
-        onShowLogin=${null}
-      />
-    `;
   }
 
   // Admin users go to admin area

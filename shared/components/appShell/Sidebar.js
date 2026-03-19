@@ -53,6 +53,7 @@ const Sidebar = ({ collapsed, activeTab = '', onLogout, navItems = DEFAULT_NAV_I
               href=${item.href}
               active=${activeTab === item.key}
               collapsed=${collapsed}
+              badge=${item.badge || 0}
             />
           `
         ) : html`<div className="py-4" />`}
