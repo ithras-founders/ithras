@@ -45,7 +45,7 @@ const CompassIcon = () => html`
   </svg>
 `;
 
-const FeedSidebar = ({ activeView, onNavigate, pathPrefix = '/feed', showSettings, onLogout, collapsed = false }) => {
+const FeedSidebar = ({ activeView, activeCommunitySlug, onNavigate, pathPrefix = '/feed', showSettings, onLogout, collapsed = false }) => {
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -112,22 +112,32 @@ const FeedSidebar = ({ activeView, onNavigate, pathPrefix = '/feed', showSetting
             </div>
           ` : html`
             <div className="space-y-0.5">
-              ${communities.map((c) => html`
-                <button
-                  key=${c.id}
-                  type="button"
-                  onClick=${() => handleCommunityClick(c.slug)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm hover:bg-[var(--app-surface-hover)]"
-                  style=${{ color: 'var(--app-text-primary)' }}
-                >
-                  ${c.logo_url ? html`<img src=${c.logo_url} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />` : html`
-                    <span className="w-6 h-6 rounded flex items-center justify-center text-xs font-medium flex-shrink-0" style=${{ background: 'var(--app-accent-soft)', color: 'var(--app-accent)' }}>
-                      ${(c.name || 'C').charAt(0).toUpperCase()}
-                    </span>
-                  `}
-                  <span className="truncate">${c.name}</span>
-                </button>
-              `)}
+              ${communities.map((c) => {
+                const isActive = activeCommunitySlug === c.slug;
+                return html`
+                  <button
+                    key=${c.id}
+                    type="button"
+                    onClick=${() => handleCommunityClick(c.slug)}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors"
+                    style=${{
+                      background: isActive ? 'var(--app-accent-soft)' : 'transparent',
+                      color: isActive ? 'var(--app-accent)' : 'var(--app-text-primary)',
+                      fontWeight: isActive ? '600' : 'normal',
+                    }}
+                    onMouseEnter=${(e) => { if (!isActive) e.currentTarget.style.background = 'var(--app-surface-hover)'; }}
+                    onMouseLeave=${(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    ${c.logo_url ? html`<img src=${c.logo_url} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />` : html`
+                      <span className="w-6 h-6 rounded flex items-center justify-center text-xs font-medium flex-shrink-0"
+                        style=${{ background: isActive ? 'var(--app-accent)' : 'var(--app-accent-soft)', color: isActive ? '#fff' : 'var(--app-accent)' }}>
+                        ${(c.name || 'C').charAt(0).toUpperCase()}
+                      </span>
+                    `}
+                    <span className="truncate">${c.name}</span>
+                  </button>
+                `;
+              })}
             </div>
           `}
         </div>

@@ -66,7 +66,7 @@ def serve_js_file(file_path: Path) -> Response:
         str(file_path),
         media_type="application/javascript",
         headers={
-            "Cache-Control": "public, max-age=3600",
+            "Cache-Control": "no-cache, must-revalidate",
             "Access-Control-Allow-Origin": "*",
         },
     )
@@ -120,7 +120,7 @@ async def serve_shared_styles(request: Request) -> Response:
     return FileResponse(
         str(file_path),
         media_type=mime or "text/plain",
-        headers={"Cache-Control": "public, max-age=3600"},
+        headers={"Cache-Control": "no-cache, must-revalidate"},
     )
 
 

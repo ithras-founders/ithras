@@ -280,6 +280,13 @@ const App = () => {
     `;
   }
 
+  // Professional users default to feed
+  if (user?.user_type === 'professional') {
+    window.history.replaceState(null, '', '/feed');
+    window.dispatchEvent(new CustomEvent('ithras:path-changed'));
+    return html`<${FeedView} user=${user} onLogout=${handleLogout} />`;
+  }
+
   return html`
     <${ProfessionalProfileView}
       user=${user}

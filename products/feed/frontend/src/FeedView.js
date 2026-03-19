@@ -56,6 +56,8 @@ const FeedView = ({ user, onLogout }) => {
   if (matchSaved) activeView = 'saved';
   else if (matchDiscover) activeView = 'discover';
 
+  const activeCommunitySlug = matchChannel ? matchChannel[1] : matchCommunity ? matchCommunity[1] : null;
+
   let content;
   if (matchSaved) {
     content = html`<${SavedFeed} user=${user} />`;
@@ -75,7 +77,7 @@ const FeedView = ({ user, onLogout }) => {
       onLogout=${onLogout}
       navItems=${[]}
       showSettings=${true}
-      sidebarContent=${html`<${FeedSidebar} activeView=${activeView} onNavigate=${() => setPath(window.location.pathname)} pathPrefix="/feed" showSettings=${true} onLogout=${onLogout} />`}
+      sidebarContent=${html`<${FeedSidebar} activeView=${activeView} activeCommunitySlug=${activeCommunitySlug} onNavigate=${() => setPath(window.location.pathname)} pathPrefix="/feed" showSettings=${true} onLogout=${onLogout} />`}
     >
       <${FeedLayout}
         leftSidebar=${null}
