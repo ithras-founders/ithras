@@ -57,11 +57,18 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="${COMMIT_SHA:-$BUILD_ID}"
-        docker build \
-          --cache-from "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:latest" \
-          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$TAG" \
-          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:latest" \
+        TAG="$${COMMIT_SHA:-$${BUILD_ID}}"
+        IMAGE_BASE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}"
+        CACHE_ARGS=()
+        if docker pull "$${IMAGE_BASE}:latest"; then
+          CACHE_ARGS+=(--cache-from "$${IMAGE_BASE}:latest")
+        else
+          echo "No remote cache available for $${IMAGE_BASE}:latest; continuing without cache"
+        fi
+        echo "Building backend image: $${IMAGE_BASE}:$${TAG}"
+        docker build "${CACHE_ARGS[@]}" \
+          -t "$${IMAGE_BASE}:$${TAG}" \
+          -t "$${IMAGE_BASE}:latest" \
           -f Dockerfile.backend \
           .
 
@@ -74,11 +81,18 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="${COMMIT_SHA:-$BUILD_ID}"
-        docker build \
-          --cache-from "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:latest" \
-          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$TAG" \
-          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:latest" \
+        TAG="$${COMMIT_SHA:-$${BUILD_ID}}"
+        IMAGE_BASE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}"
+        CACHE_ARGS=()
+        if docker pull "$${IMAGE_BASE}:latest"; then
+          CACHE_ARGS+=(--cache-from "$${IMAGE_BASE}:latest")
+        else
+          echo "No remote cache available for $${IMAGE_BASE}:latest; continuing without cache"
+        fi
+        echo "Building frontend image: $${IMAGE_BASE}:$${TAG}"
+        docker build "${CACHE_ARGS[@]}" \
+          -t "$${IMAGE_BASE}:$${TAG}" \
+          -t "$${IMAGE_BASE}:latest" \
           -f Dockerfile.frontend \
           .
 
@@ -109,10 +123,10 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="${COMMIT_SHA:-$BUILD_ID}"
+        TAG="$${COMMIT_SHA:-$${BUILD_ID}}"
         ARGS=(
           run deploy "${_BACKEND_SERVICE}"
-          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$TAG"
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$$TAG"
           --region "${_REGION}"
           --platform managed
           --allow-unauthenticated
@@ -136,7 +150,7 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="${COMMIT_SHA:-$BUILD_ID}"
+        TAG="$${COMMIT_SHA:-$${BUILD_ID}}"
         # Use provided _BACKEND_URL or look it up from the deployed backend service
         if [ -n "${_BACKEND_URL}" ]; then
           BACKEND_URL="${_BACKEND_URL}"
@@ -149,7 +163,7 @@ steps:
 
         ARGS=(
           run deploy "${_FRONTEND_SERVICE}"
-          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$TAG"
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$$TAG"
           --region "${_REGION}"
           --platform managed
           --allow-unauthenticated
