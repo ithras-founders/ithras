@@ -115,10 +115,12 @@ async def serve_shared_styles(request: Request) -> Response:
     return FileResponse(str(file_path), media_type=mime or "text/plain")
 
 
+ALL_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]
+
 routes = [
-    # API proxy
-    Route("/api", proxy_to_backend),
-    Route("/api/{path:path}", proxy_to_backend),
+    # API proxy — must allow all HTTP methods
+    Route("/api", proxy_to_backend, methods=ALL_METHODS),
+    Route("/api/{path:path}", proxy_to_backend, methods=ALL_METHODS),
 
     # Source files from workspace root directories
     Route("/core/{path:path}", serve_file_from_root),
