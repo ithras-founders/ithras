@@ -46,6 +46,31 @@ Ithras is a platform for managing student placement processes in educational ins
 - Migrations in `core/alembic/versions/`
 - Run migrations: `python -m alembic upgrade head` from project root
 
-## Deployment
+## Deployment (Replit)
 - Configured as autoscale deployment running `python start.py`
 - Port 5000 serves the combined frontend + API proxy
+
+## Deployment (Google Cloud Run + Cloud SQL)
+
+Two Cloud Run services: `ithras-backend` (FastAPI) and `ithras-frontend` (Nginx).
+
+**Key files:**
+- `cloudbuild.yaml` — Root-level Cloud Build CI/CD pipeline (builds + deploys both services)
+- `Dockerfile.backend` — Production backend image (includes admin/, core/, shared/, products/)
+- `Dockerfile.frontend` — Production frontend image (Nginx with dynamic backend proxy)
+- `entrypoint.prod.sh` — Backend startup: waits for Cloud SQL socket, runs Alembic migrations, starts uvicorn
+- `deploy/setup.sh` — One-time GCP infrastructure provisioning script
+- `deploy/env.example` — Cloud Build trigger substitution variable template
+- `docs/CLOUD_RUN_DEPLOYMENT.md` — Full deployment guide
+
+**Cloud SQL connection:**
+- Uses built-in Cloud Run Cloud SQL Auth Proxy sidecar (`--add-cloudsql-instances`)
+- DATABASE_URL socket form: `postgresql://user:pass@/db?host=/cloudsql/PROJECT:REGION:INSTANCE`
+- Pool sizing: 5 connections/instance on Cloud Run (vs 20 locally) to prevent connection exhaustion
+
+**Quick start:**
+```bash
+bash deploy/setup.sh            # provision GCP infrastructure once
+gcloud builds submit . --config=cloudbuild.yaml --substitutions=...
+```
+See `docs/CLOUD_RUN_DEPLOYMENT.md` for full instructions and substitution variables.

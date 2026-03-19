@@ -1,66 +1,11 @@
-steps:
-  # Step 0: Validate required substitutions
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
-    entrypoint: bash
-    args:
-      - '-c'
-      - |
-        if [ -z "$_DATABASE_URL" ]; then
-          echo "ERROR: _DATABASE_URL substitution is required"
-          exit 1
-        fi
-        if [ -z "$_GEMINI_API_KEY" ]; then
-          echo "ERROR: _GEMINI_API_KEY substitution is required"
-          exit 1
-        fi
-  # Step 1: Build the backend Docker image
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'build'
-      - '-t'
-      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ithras/ithras-backend:$COMMIT_SHA'
-      - '-t'
-      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ithras/ithras-backend:latest'
-      - '-f'
-      - 'Dockerfile.backend'
-      - '.'
-
-  # Step 2: Push to Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ithras/ithras-backend:$COMMIT_SHA'
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ithras/ithras-backend:latest'
-
-  # Step 3: Deploy to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
-    entrypoint: gcloud
-    args:
-      - 'run'
-      - 'deploy'
-      - 'ithras-backend'
-      - '--image'
-      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ithras/ithras-backend:$COMMIT_SHA'
-      - '--region'
-      - 'europe-west1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--port'
-      - '8080'
-      - '--set-env-vars'
-      - 'DATABASE_URL=$_DATABASE_URL,UPLOAD_DIR=/app/uploads,GEMINI_API_KEY=$_GEMINI_API_KEY,REDIS_URL=$_REDIS_URL,REQUIRE_DATABASE=true,DEMO_PASSWORD=$_DEMO_PASSWORD'
-
-substitutions:
-  _REDIS_URL: ''
-  _DEMO_PASSWORD: 'password'
-
-images:
-  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ithras/ithras-backend:$COMMIT_SHA'
-  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/ithras/ithras-backend:latest'
-
-options:
-  logging: CLOUD_LOGGING_ONLY
+# DEPRECATED: Use the root-level cloudbuild.yaml instead.
+#
+# This file deployed only the backend and was missing --add-cloudsql-instances,
+# which prevented Cloud SQL socket attachment on Cloud Run.
+#
+# The root-level cloudbuild.yaml builds and deploys both backend and frontend
+# with correct Cloud SQL configuration.
+#
+# Run from repo root:
+#   gcloud builds submit . --config=cloudbuild.yaml --substitutions=...
+# See docs/CLOUD_RUN_DEPLOYMENT.md for full instructions.
