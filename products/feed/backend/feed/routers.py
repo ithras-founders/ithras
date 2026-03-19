@@ -361,6 +361,9 @@ def request_community(data: CommunityRequestCreate, user=Depends(get_current_use
 
 
 # ─── Feed endpoints ──────────────────────────────────────────────────────────
+ALLOWED_REACTION_TYPES = {"upvote", "love", "insightful", "celebrate"}
+
+
 def _post_row_to_dict(row, author_name=None):
     tags = []
     try:
@@ -386,6 +389,8 @@ def _post_row_to_dict(row, author_name=None):
         "attachments": attachments,
         "comment_count": row.comment_count or 0,
         "reaction_count": row.reaction_count or 0,
+        "reaction_counts": {"upvote": 0, "love": 0, "insightful": 0, "celebrate": 0},
+        "user_reactions": [],
         "save_count": row.save_count or 0,
         "view_count": row.view_count or 0,
         "moderation_status": row.moderation_status or "active",
@@ -394,6 +399,33 @@ def _post_row_to_dict(row, author_name=None):
         "created_at": (row.created_at.isoformat() + "Z") if row.created_at else None,
         "updated_at": (row.updated_at.isoformat() + "Z") if row.updated_at else None,
     }
+
+
+def _batch_attach_reactions(db, items, uid=None):
+    """Attach per-type reaction_counts and user_reactions to each item dict in-place."""
+    if not items:
+        return items
+    post_ids = [item["id"] for item in items]
+    id_map = {item["id"]: item for item in items}
+    in_clause = ",".join(str(int(pid)) for pid in post_ids)
+
+    r = db.execute(
+        text(f"SELECT post_id, type, COUNT(*) as cnt FROM post_reactions WHERE post_id IN ({in_clause}) GROUP BY post_id, type")
+    )
+    for row in r.fetchall():
+        if row.post_id in id_map and row.type in ALLOWED_REACTION_TYPES:
+            id_map[row.post_id]["reaction_counts"][row.type] = int(row.cnt)
+
+    if uid:
+        r = db.execute(
+            text(f"SELECT post_id, type FROM post_reactions WHERE post_id IN ({in_clause}) AND user_id = :uid"),
+            {"uid": uid},
+        )
+        for row in r.fetchall():
+            if row.post_id in id_map and row.type in ALLOWED_REACTION_TYPES:
+                id_map[row.post_id]["user_reactions"].append(row.type)
+
+    return items
 
 
 @router.get("/feed", summary="Global feed")
@@ -431,6 +463,7 @@ def get_global_feed(
         d["community_name"] = row.community_name or ""
         d["channel_name"] = row.channel_name or ""
         items.append(d)
+    _batch_attach_reactions(db, items, uid)
 
     total_row = db.execute(
         text("""
@@ -479,6 +512,7 @@ def get_saved_feed(
         d["community_name"] = row.community_name or ""
         d["channel_name"] = row.channel_name or ""
         items.append(d)
+    _batch_attach_reactions(db, items, uid)
 
     total_row = db.execute(
         text("SELECT COUNT(*) as n FROM post_saves ps JOIN posts p ON p.id = ps.post_id AND p.moderation_status = 'active' WHERE ps.user_id = :uid"),
@@ -584,6 +618,7 @@ def get_community_feed(
         d["community_name"] = row.community_name or ""
         d["channel_name"] = row.channel_name or ""
         items.append(d)
+    _batch_attach_reactions(db, items, uid)
 
     count_params = {k: v for k, v in params.items() if k not in ("lim", "off")}
     if useful_join:
@@ -655,6 +690,8 @@ def get_channel_feed(
         d["community_name"] = row.community_name or ""
         d["channel_name"] = row.channel_name or ""
         items.append(d)
+    uid_ch = _user_id(user)
+    _batch_attach_reactions(db, items, uid_ch)
 
     count_params = {k: v for k, v in params.items() if k not in ("lim", "off")}
     if useful_join:
@@ -729,9 +766,11 @@ def get_post(post_id: int, user=Depends(get_current_user), db=Depends(get_db)):
     db.execute(text("UPDATE posts SET view_count = view_count + 1 WHERE id = :pid"), {"pid": post_id})
     db.commit()
 
+    uid_gp = _user_id(user)
     d = _post_row_to_dict(row, row.author_name)
     d["community_name"] = row.community_name or ""
     d["channel_name"] = row.channel_name or ""
+    _batch_attach_reactions(db, [d], uid_gp)
     return d
 
 
@@ -849,13 +888,16 @@ def accept_answer(post_id: int, comment_id: int, user=Depends(get_current_user),
 @router.post("/posts/{post_id}/reactions", summary="Add reaction")
 def add_reaction(post_id: int, type: str = Query("upvote"), user=Depends(get_current_user), db=Depends(get_db)):
     """Add or toggle reaction."""
+    reaction_type = type or "upvote"
+    if reaction_type not in ALLOWED_REACTION_TYPES:
+        raise HTTPException(status_code=400, detail=f"Reaction type must be one of: {', '.join(sorted(ALLOWED_REACTION_TYPES))}")
     uid = _user_id(user)
     db.execute(
         text("""
             INSERT INTO post_reactions (post_id, user_id, type) VALUES (:pid, :uid, :typ)
             ON CONFLICT (post_id, user_id, type) DO NOTHING
         """),
-        {"pid": post_id, "uid": uid, "typ": type or "upvote"},
+        {"pid": post_id, "uid": uid, "typ": reaction_type},
     )
     db.execute(
         text("UPDATE posts SET reaction_count = (SELECT COUNT(*) FROM post_reactions WHERE post_id = :pid), updated_at = NOW() WHERE id = :pid"),
@@ -864,7 +906,7 @@ def add_reaction(post_id: int, type: str = Query("upvote"), user=Depends(get_cur
     db.commit()
     try:
         from shared.telemetry.emitters.feed_emitter import track_reaction_added
-        track_reaction_added(db, uid, post_id, type or "upvote")
+        track_reaction_added(db, uid, post_id, reaction_type)
     except Exception:
         pass
     return {"ok": True}
@@ -873,10 +915,13 @@ def add_reaction(post_id: int, type: str = Query("upvote"), user=Depends(get_cur
 @router.delete("/posts/{post_id}/reactions", summary="Remove reaction")
 def remove_reaction(post_id: int, type: str = Query("upvote"), user=Depends(get_current_user), db=Depends(get_db)):
     """Remove reaction."""
+    reaction_type = type or "upvote"
+    if reaction_type not in ALLOWED_REACTION_TYPES:
+        raise HTTPException(status_code=400, detail=f"Reaction type must be one of: {', '.join(sorted(ALLOWED_REACTION_TYPES))}")
     uid = _user_id(user)
     db.execute(
         text("DELETE FROM post_reactions WHERE post_id = :pid AND user_id = :uid AND type = :typ"),
-        {"pid": post_id, "uid": uid, "typ": type or "upvote"},
+        {"pid": post_id, "uid": uid, "typ": reaction_type},
     )
     db.execute(
         text("UPDATE posts SET reaction_count = GREATEST(0, (SELECT COUNT(*) FROM post_reactions WHERE post_id = :pid)), updated_at = NOW() WHERE id = :pid"),

@@ -8,7 +8,7 @@ import CommunityHero from '../components/community/CommunityHero.js';
 import CommunityChannelNav from '../components/community/CommunityChannelNav.js';
 import CommunityFeedControlBar from '../components/community/CommunityFeedControlBar.js';
 import CommunityComposer from '../components/community/CommunityComposer.js';
-import FeedPostCard from '../components/community/FeedPostCard.js';
+import PremiumPostCard from '../components/PremiumPostCard.js';
 import PinnedPostsSection from '../components/community/PinnedPostsSection.js';
 import CommunityEmptyState from '../components/community/CommunityEmptyState.js';
 import FeedSkeleton from '../components/community/FeedSkeleton.js';
@@ -128,7 +128,7 @@ const CommunityFeedPage = ({ communitySlug, channelSlug, user }) => {
               ` : null}
               <div className="space-y-5">
                 ${regularItems.map((post) => html`
-                  <${FeedPostCard} key=${post.id} post=${post} onRefresh=${refresh} user=${user} />
+                  <${PremiumPostCard} key=${post.id} post=${post} onRefresh=${refresh} user=${user} />
                 `)}
               </div>
             </div>

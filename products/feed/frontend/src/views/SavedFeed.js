@@ -4,20 +4,25 @@
 import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { getSavedFeed } from '../services/feedApi.js';
-import PostCard from '../components/PostCard.js';
+import PremiumPostCard from '../components/PremiumPostCard.js';
 import EmptyState from '../components/EmptyState.js';
 
 const html = htm.bind(React.createElement);
 
-const SavedFeed = () => {
+const SavedFeed = ({ user }) => {
   const [items, setItems] = useState([]);
+  const [savedIds, setSavedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const refresh = () => {
     setLoading(true);
     getSavedFeed({ limit: 30 })
-      .then((r) => setItems(r.items || []))
+      .then((r) => {
+        const fetched = r.items || [];
+        setItems(fetched);
+        setSavedIds(new Set(fetched.map((p) => p.id)));
+      })
       .catch((e) => setError(e.message || 'Failed to load'))
       .finally(() => setLoading(false));
   };
@@ -45,7 +50,17 @@ const SavedFeed = () => {
       ` : html`
         <div className="space-y-4">
           ${items.map((post) => html`
-            <${PostCard} key=${post.id} post=${post} onRefresh=${refresh} isSaved=${true} />
+            <${PremiumPostCard}
+              key=${post.id}
+              post=${post}
+              onRefresh=${refresh}
+              user=${user}
+              isSaved=${savedIds.has(post.id)}
+              onSaveChange=${(v) => {
+                setSavedIds((s) => { const n = new Set(s); v ? n.add(post.id) : n.delete(post.id); return n; });
+                if (!v) setItems((prev) => prev.filter((p) => p.id !== post.id));
+              }}
+            />
           `)}
         </div>
       `}

@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import htm from 'htm';
-import FeedPostCard from './FeedPostCard.js';
+import PremiumPostCard from '../PremiumPostCard.js';
 
 const html = htm.bind(React.createElement);
 
@@ -20,7 +20,7 @@ const PinnedPostsSection = ({ items, onRefresh, user }) => {
       </div>
       <div className="space-y-4">
         ${items.map((post) => html`
-          <${FeedPostCard} key=${post.id} post=${post} onRefresh=${onRefresh} user=${user} />
+          <${PremiumPostCard} key=${post.id} post=${post} onRefresh=${onRefresh} user=${user} />
         `)}
       </div>
     </div>

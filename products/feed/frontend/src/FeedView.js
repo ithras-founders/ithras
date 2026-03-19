@@ -58,7 +58,7 @@ const FeedView = ({ user, onLogout }) => {
 
   let content;
   if (matchSaved) {
-    content = html`<${SavedFeed} />`;
+    content = html`<${SavedFeed} user=${user} />`;
   } else if (matchDiscover) {
     content = html`<${DiscoverPage} />`;
   } else if (matchChannel) {
@@ -66,7 +66,7 @@ const FeedView = ({ user, onLogout }) => {
   } else if (matchCommunity) {
     content = html`<${CommunityFeedPage} communitySlug=${matchCommunity[1]} user=${user} />`;
   } else {
-    content = html`<${GlobalFeed} />`;
+    content = html`<${GlobalFeed} user=${user} />`;
   }
 
   return html`

@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { getCommunityBySlug, getCommunityFeed } from '../services/feedApi.js';
 import PostComposer from '../components/PostComposer.js';
-import PostCard from '../components/PostCard.js';
+import PremiumPostCard from '../components/PremiumPostCard.js';
 import CommunityHeader from '../components/CommunityHeader.js';
 import ChannelTabs from '../components/ChannelTabs.js';
 import EmptyState from '../components/EmptyState.js';
@@ -78,7 +78,7 @@ const CommunityFeed = ({ communitySlug }) => {
       ` : html`
         <div className="space-y-4">
           ${items.map((post) => html`
-            <${PostCard} key=${post.id} post=${post} onRefresh=${refresh} />
+            <${PremiumPostCard} key=${post.id} post=${post} onRefresh=${refresh} />
           `)}
         </div>
       `}
