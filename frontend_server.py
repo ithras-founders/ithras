@@ -57,15 +57,16 @@ async def proxy_to_backend(request: Request) -> Response:
 
 
 def serve_js_file(file_path: Path) -> Response:
-    """Serve a JS file with correct headers."""
+    """Serve a JS file with correct headers and caching."""
     if not file_path.exists():
         return Response(status_code=404)
-    content = file_path.read_bytes()
-    return Response(
-        content=content,
+    # FileResponse handles ETag + Last-Modified automatically so the browser
+    # can do conditional GETs (304 Not Modified) after the cache expires.
+    return FileResponse(
+        str(file_path),
         media_type="application/javascript",
         headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Cache-Control": "public, max-age=3600",
             "Access-Control-Allow-Origin": "*",
         },
     )
@@ -116,7 +117,11 @@ async def serve_shared_styles(request: Request) -> Response:
     if not file_path.exists():
         return Response(status_code=404)
     mime, _ = mimetypes.guess_type(str(file_path))
-    return FileResponse(str(file_path), media_type=mime or "text/plain")
+    return FileResponse(
+        str(file_path),
+        media_type=mime or "text/plain",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 
 ALL_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]
