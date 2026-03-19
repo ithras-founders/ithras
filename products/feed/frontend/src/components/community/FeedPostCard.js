@@ -13,7 +13,8 @@ const html = htm.bind(React.createElement);
 
 const formatTime = (iso) => {
   if (!iso) return '';
-  const d = new Date(iso);
+  const utc = /[Z+\-]\d*$/.test(iso) ? iso : iso + 'Z';
+  const d = new Date(utc);
   const now = new Date();
   const diff = (now - d) / 1000;
   if (diff < 60) return 'Just now';

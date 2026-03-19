@@ -390,9 +390,9 @@ def _post_row_to_dict(row, author_name=None):
         "view_count": row.view_count or 0,
         "moderation_status": row.moderation_status or "active",
         "is_pinned": is_pinned,
-        "pinned_at": row.pinned_at.isoformat() if getattr(row, "pinned_at", None) else None,
-        "created_at": row.created_at.isoformat() if row.created_at else None,
-        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+        "pinned_at": (row.pinned_at.isoformat() + "Z") if getattr(row, "pinned_at", None) else None,
+        "created_at": (row.created_at.isoformat() + "Z") if row.created_at else None,
+        "updated_at": (row.updated_at.isoformat() + "Z") if row.updated_at else None,
     }
 
 

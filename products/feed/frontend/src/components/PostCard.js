@@ -9,7 +9,9 @@ const html = htm.bind(React.createElement);
 
 const formatTime = (iso) => {
   if (!iso) return '';
-  const d = new Date(iso);
+  // Ensure the string is treated as UTC (append Z if no timezone info present)
+  const utc = /[Z+\-]\d*$/.test(iso) ? iso : iso + 'Z';
+  const d = new Date(utc);
   const now = new Date();
   const diff = (now - d) / 1000;
   if (diff < 60) return 'Just now';
@@ -55,21 +57,52 @@ const PostCard = ({
       style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 text-sm mb-1" style=${{ color: 'var(--app-text-muted)' }}>
-            <span key="community" className="font-medium" style=${{ color: 'var(--app-text-primary)' }}>${post.community_name || 'Community'}</span>
-            ${post.channel_name ? html`<span key="sep">·</span><span key="channel">${post.channel_name}</span>` : null}
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <!-- Author avatar -->
+          <div
+            className="flex-shrink-0 flex items-center justify-center rounded-full text-xs font-bold"
+            style=${{
+              width: '38px',
+              height: '38px',
+              background: 'var(--app-accent-soft)',
+              color: 'var(--app-accent)',
+              marginTop: '1px',
+            }}
+          >
+            ${(post.author_name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()}
           </div>
-          <div className="flex items-center gap-2 text-xs" style=${{ color: 'var(--app-text-muted)' }}>
-            <span>${post.author_name || 'Anonymous'}</span>
-            <span>·</span>
-            <span>${formatTime(post.created_at)}</span>
-            <span
-              className="px-2 py-0.5 rounded text-xs"
-              style=${{ background: 'var(--app-surface-subtle)', color: 'var(--app-text-secondary)' }}
-            >
-              ${typeLabel}
-            </span>
+          <div className="flex-1 min-w-0">
+            <!-- Community + channel row -->
+            <div className="flex items-center gap-1.5 text-sm mb-0.5">
+              <!-- Community initial badge -->
+              <span
+                className="inline-flex items-center justify-center rounded text-xs font-bold flex-shrink-0"
+                style=${{
+                  width: '18px',
+                  height: '18px',
+                  background: 'var(--app-surface-subtle)',
+                  color: 'var(--app-text-secondary)',
+                  border: '1px solid var(--app-border-soft)',
+                  fontSize: '10px',
+                }}
+              >
+                ${(post.community_name || 'C')[0].toUpperCase()}
+              </span>
+              <span className="font-semibold" style=${{ color: 'var(--app-text-primary)' }}>${post.community_name || 'Community'}</span>
+              ${post.channel_name ? html`<span style=${{ color: 'var(--app-text-muted)' }}>·</span><span style=${{ color: 'var(--app-text-muted)' }}>${post.channel_name}</span>` : null}
+            </div>
+            <!-- Author + time + type row -->
+            <div className="flex items-center gap-2 text-xs" style=${{ color: 'var(--app-text-muted)' }}>
+              <span className="font-medium" style=${{ color: 'var(--app-text-secondary)' }}>${post.author_name || 'Anonymous'}</span>
+              <span>·</span>
+              <span>${formatTime(post.created_at)}</span>
+              <span
+                className="px-2 py-0.5 rounded text-xs"
+                style=${{ background: 'var(--app-surface-subtle)', color: 'var(--app-text-secondary)' }}
+              >
+                ${typeLabel}
+              </span>
+            </div>
           </div>
         </div>
         <button
