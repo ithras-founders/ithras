@@ -101,8 +101,7 @@ gcloud builds submit . \
 _DATABASE_URL="postgresql://ithras:PASSWORD@/placement_db?host=/cloudsql/my-project:europe-west1:ithras-db",\
 _JWT_SECRET=$(openssl rand -hex 32),\
 _GEMINI_API_KEY=AIza...,\
-_SERVICE_ACCOUNT=ithras-backend-sa@my-project.iam.gserviceaccount.com,\
-_DB_SETUP_FIRST_RUN=TRUE
+_SERVICE_ACCOUNT=ithras-backend-sa@my-project.iam.gserviceaccount.com
 ```
 
 > **Important:** In newer Google Cloud projects, manual `gcloud builds submit` runs often execute as the Compute Engine default service account (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`) instead of the legacy Cloud Build account. If you see `storage.objects.get` or similar Cloud Storage permission errors during source upload/build startup, rerun `deploy/setup.sh` or grant the same Cloud Build IAM roles to whichever account `gcloud builds get-default-service-account` returns.
