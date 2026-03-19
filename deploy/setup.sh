@@ -13,13 +13,59 @@
 
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
+resolve_project_id() {
+  if [[ -n "${PROJECT_ID:-}" ]]; then
+    printf '%s\n' "$PROJECT_ID"
+    return 0
+  fi
+
+  if [[ -n "${GOOGLE_CLOUD_PROJECT:-}" ]]; then
+    printf '%s\n' "$GOOGLE_CLOUD_PROJECT"
+    return 0
+  fi
+
+  if [[ -n "${GCLOUD_PROJECT:-}" ]]; then
+    printf '%s\n' "$GCLOUD_PROJECT"
+    return 0
+  fi
+
+  if [[ -n "${DEVSHELL_PROJECT_ID:-}" ]]; then
+    printf '%s\n' "$DEVSHELL_PROJECT_ID"
+    return 0
+  fi
+
+  gcloud config get-value project --quiet 2>/dev/null || true
+}
+
+prompt_with_default() {
+  local prompt="$1"
+  local default_value="$2"
+  local user_value=""
+
+  if [[ ! -t 0 ]]; then
+    printf '%s\n' "$default_value"
+    return 0
+  fi
+
+  read -r -p "$prompt [$default_value]: " user_value
+  if [[ -n "$user_value" ]]; then
+    printf '%s\n' "$user_value"
+    return 0
+  fi
+
+  printf '%s\n' "$default_value"
+}
+
+PROJECT_ID="$(resolve_project_id | tr -d '[:space:]')"
 if [[ -z "$PROJECT_ID" || "$PROJECT_ID" == "(unset)" ]]; then
   echo "ERROR: Set PROJECT_ID or run 'gcloud config set project YOUR_PROJECT_ID'" >&2
   exit 1
 fi
-REGION="${REGION:-europe-west1}"
-INSTANCE_NAME="${CLOUD_SQL_INSTANCE:-ithras-db}"
+DEFAULT_REGION="${REGION:-europe-west1}"
+DEFAULT_INSTANCE_NAME="${CLOUD_SQL_INSTANCE:-ithras-db}"
+
+REGION="$(prompt_with_default "GCP region" "$DEFAULT_REGION")"
+INSTANCE_NAME="$(prompt_with_default "Cloud SQL instance name" "$DEFAULT_INSTANCE_NAME")"
 DB_NAME="${DB_NAME:-placement_db}"
 DB_USER="${DB_USER:-ithras}"
 DB_PASSWORD="${DB_PASSWORD:?Set DB_PASSWORD}"
@@ -151,10 +197,9 @@ echo ""
 echo "     gcloud builds submit . \\"
 echo "       --config=cloudbuild.yaml \\"
 echo "       --project=$PROJECT_ID \\"
-echo "       --substitutions=\\"
-echo "         _CLOUD_SQL_INSTANCE=${INSTANCE_CONNECTION_NAME},\\"
-echo "         _DATABASE_URL=${DATABASE_URL},\\"
-echo "         _JWT_SECRET=<your-jwt-secret>,\\"
-echo "         _GEMINI_API_KEY=<your-key>,\\"
-echo "         _SERVICE_ACCOUNT=${SA_EMAIL}"
+echo "       --substitutions=_CLOUD_SQL_INSTANCE=${INSTANCE_CONNECTION_NAME},\\"
+echo "_DATABASE_URL=${DATABASE_URL},\\"
+echo "_JWT_SECRET=<your-jwt-secret>,\\"
+echo "_GEMINI_API_KEY=<your-key>,\\"
+echo "_SERVICE_ACCOUNT=${SA_EMAIL}"
 echo ""
