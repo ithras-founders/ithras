@@ -33,8 +33,40 @@ const Login = ({ onLogin, onShowRegister }) => {
     }
   };
 
+  const handleAbout = (e) => {
+    e.preventDefault();
+    window.history.pushState(null, '', '/about');
+    window.dispatchEvent(new CustomEvent('ithras:path-changed'));
+  };
+
   return html`
-    <div className="min-h-screen flex bg-[var(--app-bg)]">
+    <div className="min-h-screen flex bg-[var(--app-bg)]" style=${{ position: 'relative' }}>
+      <a
+        href="/about"
+        onClick=${handleAbout}
+        style=${{
+          position: 'absolute',
+          top: '18px',
+          right: '24px',
+          zIndex: 10,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '5px',
+          padding: '6px 14px',
+          borderRadius: '8px',
+          background: 'rgba(12,109,253,0.08)',
+          color: '#0C6DFD',
+          fontSize: '13px',
+          fontWeight: 600,
+          textDecoration: 'none',
+          border: '1px solid rgba(12,109,253,0.18)',
+          transition: 'background 160ms',
+        }}
+        onMouseEnter=${(e) => { e.currentTarget.style.background = 'rgba(12,109,253,0.14)'; }}
+        onMouseLeave=${(e) => { e.currentTarget.style.background = 'rgba(12,109,253,0.08)'; }}
+      >
+        About Us
+      </a>
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center p-16" style=${{ background: BLUE_PANEL }}>
         <div className="max-w-md text-center">
           <div className="mb-12">
