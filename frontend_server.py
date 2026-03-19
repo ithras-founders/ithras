@@ -77,7 +77,11 @@ async def serve_file_from_root(request: Request) -> Response:
     prefix = request.url.path.split("/")[1]  # e.g. "core", "admin"
     
     file_path = WORKSPACE / prefix / path
+
+    # If file doesn't exist and the path has no extension, it's a SPA route — serve index.html
     if not file_path.exists():
+        if not file_path.suffix:
+            return await serve_index(request)
         return Response(status_code=404)
     
     if file_path.suffix in (".js", ".mjs"):
