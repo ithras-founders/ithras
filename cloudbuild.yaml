@@ -88,18 +88,20 @@ steps:
         [ -z "$$TAG" ] && TAG="$${BUILD_ID}"
         [ -z "$$TAG" ] && TAG="latest"
         IMAGE_BASE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}"
-        CACHE_ARGS=()
-        if docker pull "$${IMAGE_BASE}:latest"; then
-          CACHE_ARGS+=(--cache-from "$${IMAGE_BASE}:latest")
-        else
-          echo "No remote cache available for $${IMAGE_BASE}:latest; continuing without cache"
-        fi
-        echo "Building frontend image: $${IMAGE_BASE}:$${TAG}"
-        docker build "${CACHE_ARGS[@]}" \
+        # Never use --cache-from for the frontend. If ithras-frontend:latest was ever wrongly
+        # tagged as the backend image, remote cache poisons every build (Uvicorn on ithras-frontend).
+        echo "Building frontend image (no remote cache-from): $${IMAGE_BASE}:$${TAG}"
+        docker build --pull \
           -t "$${IMAGE_BASE}:$${TAG}" \
           -t "$${IMAGE_BASE}:latest" \
           -f Dockerfile.frontend \
           .
+        echo "Verifying image is nginx frontend, not Python backend..."
+        docker run --rm --entrypoint sh "$${IMAGE_BASE}:$${TAG}" -c '\
+          if [ -f /app/main.py ]; then echo "ERROR: /app/main.py present — this is the backend image, not Dockerfile.frontend"; exit 1; fi; \
+          if command -v uvicorn >/dev/null 2>&1; then echo "ERROR: uvicorn found — backend image"; exit 1; fi; \
+          nginx -v || { echo "ERROR: nginx missing"; exit 1; }; \
+          echo "OK: frontend image sanity check passed"'
 
   # ── Push backend image ────────────────────────────────────────────────────────
   - id: push-backend
