@@ -197,6 +197,33 @@ Cloud SQL: ithras-db        (Postgres 15)
 
 ## Troubleshooting
 
+### Cloud Audit Log shows `CloudBuild.CreateBuild` with `status.code: 9`
+
+`status.code: 9` is the canonical gRPC `FAILED_PRECONDITION` status. In practice, that means Cloud Build rejected the trigger request **before** the build really started, so the audit log entry by itself is not enough to identify the root cause. Google's Cloud Build troubleshooting guide calls out several common `FAILED_PRECONDITION` cases, including quota restrictions in a region, deleted or mismatched trigger branches (for example `Couldn't read commit`), repository connection issues, or other trigger configuration problems.
+
+Start with the trigger execution details and the Cloud Build logs for the exact build IDs from the audit entry:
+
+```bash
+gcloud builds describe 7fe2c230-5341-4353-b9b2-c885e987eadd --project=my-gcp-project
+gcloud builds describe ed3e1327-2466-4ba9-a83c-7bea9ced6091 --project=my-gcp-project
+```
+
+If those commands return little or no detail, inspect the trigger definitions that generated the failed requests:
+
+```bash
+gcloud builds triggers describe bb9bc841-f075-4fce-bd2f-8c4e4e4e96ce --project=my-gcp-project
+gcloud builds triggers describe db64417f-94b6-4af0-a34f-9137964cc932 --project=my-gcp-project
+```
+
+For this repository specifically, also verify the following trigger inputs because `cloudbuild.yaml` expects them at runtime:
+
+- `_CLOUD_SQL_INSTANCE`
+- `_DATABASE_URL`
+- `_JWT_SECRET`
+- `_GEMINI_API_KEY`
+
+If the trigger uses a non-default service account or a private worker pool, verify those resources still exist and that the trigger branch/tag filters still match a live ref. If the error text mentions regional quota restrictions, contact Google Cloud support for that region.
+
 ### `storage.objects.get` denied for `PROJECT_NUMBER-compute@developer.gserviceaccount.com`
 
 Your project is using the **Compute Engine default service account** as the default Cloud Build service account. Grant that service account the same Cloud Build/deploy roles as the legacy Cloud Build account, or rerun `deploy/setup.sh` from this repository, which now configures both. You can verify the active default with:
