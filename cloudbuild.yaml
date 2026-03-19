@@ -173,9 +173,12 @@ steps:
           echo "Auto-detected backend URL: $$BACKEND_URL"
         fi
 
+        FRONT_IMAGE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$$TAG"
+        echo "Deploying ${_FRONTEND_SERVICE} with image: $$FRONT_IMAGE"
+
         ARGS=(
           run deploy "${_FRONTEND_SERVICE}"
-          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$$TAG"
+          --image "$$FRONT_IMAGE"
           --region "${_REGION}"
           --platform managed
           --allow-unauthenticated
@@ -187,9 +190,11 @@ steps:
         fi
         gcloud "${ARGS[@]}"
 
-images:
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:latest'
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:latest'
+# Do NOT list `images:` here. This pipeline already pushes both images in push-backend /
+# push-frontend. A global `images:` block advertises multiple artifacts to Cloud Build;
+# if your trigger also uses "Deploy to Cloud Run" and picks the *first* image only, it
+# can deploy ithras-backend's image to ithras-frontend (Uvicorn + ModuleNotFoundError).
+# Deployments are handled entirely by the deploy-backend / deploy-frontend steps above.
 
 options:
   logging: CLOUD_LOGGING_ONLY
