@@ -1957,9 +1957,12 @@ def list_users(user=Depends(require_admin), db=Depends(get_db)):
     """Return all users with basic profile info. Admin only."""
     r = db.execute(
         text("""
-            SELECT user_numerical, username, email, full_name, headline, summary, profile_slug, user_type, date_of_birth
+            SELECT user_numerical, username, email, full_name, headline, summary, profile_slug, user_type, date_of_birth,
+                   COALESCE(account_status, 'approved') as account_status, created_at
             FROM users
-            ORDER BY user_numerical ASC
+            ORDER BY
+                CASE COALESCE(account_status, 'approved') WHEN 'pending' THEN 0 ELSE 1 END ASC,
+                user_numerical ASC
         """),
     )
     rows = r.fetchall()
@@ -1975,8 +1978,61 @@ def list_users(user=Depends(require_admin), db=Depends(get_db)):
             "profile_slug": row.profile_slug,
             "user_type": row.user_type or "general",
             "date_of_birth": str(row.date_of_birth) if row.date_of_birth else None,
+            "account_status": row.account_status or "approved",
+            "created_at": row.created_at.isoformat() if row.created_at else None,
         })
-    return {"users": out}
+    pending_count = sum(1 for u in out if u["account_status"] == "pending")
+    return {"users": out, "pending_count": pending_count}
+
+
+@router.patch("/users/{uid}/approve", summary="Approve a user account")
+def approve_user(uid: int, user=Depends(require_admin), db=Depends(get_db)):
+    """Set account_status to approved for the given user."""
+    r = db.execute(
+        text("SELECT user_numerical, email FROM users WHERE user_numerical = :uid"),
+        {"uid": uid},
+    )
+    row = r.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.execute(
+        text("UPDATE users SET account_status = 'approved' WHERE user_numerical = :uid"),
+        {"uid": uid},
+    )
+    db.commit()
+    try:
+        actor_id = getattr(user, "user_numerical", None) or getattr(user, "id", None)
+        from shared.telemetry.emitters.audit_emitter import track_audit_action
+        track_audit_action(db, actor_id, "user_approved", "user", str(uid))
+    except Exception:
+        pass
+    return {"ok": True, "user_id": uid, "account_status": "approved"}
+
+
+@router.patch("/users/{uid}/reject", summary="Reject a user account")
+def reject_user(uid: int, user=Depends(require_admin), db=Depends(get_db)):
+    """Set account_status to rejected for the given user."""
+    r = db.execute(
+        text("SELECT user_numerical, email FROM users WHERE user_numerical = :uid"),
+        {"uid": uid},
+    )
+    row = r.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+    if (row.email or "").lower() == "founders@ithras.com":
+        raise HTTPException(status_code=403, detail="Cannot reject founders account")
+    db.execute(
+        text("UPDATE users SET account_status = 'rejected' WHERE user_numerical = :uid"),
+        {"uid": uid},
+    )
+    db.commit()
+    try:
+        actor_id = getattr(user, "user_numerical", None) or getattr(user, "id", None)
+        from shared.telemetry.emitters.audit_emitter import track_audit_action
+        track_audit_action(db, actor_id, "user_rejected", "user", str(uid))
+    except Exception:
+        pass
+    return {"ok": True, "user_id": uid, "account_status": "rejected"}
 
 
 @router.delete("/users/{uid}", summary="Delete a user")

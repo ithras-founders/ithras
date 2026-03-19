@@ -54,16 +54,30 @@ const FEATURES = [
   },
 ];
 
+const isPendingMessage = (msg) => {
+  const s = (msg || '').toLowerCase();
+  return s.includes('awaiting admin approval') || s.includes('awaiting approval');
+};
+
+const isRejectedMessage = (msg) => {
+  const s = (msg || '').toLowerCase();
+  return s.includes('not approved') || s.includes('was not approved');
+};
+
 const Login = ({ onLogin, onShowRegister }) => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [pendingMsg, setPendingMsg] = useState('');
+  const [rejectedMsg, setRejectedMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [alphaHovered, setAlphaHovered] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setPendingMsg('');
+    setRejectedMsg('');
     if (!identifier.trim() || !password) {
       setError('Please enter your username or email and password.');
       return;
@@ -73,7 +87,14 @@ const Login = ({ onLogin, onShowRegister }) => {
       const res = await login(identifier.trim(), password);
       onLogin(res);
     } catch (err) {
-      setError(err.serverDetail || err.message || 'Login failed.');
+      const msg = err.serverDetail || err.message || 'Login failed.';
+      if (isPendingMessage(msg)) {
+        setPendingMsg(msg);
+      } else if (isRejectedMessage(msg)) {
+        setRejectedMsg(msg);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -220,6 +241,38 @@ const Login = ({ onLogin, onShowRegister }) => {
             ${error ? html`
               <div className="p-3 bg-red-50 rounded-lg text-sm text-red-600 border border-red-100">
                 ${error}
+              </div>
+            ` : null}
+            ${pendingMsg ? html`
+              <div style=${{
+                display: 'flex',
+                gap: '10px',
+                padding: '12px 14px',
+                background: '#FFFBEB',
+                border: '1px solid #FDE68A',
+                borderRadius: '10px',
+                fontSize: '13px',
+                color: '#92400E',
+                lineHeight: '1.5',
+              }}>
+                <span style=${{ fontSize: '16px', flexShrink: 0 }}>⏳</span>
+                <span>${pendingMsg}</span>
+              </div>
+            ` : null}
+            ${rejectedMsg ? html`
+              <div style=${{
+                display: 'flex',
+                gap: '10px',
+                padding: '12px 14px',
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '10px',
+                fontSize: '13px',
+                color: '#991B1B',
+                lineHeight: '1.5',
+              }}>
+                <span style=${{ fontSize: '16px', flexShrink: 0 }}>✗</span>
+                <span>${rejectedMsg}</span>
               </div>
             ` : null}
             <${Input}

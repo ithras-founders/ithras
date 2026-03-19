@@ -33,6 +33,7 @@ import FeedView from '/products/feed/frontend/index.js';
 import NetworkView from '/products/network/frontend/index.js';
 import MessagingView from '/products/messaging/frontend/index.js';
 import AboutUsPage from '/core/app/frontend/src/AboutUsPage.js';
+import PendingApprovalPage from '/core/auth/frontend/pages/PendingApprovalPage.js';
 
 const html = htm.bind(React.createElement);
 
@@ -85,6 +86,10 @@ const App = () => {
 
   if (path === '/about') return html`<${AboutUsPage} user=${user} onLogout=${handleLogout} />`;
 
+  if (path === '/pending-approval') {
+    return html`<${PendingApprovalPage} onBack=${() => { window.location.href = '/'; }} />`;
+  }
+
   if (!user) {
     const showRegister = path === '/register' || path.startsWith('/register');
     if (showRegister) {
@@ -92,7 +97,7 @@ const App = () => {
         <${RegistrationFlow}
           user=${null}
           onStep1Success=${(res) => handleLogin(res, { redirectTo: '/register/education', hardRedirect: true })}
-          onComplete=${() => { window.location.href = '/'; }}
+          onComplete=${() => { window.location.href = '/pending-approval'; }}
           onShowLogin=${() => { window.location.href = '/'; }}
         />
       `;
@@ -117,11 +122,11 @@ const App = () => {
 
   // Professional users in registration flow (steps 2–3)
   if (user?.user_type === 'professional' && (path === '/register' || path === '/register/education' || path === '/register/experience')) {
-  return html`
+    return html`
       <${RegistrationFlow}
         user=${user}
         onStep1Success=${() => {}}
-        onComplete=${() => { window.location.href = '/'; }}
+        onComplete=${() => { window.location.href = '/pending-approval'; }}
         onShowLogin=${null}
       />
     `;

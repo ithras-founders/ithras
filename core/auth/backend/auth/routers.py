@@ -166,7 +166,7 @@ def login(req: LoginRequest, db=Depends(get_db)):
     """Resolve user by LOWER(identifier) matching username or email. Verify password. Return JWT + user."""
     r = db.execute(
         text("""
-            SELECT user_numerical, username, email, password_hash, full_name, date_of_birth, user_type, headline, summary, profile_slug
+            SELECT user_numerical, username, email, password_hash, full_name, date_of_birth, user_type, headline, summary, profile_slug, account_status
             FROM users
             WHERE LOWER(username) = :ident OR LOWER(email) = :ident
             LIMIT 1
@@ -194,6 +194,18 @@ def login(req: LoginRequest, db=Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid identifier or password",
+        )
+
+    account_status = getattr(row, "account_status", "approved")
+    if account_status == "pending":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account is awaiting admin approval. You will be able to sign in once approved.",
+        )
+    if account_status == "rejected":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account application was not approved. Please contact support for more information.",
         )
 
     user = _user_row_to_response(row)
