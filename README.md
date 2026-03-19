@@ -1,14 +1,3 @@
-For the investor pitch, make the news articles and reports actually clickable and redirect to actual websites where we are quoting from
-
-For founders section
-Shashank Gandham - Engagement Manager at McKinsey & Co., IIM Calcutta and College of Engineering Placement Representative, At IIM Calcutta responsible for shift between day system to cluster cohort system and automating a lot of manual process in scheduling of students. Also Strong coding experience through Citi bank, top 20 in ICPC University Coding contest, Winner of multiple hackathons etc.
-
-Abhishek Achanta - Product Manager at MakeMyTrip, B2B Sales and Product at Pinnacle Telecommunication Services and B2B Sales in Javis, Placement Support team at IIM Calcutta and Placement Representative in IIIT Jabalpur
-
-Matthew Kallarackal - Growth, Revenue and Strategy at MakeMyTrip, M&A Deals at PwC, Software developer at Citi, IIM Lucknow and NIT Surathkal General Secretary of Student Council. With entrepreneurial experience in Skaut.
-
-We are pre-launch and hence no metrics present. $ 1mn with 10 Mn$ post money valuation, required for getting founders full time, server costs, hiring costs and marketing costs, and day-to-day operations cost.
-
 # Ithras - Enterprise Placement Intelligence Portal
 
 ## Architecture Overview
