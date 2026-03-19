@@ -1,0 +1,23 @@
+{
+  "name": "ithras-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .js"
+  },
+  "dependencies": {
+    "htm": "3.1.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.2.0",
+    "@testing-library/react": "^14.1.0",
+    "eslint": "^8.57.0",
+    "jsdom": "^23.0.0",
+    "vitest": "^1.2.0"
+  }
+}

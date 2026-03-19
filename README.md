@@ -15,15 +15,41 @@ We are pre-launch and hence no metrics present. $ 1mn with 10 Mn$ post money val
 
 Ithras follows a **modular product architecture** with:
 - **core/**: Shared infrastructure (database, authentication, shared utilities, tutorials)
-- **products/**: Six independent products, each with their own backend/frontend modules:
-  1. **calendar-scheduling**: Interview scheduling and calendar management
-  2. **cv-builder**: Resume/CV creation and management
-  3. **placement-governance**: Policies, workflows, candidate/recruiter portals
-  4. **institution-management**: Institution-scoped user and institution administration
-  5. **company-management**: Company administration
-  6. **system-admin**: System-wide administration (institutions, companies, users, system admin functions)
-- **core/backend/**: Unified backend service that imports and serves all product APIs
-- **core/frontend/**: Unified frontend service that routes to all product UIs
+- **products/**: Domain product implementations (calendar, recruitment, profiles, feed, system-admin, etc.)
+- **core/backend/**: Unified backend service that imports and serves product APIs via registry
+- **core/frontend/**: Unified frontend shell that lazy-loads product UIs via registry
+
+### Registry is source of truth
+
+Use these files as the canonical module-boundary map:
+
+- `core/backend/app/product_registry.yaml` (backend product key → router module)
+- `core/frontend/src/productRegistry.js` (frontend product key → lazy entry module)
+
+When product names differ in older docs or comments, trust the registry keys and paths in these two files.
+
+| Product key | Backend router module (`product_registry.yaml`) | Frontend entry module (`productRegistry.js`) |
+|---|---|---|
+| `calendar-management` | `app.modules.scheduling.routers` | `/products/calendar-management/frontend/src/modules/scheduling/index.js` |
+| `cv` | `app.modules.cv_builder.routers` | — |
+| `cv-maker` | — | `/products/profiles/cv/frontend/src/modules/cv-maker/index.js` |
+| `cv-templates-viewer` | — | `/products/profiles/cv/frontend/src/modules/cv-templates-viewer/index.js` |
+| `cv-verification` | — | `/products/profiles/cv/frontend/src/modules/cv-verification/index.js` |
+| `recruitment-university` | `app.modules.governance.routers` | `/products/recruitment-university/frontend/src/modules/governance/index.js` |
+| `institution-management` | `app.modules.institution.routers` | `/products/profiles/institution/frontend/src/InstitutionAdminPortal.js` |
+| `company-management` | `app.modules.company.routers` | `/products/profiles/company/frontend/src/index.js` |
+| `candidates` | `app.modules.candidates.routers` | `/products/profiles/candidate/frontend/src/index.js` |
+| `general-feed` | `app.modules.feed.routers` | `/products/general-feed/frontend/src/index.js` |
+| `recruitment-lateral` | `app.modules.recruitment.routers` | `/products/recruitment-lateral/frontend/src/index.js` |
+| `user-management` | `app.modules.user_management.routers` | — |
+| `database` | `app.modules.database.routers` | — |
+| `migrations` | `app.modules.migrations.routers` | — |
+| `testing` | `app.modules.testing.routers` | — |
+| `simulator` | `app.modules.simulator.routers` | — |
+| `system-admin` | — | `/products/system-admin/core/frontend/src/index.js` |
+| `profiles` | — | `/products/profiles/core/frontend/src/index.js` |
+| `preparation` | — | `/products/preparation/frontend/src/index.js` |
+| `entity-about` | — | `/core/frontend/src/modules/entity-about/index.js` |
 
 ## Quick Start
 

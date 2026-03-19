@@ -13,11 +13,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Core backend requirements
-COPY core/backend/requirements.txt .
+COPY core/app/backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Application code
-COPY core/backend/ .
+COPY core/app/backend/ .
+COPY core/ /core/
+COPY shared/ /shared/
 COPY products/ /products/
 
 # Assets dir for uploads (company logos etc)

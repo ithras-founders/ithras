@@ -9,12 +9,12 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-COPY core/backend/requirements.txt .
+COPY core/app/backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 RUN mkdir -p /app_assets/companies /app/uploads
 
-COPY core/backend/ .
+COPY core/app/backend/ .
 COPY products/ /products/
 COPY entrypoint.prod.sh /app/entrypoint.prod.sh
 RUN chmod +x /app/entrypoint.prod.sh

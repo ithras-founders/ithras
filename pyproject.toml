@@ -1,6 +1,6 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["core/backend", "."]
+pythonpath = ["core/app/backend", "."]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"

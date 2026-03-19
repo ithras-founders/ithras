@@ -1,1 +1,0 @@
-# Institution management backend

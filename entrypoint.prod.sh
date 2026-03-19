@@ -23,9 +23,10 @@ is_db_setup() {
 
 run_schema_sync() {
   cd /app
+  export PYTHONPATH="${PYTHONPATH:-}:/"
   for i in 1 2 3 4 5 6 7 8 9 10; do
     echo "Running schema sync (attempt $i/10)..."
-    if python -m app.modules.data_management.run_setup; then
+    if python -m core.setup.backend.run_setup; then
       echo "Schema sync complete"
       return 0
     fi
@@ -36,27 +37,13 @@ run_schema_sync() {
   return 1
 }
 
-verify_schema() {
-  cd /app
-  echo "Verifying Alembic schema state..."
-  python -m app.modules.shared.setup.verify_schema
-}
-
-run_startup_seeds() {
-  cd /app
-  echo "Running idempotent startup seeds..."
-  python -m app.modules.shared.setup.startup_seeds
-}
-
 if is_db_setup && [ -n "$DATABASE_URL" ]; then
-  echo "=== DB_SETUP=TRUE: Running holistic data management ==="
+  echo "=== DB_SETUP=TRUE: Running schema sync ==="
   if echo "$DATABASE_URL" | grep -q '/cloudsql/'; then
     echo "Waiting 15s for Cloud SQL sidecar to establish connection..."
     sleep 15
   fi
   run_schema_sync || exit 1
-  verify_schema || exit 1
-  run_startup_seeds || exit 1
 elif [ -n "$DATABASE_URL" ]; then
   echo "DB_SETUP not set; skipping schema sync and seeds."
 else
@@ -67,4 +54,4 @@ WORKERS=${UVICORN_WORKERS:-4}
 echo "=== Starting Uvicorn Server ==="
 echo "Listening on 0.0.0.0:$PORT with $WORKERS worker(s)"
 
-exec uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers $WORKERS
+exec uvicorn main:app --host 0.0.0.0 --port $PORT --workers $WORKERS

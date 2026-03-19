@@ -1,0 +1,3 @@
+Alembic migrations for Ithras.
+Run from core/: alembic upgrade head
+With -c flag: alembic -c /core/alembic.ini upgrade head

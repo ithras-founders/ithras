@@ -2,14 +2,11 @@
   "name": "ithras",
   "private": true,
   "workspaces": [
-    "core/frontend",
-    "products/*/frontend",
-    "products/*/*/frontend",
-    "products/*/core",
+    "core/app/frontend",
     "tests/e2e"
   ],
   "scripts": {
-    "test": "npm run test --workspace=ithras-core-frontend",
-    "lint": "npm run lint --workspace=ithras-core-frontend"
+    "test": "npm run test --workspace=ithras-frontend",
+    "lint": "npm run lint --workspace=ithras-frontend"
   }
 }
