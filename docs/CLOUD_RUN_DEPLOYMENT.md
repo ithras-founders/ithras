@@ -25,7 +25,7 @@ Both are deployed via `cloudbuild.yaml` at the repo root using Cloud Build.
 
 ## One-Time Infrastructure Setup
 
-Run `deploy/setup.sh` once to provision all GCP resources. If `PROJECT_ID` is not exported, the script will fall back to your active `gcloud` project configuration:
+Run `deploy/setup.sh` once to provision all GCP resources. If `PROJECT_ID` is not exported, the script will fall back to your active `gcloud` project configuration. When `REGION` or `CLOUD_SQL_INSTANCE` are not exported and the script is running interactively, it will ask you to confirm or override the defaults before provisioning:
 
 ```bash
 export PROJECT_ID=my-gcp-project  # optional if `gcloud config set project` is already set
@@ -37,7 +37,7 @@ bash deploy/setup.sh
 
 This creates:
 - Artifact Registry repository
-- Cloud SQL Postgres 15 instance (`ithras-db`)
+- Cloud SQL Postgres 15 instance (defaults to `ithras-db`, but the script now prompts so you can choose the correct name)
 - Database `placement_db` + user `ithras`
 - Service account `ithras-backend-sa` with `cloudsql.client` + `secretmanager.secretAccessor` roles
 - Cloud Build IAM bindings for both the legacy Cloud Build service account and the Compute Engine default service account (`cloudbuild.builds.builder`, `run.admin`, `iam.serviceAccountUser`, `artifactregistry.writer`)
