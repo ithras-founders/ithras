@@ -18,13 +18,23 @@ elif "@db:" in DATABASE_URL or "@db/" in DATABASE_URL:
         )
 SQLALCHEMY_DATABASE_URL = DATABASE_URL
 
+_connect_args: dict = {}
+if not (SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "host=/cloudsql/" in SQLALCHEMY_DATABASE_URL):
+    _connect_args["connect_timeout"] = 10
+
+# Cloud Run scales horizontally: each instance opens its own pool.
+# Keep pool small to avoid exhausting Cloud SQL's connection limit.
+# Default Cloud SQL Postgres limit is 100; at pool_size=5 you can run ~20 instances safely.
+_pool_size = 5 if settings.IS_CLOUD_RUN else 20
+_max_overflow = 2 if settings.IS_CLOUD_RUN else 10
+
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    pool_size=20,
-    max_overflow=10,
+    pool_size=_pool_size,
+    max_overflow=_max_overflow,
     pool_pre_ping=True,
-    pool_recycle=3600,
-    connect_args={"connect_timeout": 10},
+    pool_recycle=1800,
+    connect_args=_connect_args,
     echo=settings.SQL_ECHO,
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

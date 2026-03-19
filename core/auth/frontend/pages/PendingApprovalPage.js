@@ -23,7 +23,16 @@ const STEPS = [
   'Admin approval pending',
 ];
 
-const PendingApprovalPage = ({ onBack }) => {
+const XIcon = () => html`
+  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="15" y1="9" x2="9" y2="15"/>
+    <line x1="9" y1="9" x2="15" y2="15"/>
+  </svg>
+`;
+
+const PendingApprovalPage = ({ onBack, accountStatus = 'pending' }) => {
+  const isRejected = accountStatus === 'rejected';
   const handleBack = (e) => {
     e.preventDefault();
     if (onBack) {
@@ -66,15 +75,15 @@ const PendingApprovalPage = ({ onBack }) => {
             width: '80px',
             height: '80px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)',
+            background: isRejected ? 'linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%)' : 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 24px',
-            color: '#4F46E5',
+            color: isRejected ? '#EF4444' : '#4F46E5',
           }}
         >
-          <${ClockIcon} />
+          ${isRejected ? html`<${XIcon} />` : html`<${ClockIcon} />`}
         </div>
 
         <h1
@@ -86,7 +95,7 @@ const PendingApprovalPage = ({ onBack }) => {
             letterSpacing: '-0.02em',
           }}
         >
-          Your application is under review
+          ${isRejected ? 'Application not approved' : 'Your application is under review'}
         </h1>
         <p
           style=${{
@@ -96,81 +105,84 @@ const PendingApprovalPage = ({ onBack }) => {
             margin: '0 0 32px',
           }}
         >
-          Thanks for signing up for Ithras. An admin will review your account shortly.
-          You'll be able to sign in as soon as you're approved.
+          ${isRejected
+            ? 'Unfortunately your account application was not approved at this time. Please contact your institution or administrator for more information.'
+            : "Thanks for signing up for Ithras. An admin will review your account shortly. You'll be able to sign in as soon as you're approved."}
         </p>
 
-        <div
-          style=${{
-            background: '#F9FAFB',
-            borderRadius: '12px',
-            padding: '20px 24px',
-            marginBottom: '32px',
-            textAlign: 'left',
-          }}
-        >
-          ${STEPS.map((step, i) => {
-            const done = i < 2;
-            const active = i === 2;
-            return html`
-              <div
-                key=${step}
-                style=${{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '6px 0',
-                  borderBottom: i < STEPS.length - 1 ? '1px solid #F3F4F6' : 'none',
-                  marginBottom: i < STEPS.length - 1 ? '6px' : '0',
-                }}
-              >
+        ${!isRejected ? html`
+          <div
+            style=${{
+              background: '#F9FAFB',
+              borderRadius: '12px',
+              padding: '20px 24px',
+              marginBottom: '32px',
+              textAlign: 'left',
+            }}
+          >
+            ${STEPS.map((step, i) => {
+              const done = i < 2;
+              const active = i === 2;
+              return html`
                 <div
+                  key=${step}
                   style=${{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '50%',
-                    flexShrink: 0,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    background: done ? '#10B981' : active ? '#EEF2FF' : '#F3F4F6',
-                    color: done ? '#fff' : active ? '#4F46E5' : '#9CA3AF',
-                    border: active ? '2px solid #C7D2FE' : 'none',
-                    fontSize: '11px',
-                    fontWeight: 700,
+                    gap: '12px',
+                    padding: '6px 0',
+                    borderBottom: i < STEPS.length - 1 ? '1px solid #F3F4F6' : 'none',
+                    marginBottom: i < STEPS.length - 1 ? '6px' : '0',
                   }}
                 >
-                  ${done ? html`<${CheckIcon} />` : html`<span>${i + 1}</span>`}
-                </div>
-                <span
-                  style=${{
-                    fontSize: '13px',
-                    fontWeight: active ? 600 : done ? 500 : 400,
-                    color: done ? '#374151' : active ? '#4F46E5' : '#9CA3AF',
-                  }}
-                >
-                  ${step}
-                </span>
-                ${active ? html`
-                  <span
+                  <div
                     style=${{
-                      marginLeft: 'auto',
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: done ? '#10B981' : active ? '#EEF2FF' : '#F3F4F6',
+                      color: done ? '#fff' : active ? '#4F46E5' : '#9CA3AF',
+                      border: active ? '2px solid #C7D2FE' : 'none',
                       fontSize: '11px',
-                      fontWeight: 600,
-                      color: '#F59E0B',
-                      background: '#FFFBEB',
-                      border: '1px solid #FDE68A',
-                      borderRadius: '999px',
-                      padding: '2px 8px',
+                      fontWeight: 700,
                     }}
                   >
-                    Pending
+                    ${done ? html`<${CheckIcon} />` : html`<span>${i + 1}</span>`}
+                  </div>
+                  <span
+                    style=${{
+                      fontSize: '13px',
+                      fontWeight: active ? 600 : done ? 500 : 400,
+                      color: done ? '#374151' : active ? '#4F46E5' : '#9CA3AF',
+                    }}
+                  >
+                    ${step}
                   </span>
-                ` : null}
-              </div>
-            `;
-          })}
-        </div>
+                  ${active ? html`
+                    <span
+                      style=${{
+                        marginLeft: 'auto',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: '#F59E0B',
+                        background: '#FFFBEB',
+                        border: '1px solid #FDE68A',
+                        borderRadius: '999px',
+                        padding: '2px 8px',
+                      }}
+                    >
+                      Pending
+                    </span>
+                  ` : null}
+                </div>
+              `;
+            })}
+          </div>
+        ` : html`<div style=${{ marginBottom: '32px' }} />`}
 
         <a
           href="/"

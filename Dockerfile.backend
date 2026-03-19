@@ -21,6 +21,7 @@ COPY core/app/backend/ .
 COPY core/ /core/
 COPY shared/ /shared/
 COPY products/ /products/
+COPY admin/ /admin/
 
 # Assets dir for uploads (company logos etc)
 RUN mkdir -p /app_assets/companies /app/uploads

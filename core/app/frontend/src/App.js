@@ -124,7 +124,7 @@ const App = () => {
         window.history.replaceState(null, '', '/pending-approval');
         window.dispatchEvent(new CustomEvent('ithras:path-changed'));
       }
-      return html`<${PendingApprovalPage} onBack=${() => { handleLogout(); }} />`;
+      return html`<${PendingApprovalPage} accountStatus=${accountStatus} onBack=${() => { handleLogout(); }} />`;
     }
   }
 
