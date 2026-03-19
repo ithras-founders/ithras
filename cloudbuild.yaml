@@ -57,13 +57,10 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="$COMMIT_SHA"
-        if [ -z "$$TAG" ]; then
-          TAG="$BUILD_ID"
-        fi
+        TAG="${COMMIT_SHA:-$BUILD_ID}"
         docker build \
           --cache-from "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:latest" \
-          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$$TAG" \
+          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$TAG" \
           -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:latest" \
           -f Dockerfile.backend \
           .
@@ -77,13 +74,10 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="$COMMIT_SHA"
-        if [ -z "$$TAG" ]; then
-          TAG="$BUILD_ID"
-        fi
+        TAG="${COMMIT_SHA:-$BUILD_ID}"
         docker build \
           --cache-from "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:latest" \
-          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$$TAG" \
+          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$TAG" \
           -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:latest" \
           -f Dockerfile.frontend \
           .
@@ -115,13 +109,10 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="$COMMIT_SHA"
-        if [ -z "$$TAG" ]; then
-          TAG="$BUILD_ID"
-        fi
+        TAG="${COMMIT_SHA:-$BUILD_ID}"
         ARGS=(
           run deploy "${_BACKEND_SERVICE}"
-          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$$TAG"
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$TAG"
           --region "${_REGION}"
           --platform managed
           --allow-unauthenticated
@@ -145,10 +136,7 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="$COMMIT_SHA"
-        if [ -z "$$TAG" ]; then
-          TAG="$BUILD_ID"
-        fi
+        TAG="${COMMIT_SHA:-$BUILD_ID}"
         # Use provided _BACKEND_URL or look it up from the deployed backend service
         if [ -n "${_BACKEND_URL}" ]; then
           BACKEND_URL="${_BACKEND_URL}"
@@ -161,7 +149,7 @@ steps:
 
         ARGS=(
           run deploy "${_FRONTEND_SERVICE}"
-          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$$TAG"
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$TAG"
           --region "${_REGION}"
           --platform managed
           --allow-unauthenticated
