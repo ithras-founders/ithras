@@ -395,6 +395,7 @@ def _post_row_to_dict(row, author_name=None):
         "view_count": row.view_count or 0,
         "moderation_status": row.moderation_status or "active",
         "is_pinned": is_pinned,
+        "is_saved": False,
         "pinned_at": (row.pinned_at.isoformat() + "Z") if getattr(row, "pinned_at", None) else None,
         "created_at": (row.created_at.isoformat() + "Z") if row.created_at else None,
         "updated_at": (row.updated_at.isoformat() + "Z") if row.updated_at else None,
@@ -424,6 +425,14 @@ def _batch_attach_reactions(db, items, uid=None):
         for row in r.fetchall():
             if row.post_id in id_map and row.type in ALLOWED_REACTION_TYPES:
                 id_map[row.post_id]["user_reactions"].append(row.type)
+
+        r = db.execute(
+            text(f"SELECT post_id FROM post_saves WHERE post_id IN ({in_clause}) AND user_id = :uid"),
+            {"uid": uid},
+        )
+        for row in r.fetchall():
+            if row.post_id in id_map:
+                id_map[row.post_id]["is_saved"] = True
 
     return items
 
