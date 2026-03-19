@@ -11,6 +11,7 @@ channel = "stable-25_05"
 JWT_SECRET = "ithras-dev-secret-change-in-production"
 UPLOAD_DIR = "/home/runner/workspace/uploads"
 PORT = "8000"
+UV_PROJECT_ENVIRONMENT = ".venv"
 
 [[ports]]
 localPort = 5000
