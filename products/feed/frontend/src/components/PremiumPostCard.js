@@ -373,6 +373,12 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
               <span>${post.view_count}</span>
             </div>
           ` : null}
+          ${post.save_count > 0 ? html`
+            <div className="flex items-center gap-1 text-xs" style=${{ color: 'var(--app-text-muted)' }}>
+              <${BookmarkIcon} filled=${false} />
+              <span>${post.save_count}</span>
+            </div>
+          ` : null}
         </div>
       </div>
 
