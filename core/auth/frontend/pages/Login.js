@@ -7,13 +7,55 @@ import { Input } from '/shared/primitives/index.js';
 const html = htm.bind(React.createElement);
 
 const BLUE_PANEL = '#0C6DFD';
-const ACCENT_GOLD = '#FFD700';
+
+const CommunityIcon = () => html`
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    <path d="M21 21v-2a4 4 0 0 0-3-3.85"/>
+  </svg>
+`;
+
+const CvIcon = () => html`
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/>
+    <circle cx="9" cy="9" r="2"/>
+    <path d="M15 8h2M15 12h2M7 16h10"/>
+  </svg>
+`;
+
+const PrepIcon = () => html`
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M12 6v6l4 2"/>
+  </svg>
+`;
+
+const FEATURES = [
+  {
+    Icon: CommunityIcon,
+    label: 'Community',
+    sub: 'Connect with peers and professionals',
+  },
+  {
+    Icon: CvIcon,
+    label: 'Digital CV',
+    sub: 'Your living career profile',
+  },
+  {
+    Icon: PrepIcon,
+    label: 'Preparation',
+    sub: 'Practice, prep, and placement-ready',
+  },
+];
 
 const Login = ({ onLogin, onShowRegister }) => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [alphaHovered, setAlphaHovered] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,20 +109,96 @@ const Login = ({ onLogin, onShowRegister }) => {
       >
         About Us
       </a>
+
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center p-16" style=${{ background: BLUE_PANEL }}>
         <div className="max-w-md text-center">
-          <div className="mb-12">
+
+          <div className="mb-10 flex flex-col items-center gap-3">
             <${IthrasLogo} size="lg" theme="light" />
+            <div
+              className="relative"
+              onMouseEnter=${() => setAlphaHovered(true)}
+              onMouseLeave=${() => setAlphaHovered(false)}
+            >
+              <span
+                style=${{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '2px 9px',
+                  borderRadius: '999px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '0.06em',
+                  background: 'rgba(255,255,255,0.15)',
+                  color: 'rgba(255,255,255,0.85)',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  cursor: 'default',
+                  userSelect: 'none',
+                }}
+              >
+                α alpha
+              </span>
+              <div
+                style=${{
+                  position: 'absolute',
+                  bottom: 'calc(100% + 8px)',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(0,0,0,0.82)',
+                  color: '#fff',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  whiteSpace: 'nowrap',
+                  pointerEvents: 'none',
+                  opacity: alphaHovered ? 1 : 0,
+                  transition: 'opacity 160ms ease',
+                  zIndex: 20,
+                }}
+              >
+                Early access · For internal use only
+                <div style=${{
+                  position: 'absolute',
+                  top: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 0,
+                  height: 0,
+                  borderLeft: '5px solid transparent',
+                  borderRight: '5px solid transparent',
+                  borderTop: '5px solid rgba(0,0,0,0.82)',
+                }} />
+              </div>
+            </div>
           </div>
-          <p
-            className="text-[10px] md:text-xs font-semibold tracking-[0.12em] uppercase leading-relaxed mb-6"
-            style=${{ color: ACCENT_GOLD }}
-          >
-            Intelligent Talent Hiring & Recruitment Automation System
-          </p>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-[1.15]">
+
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-[1.15] mb-10">
             Infrastructure for trusted professional networks
           </h1>
+
+          <div className="flex items-stretch gap-px rounded-2xl overflow-hidden" style=${{ background: 'rgba(255,255,255,0.08)' }}>
+            ${FEATURES.map(({ Icon, label, sub }, i) => html`
+              <div
+                key=${label}
+                className="flex-1 flex flex-col items-center gap-2 px-4 py-5"
+                style=${{
+                  borderRight: i < FEATURES.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                }}
+              >
+                <span style=${{ color: 'rgba(255,255,255,0.75)' }}>
+                  <${Icon} />
+                </span>
+                <span style=${{ color: '#fff', fontSize: '13px', fontWeight: 600, letterSpacing: '-0.01em' }}>
+                  ${label}
+                </span>
+                <span style=${{ color: 'rgba(255,255,255,0.55)', fontSize: '11px', lineHeight: '1.4', textAlign: 'center' }}>
+                  ${sub}
+                </span>
+              </div>
+            `)}
+          </div>
+
         </div>
       </div>
 
