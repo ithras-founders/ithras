@@ -44,12 +44,12 @@ const strHue = (str) => {
 
 const communityColors = (name) => {
   const hue = strHue(name || 'c');
-  return { bg: `hsl(${hue},55%,91%)`, color: `hsl(${hue},55%,36%)` };
+  return { bg: `hsl(${hue},28%,92%)`, color: `hsl(${hue},28%,38%)` };
 };
 
 const authorColors = (name) => {
   const hue = (strHue(name || 'a') + 137) % 360;
-  return { bg: `hsl(${hue},52%,90%)`, color: `hsl(${hue},52%,35%)` };
+  return { bg: `hsl(${hue},25%,91%)`, color: `hsl(${hue},25%,37%)` };
 };
 
 const initials = (name) =>
@@ -57,13 +57,12 @@ const initials = (name) =>
 
 const TYPE_COLORS = {
   question:   { bg: '#fef3c7', color: '#92400e' },
-  discussion: { bg: '#ede9fe', color: '#5b21b6' },
   update:     { bg: '#dcfce7', color: '#166534' },
   resource:   { bg: '#dbeafe', color: '#1e40af' },
   event:      { bg: '#fce7f3', color: '#9d174d' },
 };
 
-const getTypeStyle = (t) => TYPE_COLORS[t] || { bg: '#f1f5f9', color: '#475569' };
+const getTypeStyle = (t) => TYPE_COLORS[t] || { bg: '#f1f5f9', color: '#64748b' };
 
 const BookmarkIcon = ({ filled }) => html`
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
