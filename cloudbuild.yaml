@@ -52,33 +52,35 @@ steps:
   - id: build-backend
     name: 'gcr.io/cloud-builders/docker'
     waitFor: [validate]
+    entrypoint: bash
     args:
-      - 'build'
-      - '--cache-from'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:latest'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$COMMIT_SHA'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:latest'
-      - '-f'
-      - 'Dockerfile.backend'
-      - '.'
+      - '-c'
+      - |
+        set -e
+        TAG="${COMMIT_SHA:-$BUILD_ID}"
+        docker build \
+          --cache-from "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:latest" \
+          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$TAG" \
+          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:latest" \
+          -f Dockerfile.backend \
+          .
 
   # ── Build frontend image ──────────────────────────────────────────────────────
   - id: build-frontend
     name: 'gcr.io/cloud-builders/docker'
     waitFor: [validate]
+    entrypoint: bash
     args:
-      - 'build'
-      - '--cache-from'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:latest'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$COMMIT_SHA'
-      - '-t'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:latest'
-      - '-f'
-      - 'Dockerfile.frontend'
-      - '.'
+      - '-c'
+      - |
+        set -e
+        TAG="${COMMIT_SHA:-$BUILD_ID}"
+        docker build \
+          --cache-from "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:latest" \
+          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$TAG" \
+          -t "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:latest" \
+          -f Dockerfile.frontend \
+          .
 
   # ── Push backend image ────────────────────────────────────────────────────────
   - id: push-backend
@@ -107,9 +109,10 @@ steps:
       - '-c'
       - |
         set -e
+        TAG="${COMMIT_SHA:-$BUILD_ID}"
         ARGS=(
           run deploy "${_BACKEND_SERVICE}"
-          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$COMMIT_SHA"
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$TAG"
           --region "${_REGION}"
           --platform managed
           --allow-unauthenticated
@@ -133,6 +136,7 @@ steps:
       - '-c'
       - |
         set -e
+        TAG="${COMMIT_SHA:-$BUILD_ID}"
         # Use provided _BACKEND_URL or look it up from the deployed backend service
         if [ -n "${_BACKEND_URL}" ]; then
           BACKEND_URL="${_BACKEND_URL}"
@@ -145,7 +149,7 @@ steps:
 
         ARGS=(
           run deploy "${_FRONTEND_SERVICE}"
-          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$COMMIT_SHA"
+          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$TAG"
           --region "${_REGION}"
           --platform managed
           --allow-unauthenticated
@@ -158,9 +162,7 @@ steps:
         gcloud "${ARGS[@]}"
 
 images:
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$COMMIT_SHA'
   - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:latest'
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$COMMIT_SHA'
   - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:latest'
 
 options:
