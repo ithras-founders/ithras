@@ -75,10 +75,16 @@ const AdminLayout = ({ children, activeTab, user, onLogout }) => {
     };
   }, []);
 
-  useEffect(() => {
+  const refreshPendingCount = () => {
     apiRequest('/v1/admin/users', { quiet: true })
       .then((res) => setPendingCount(res?.pending_count || 0))
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshPendingCount();
+    window.addEventListener('ithras:admin:pending-count-changed', refreshPendingCount);
+    return () => window.removeEventListener('ithras:admin:pending-count-changed', refreshPendingCount);
   }, []);
 
   const usersNavWithBadge = pendingCount > 0

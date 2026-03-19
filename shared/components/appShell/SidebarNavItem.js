@@ -6,6 +6,29 @@ import htm from 'htm';
 
 const html = htm.bind(React.createElement);
 
+const BADGE_STYLE = {
+  background: '#F59E0B',
+  color: '#fff',
+  borderRadius: '999px',
+  fontSize: '10px',
+  fontWeight: 700,
+  padding: '1px 6px',
+  minWidth: '18px',
+  textAlign: 'center',
+  lineHeight: '16px',
+  flexShrink: 0,
+};
+
+const DOT_STYLE = {
+  position: 'absolute',
+  top: '6px',
+  right: '6px',
+  background: '#F59E0B',
+  borderRadius: '50%',
+  width: '8px',
+  height: '8px',
+};
+
 /**
  * @param {{ icon: React.ComponentType, label: string, href: string, active?: boolean, collapsed?: boolean, badge?: number }}
  */
@@ -15,6 +38,17 @@ const SidebarNavItem = ({ icon: Icon, label, href, active = false, collapsed = f
     window.history.pushState(null, '', href);
     window.dispatchEvent(new CustomEvent('ithras:path-changed'));
   };
+
+  const labelArea = collapsed
+    ? null
+    : React.createElement(
+        'span',
+        { className: 'flex items-center gap-2 flex-1 min-w-0' },
+        React.createElement('span', { className: 'truncate flex-1' }, label),
+        badge > 0 ? React.createElement('span', { style: BADGE_STYLE }, badge) : null
+      );
+
+  const dot = (collapsed && badge > 0) ? React.createElement('span', { style: DOT_STYLE }) : null;
 
   return html`
     <a
@@ -26,37 +60,9 @@ const SidebarNavItem = ({ icon: Icon, label, href, active = false, collapsed = f
       } ${collapsed ? 'justify-center px-2' : ''}`}
       aria-current=${active ? 'page' : undefined}
     >
-      <span className="flex-shrink-0 flex items-center justify-center">${html`<${Icon} size=${20} strokeWidth=${2} />`}</span>
-      ${!collapsed ? html`
-        <span className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="truncate flex-1">${label}</span>
-          ${badge > 0 ? html`
-            <span style=${{
-              background: '#F59E0B',
-              color: '#fff',
-              borderRadius: '999px',
-              fontSize: '10px',
-              fontWeight: 700,
-              padding: '1px 6px',
-              minWidth: '18px',
-              textAlign: 'center',
-              lineHeight: '16px',
-              flexShrink: 0,
-            }}>${badge}</span>
-          ` : null}
-        </span>
-      ` : null}
-      ${collapsed && badge > 0 ? html`
-        <span style=${{
-          position: 'absolute',
-          top: '6px',
-          right: '6px',
-          background: '#F59E0B',
-          borderRadius: '50%',
-          width: '8px',
-          height: '8px',
-        }} />
-      ` : null}
+      ${html`<span className="flex-shrink-0 flex items-center justify-center"><${Icon} size=${20} strokeWidth=${2} /></span>`}
+      ${labelArea}
+      ${dot}
     </a>
   `;
 };

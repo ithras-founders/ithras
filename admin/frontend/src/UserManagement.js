@@ -64,10 +64,14 @@ const UserManagement = () => {
 
   useEffect(load, []);
 
+  const notifyPendingCountChanged = () => {
+    window.dispatchEvent(new CustomEvent('ithras:admin:pending-count-changed'));
+  };
+
   const approve = (u) => {
     setActionLoading((prev) => ({ ...prev, [u.id]: 'approving' }));
     apiRequest(`/v1/admin/users/${u.id}/approve`, { method: 'PATCH' })
-      .then(() => load())
+      .then(() => { load(); notifyPendingCountChanged(); })
       .catch((e) => setError(e.message || 'Approve failed'))
       .finally(() => setActionLoading((prev) => { const n = { ...prev }; delete n[u.id]; return n; }));
   };
@@ -75,7 +79,7 @@ const UserManagement = () => {
   const reject = (u) => {
     setActionLoading((prev) => ({ ...prev, [u.id]: 'rejecting' }));
     apiRequest(`/v1/admin/users/${u.id}/reject`, { method: 'PATCH' })
-      .then(() => load())
+      .then(() => { load(); notifyPendingCountChanged(); })
       .catch((e) => setError(e.message || 'Reject failed'))
       .finally(() => setActionLoading((prev) => { const n = { ...prev }; delete n[u.id]; return n; }));
   };

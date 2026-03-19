@@ -86,11 +86,10 @@ const App = () => {
 
   if (path === '/about') return html`<${AboutUsPage} user=${user} onLogout=${handleLogout} />`;
 
-  if (path === '/pending-approval') {
-    return html`<${PendingApprovalPage} onBack=${() => { window.location.href = '/'; }} />`;
-  }
-
   if (!user) {
+    if (path === '/pending-approval') {
+      return html`<${PendingApprovalPage} onBack=${() => { window.location.href = '/'; }} />`;
+    }
     const showRegister = path === '/register' || path.startsWith('/register');
     if (showRegister) {
       return html`
