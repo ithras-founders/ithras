@@ -25,7 +25,7 @@ Both are deployed via `cloudbuild.yaml` at the repo root using Cloud Build.
 
 ## One-Time Infrastructure Setup
 
-Run `deploy/setup.sh` once to provision all GCP resources. If `PROJECT_ID` is not exported, the script will fall back to your active `gcloud` project configuration:
+Run `deploy/setup.sh` once to provision all GCP resources. If `PROJECT_ID` is not exported, the script will fall back to your active `gcloud` project configuration. When `REGION` or `CLOUD_SQL_INSTANCE` are not exported and the script is running interactively, it will ask you to confirm or override the defaults before provisioning:
 
 ```bash
 export PROJECT_ID=my-gcp-project  # optional if `gcloud config set project` is already set
@@ -37,7 +37,7 @@ bash deploy/setup.sh
 
 This creates:
 - Artifact Registry repository
-- Cloud SQL Postgres 15 instance (`ithras-db`)
+- Cloud SQL Postgres 15 instance (defaults to `ithras-db`, but the script now prompts so you can choose the correct name)
 - Database `placement_db` + user `ithras`
 - Service account `ithras-backend-sa` with `cloudsql.client` + `secretmanager.secretAccessor` roles
 - Cloud Build IAM bindings for both the legacy Cloud Build service account and the Compute Engine default service account (`cloudbuild.builds.builder`, `run.admin`, `iam.serviceAccountUser`, `artifactregistry.writer`)
@@ -97,14 +97,14 @@ For production, consider switching to Secret Manager references (`--set-secrets`
 gcloud builds submit . \
   --config=cloudbuild.yaml \
   --project=my-gcp-project \
-  --substitutions=\
-_CLOUD_SQL_INSTANCE=my-project:europe-west1:ithras-db,\
+  --substitutions=_CLOUD_SQL_INSTANCE=my-project:europe-west1:ithras-db,\
 _DATABASE_URL="postgresql://ithras:PASSWORD@/placement_db?host=/cloudsql/my-project:europe-west1:ithras-db",\
 _JWT_SECRET=$(openssl rand -hex 32),\
 _GEMINI_API_KEY=AIza...,\
-_SERVICE_ACCOUNT=ithras-backend-sa@my-project.iam.gserviceaccount.com,\
-_DB_SETUP_FIRST_RUN=TRUE
+_SERVICE_ACCOUNT=ithras-backend-sa@my-project.iam.gserviceaccount.com
 ```
+
+For manual `gcloud builds submit` runs, `cloudbuild.yaml` now falls back to the Cloud Build `BUILD_ID` when `COMMIT_SHA` is unavailable, so you do not need to pass a custom image-tag substitution just to avoid an empty tag.
 
 > **Important:** In newer Google Cloud projects, manual `gcloud builds submit` runs often execute as the Compute Engine default service account (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`) instead of the legacy Cloud Build account. If you see `storage.objects.get` or similar Cloud Storage permission errors during source upload/build startup, rerun `deploy/setup.sh` or grant the same Cloud Build IAM roles to whichever account `gcloud builds get-default-service-account` returns.
 
