@@ -9,6 +9,10 @@ set -e
 
 export PORT=${PORT:-8080}
 
+# Guarantee '/' is on PYTHONPATH so shared/, core/, products/, admin/ are
+# importable regardless of which directory the interpreter starts from.
+export PYTHONPATH="/:${PYTHONPATH:-}"
+
 echo "=== Ithras Backend Startup ==="
 echo "PORT: $PORT"
 

@@ -30,6 +30,11 @@ RUN mkdir -p /app_assets/companies /app/uploads
 COPY entrypoint.prod.sh /app/entrypoint.prod.sh
 RUN chmod +x /app/entrypoint.prod.sh
 
+# Ensure /shared, /core, /products, /admin are importable as Python packages.
+# main.py also adds '/' to sys.path at runtime, but PYTHONPATH is more reliable
+# because it is set before the interpreter loads any module.
+ENV PYTHONPATH=/
+
 # Cloud Run uses PORT env (default 8080)
 ENV PORT=8080
 EXPOSE ${PORT}
