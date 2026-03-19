@@ -104,7 +104,7 @@ _GEMINI_API_KEY=AIza...,\
 _SERVICE_ACCOUNT=ithras-backend-sa@my-project.iam.gserviceaccount.com
 ```
 
-For manual `gcloud builds submit` runs, `cloudbuild.yaml` now falls back to the Cloud Build `BUILD_ID` when `COMMIT_SHA` is unavailable, so you do not need to pass a custom image-tag substitution just to avoid an empty tag.
+For manual `gcloud builds submit` runs, `cloudbuild.yaml` now enables Cloud Build's `automapSubstitutions`, which makes built-in substitutions like `BUILD_ID` available inside the shell steps. That allows the config to fall back to `BUILD_ID` when `COMMIT_SHA` is unavailable, so you do not need to pass a custom image-tag substitution just to avoid an empty tag.
 
 > **Important:** In newer Google Cloud projects, manual `gcloud builds submit` runs often execute as the Compute Engine default service account (`PROJECT_NUMBER-compute@developer.gserviceaccount.com`) instead of the legacy Cloud Build account. If you see `storage.objects.get` or similar Cloud Storage permission errors during source upload/build startup, rerun `deploy/setup.sh` or grant the same Cloud Build IAM roles to whichever account `gcloud builds get-default-service-account` returns.
 
