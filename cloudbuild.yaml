@@ -21,7 +21,7 @@
 #   _SERVICE_ACCOUNT   Cloud Run service account email     (default: empty — uses Compute default)
 
 substitutions:
-  _REGION: europe-west1
+  _REGION: asia-south1
   _BACKEND_SERVICE: ithras-backend
   _FRONTEND_SERVICE: ithras-frontend
   _REGISTRY: cloud-run-source-deploy/ithras
@@ -57,7 +57,10 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="$${COMMIT_SHA:-$${BUILD_ID}}"
+        # COMMIT_SHA is often "" (not unset) for `gcloud builds submit`; empty must fall back to BUILD_ID
+        TAG="$${COMMIT_SHA}"
+        [ -z "$$TAG" ] && TAG="$${BUILD_ID}"
+        [ -z "$$TAG" ] && TAG="latest"
         IMAGE_BASE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}"
         CACHE_ARGS=()
         if docker pull "$${IMAGE_BASE}:latest"; then
@@ -81,7 +84,9 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="$${COMMIT_SHA:-$${BUILD_ID}}"
+        TAG="$${COMMIT_SHA}"
+        [ -z "$$TAG" ] && TAG="$${BUILD_ID}"
+        [ -z "$$TAG" ] && TAG="latest"
         IMAGE_BASE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}"
         CACHE_ARGS=()
         if docker pull "$${IMAGE_BASE}:latest"; then
@@ -123,7 +128,9 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="$${COMMIT_SHA:-$${BUILD_ID}}"
+        TAG="$${COMMIT_SHA}"
+        [ -z "$$TAG" ] && TAG="$${BUILD_ID}"
+        [ -z "$$TAG" ] && TAG="latest"
         ARGS=(
           run deploy "${_BACKEND_SERVICE}"
           --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$$TAG"
@@ -150,7 +157,9 @@ steps:
       - '-c'
       - |
         set -e
-        TAG="$${COMMIT_SHA:-$${BUILD_ID}}"
+        TAG="$${COMMIT_SHA}"
+        [ -z "$$TAG" ] && TAG="$${BUILD_ID}"
+        [ -z "$$TAG" ] && TAG="latest"
         # Use provided _BACKEND_URL or look it up from the deployed backend service
         if [ -n "${_BACKEND_URL}" ]; then
           BACKEND_URL="${_BACKEND_URL}"
