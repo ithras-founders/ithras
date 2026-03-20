@@ -19,6 +19,7 @@
 #   _MIN_INSTANCES     Min instances (prevents cold starts) (default: 0)
 #   _MAX_INSTANCES     Max instances                        (default: 10)
 #   _SERVICE_ACCOUNT   Cloud Run service account email     (default: empty — uses Compute default)
+#   _DB_SETUP          Run Alembic/seeds on startup         (default: TRUE; set FALSE after DB is migrated to speed cold starts)
 
 substitutions:
   _REGION: asia-south1
@@ -31,6 +32,7 @@ substitutions:
   _MIN_INSTANCES: '0'
   _MAX_INSTANCES: '10'
   _SERVICE_ACCOUNT: ''
+  _DB_SETUP: 'TRUE'
 
 steps:
 
@@ -133,9 +135,20 @@ steps:
         TAG="$${COMMIT_SHA}"
         [ -z "$$TAG" ] && TAG="$${BUILD_ID}"
         [ -z "$$TAG" ] && TAG="latest"
+        BACK_BASE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}"
+        BACK_DIGEST=$$(gcloud artifacts docker images describe "$${BACK_BASE}:$$TAG" \
+          --format='value(image_summary.digest)')
+        [ -n "$$BACK_DIGEST" ] || { echo "ERROR: Could not resolve backend image digest for $${BACK_BASE}:$$TAG"; exit 1; }
+        BACK_IMAGE="$${BACK_BASE}@$$BACK_DIGEST"
+        case "$$BACK_IMAGE" in */"${_BACKEND_SERVICE}"@*) ;; *)
+          echo "ERROR: Backend deploy image path must contain /${_BACKEND_SERVICE}@ (got: $$BACK_IMAGE)"
+          exit 1
+          ;;
+        esac
+        echo "Deploying ${_BACKEND_SERVICE} with digest-pinned image: $$BACK_IMAGE"
         ARGS=(
           run deploy "${_BACKEND_SERVICE}"
-          --image "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_BACKEND_SERVICE}:$$TAG"
+          --image "$$BACK_IMAGE"
           --region "${_REGION}"
           --platform managed
           --allow-unauthenticated
@@ -146,7 +159,9 @@ steps:
           --cpu 1
           --memory 1Gi
           --cpu-boost
-          --set-env-vars "DATABASE_URL=${_DATABASE_URL},JWT_SECRET=${_JWT_SECRET},GEMINI_API_KEY=${_GEMINI_API_KEY},REDIS_URL=${_REDIS_URL},REQUIRE_DATABASE=true,DB_SETUP=TRUE,DEMO_PASSWORD=${_DEMO_PASSWORD},LOG_FORMAT=json,UPLOAD_DIR=/app/uploads"
+          --no-cpu-throttling
+          --startup-probe=initialDelaySeconds=10,timeoutSeconds=5,periodSeconds=10,failureThreshold=24,tcpSocket.port=8080
+          --set-env-vars "DATABASE_URL=${_DATABASE_URL},JWT_SECRET=${_JWT_SECRET},GEMINI_API_KEY=${_GEMINI_API_KEY},REDIS_URL=${_REDIS_URL},REQUIRE_DATABASE=true,DB_SETUP=${_DB_SETUP},DEMO_PASSWORD=${_DEMO_PASSWORD},LOG_FORMAT=json,UPLOAD_DIR=/app/uploads"
         )
         if [ -n "${_SERVICE_ACCOUNT}" ]; then
           ARGS+=(--service-account "${_SERVICE_ACCOUNT}")
@@ -169,14 +184,28 @@ steps:
         if [ -n "${_BACKEND_URL}" ]; then
           BACKEND_URL="${_BACKEND_URL}"
         else
-          BACKEND_URL=$(gcloud run services describe "${_BACKEND_SERVICE}" \
+          BACKEND_URL=$$(gcloud run services describe "${_BACKEND_SERVICE}" \
             --region "${_REGION}" \
             --format "value(status.url)")
           echo "Auto-detected backend URL: $$BACKEND_URL"
         fi
 
-        FRONT_IMAGE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}:$$TAG"
-        echo "Deploying ${_FRONTEND_SERVICE} with image: $$FRONT_IMAGE"
+        FRONT_BASE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REGISTRY}/${_FRONTEND_SERVICE}"
+        FRONT_DIGEST=$$(gcloud artifacts docker images describe "$${FRONT_BASE}:$$TAG" \
+          --format='value(image_summary.digest)')
+        [ -n "$$FRONT_DIGEST" ] || { echo "ERROR: Could not resolve frontend image digest for $${FRONT_BASE}:$$TAG"; exit 1; }
+        FRONT_IMAGE="$${FRONT_BASE}@$$FRONT_DIGEST"
+        case "$$FRONT_IMAGE" in */"${_FRONTEND_SERVICE}"@*) ;; *)
+          echo "ERROR: Frontend deploy image path must contain /${_FRONTEND_SERVICE}@ (got: $$FRONT_IMAGE)"
+          exit 1
+          ;;
+        esac
+        case "$$FRONT_IMAGE" in */"${_BACKEND_SERVICE}"@*)
+          echo "ERROR: Refusing to deploy ${_FRONTEND_SERVICE} with ${_BACKEND_SERVICE} image path (got: $$FRONT_IMAGE)"
+          exit 1
+          ;;
+        esac
+        echo "Deploying ${_FRONTEND_SERVICE} with digest-pinned image: $$FRONT_IMAGE"
 
         ARGS=(
           run deploy "${_FRONTEND_SERVICE}"
@@ -197,6 +226,9 @@ steps:
 # if your trigger also uses "Deploy to Cloud Run" and picks the *first* image only, it
 # can deploy ithras-backend's image to ithras-frontend (Uvicorn + ModuleNotFoundError).
 # Deployments are handled entirely by the deploy-backend / deploy-frontend steps above.
+# Those steps pin images by digest (@sha256:...) and assert the frontend image path is not
+# the backend repository. Disable any second "Deploy to Cloud Run" on the same trigger —
+# it can still overwrite the frontend after this pipeline with the wrong image.
 
 options:
   logging: CLOUD_LOGGING_ONLY
