@@ -111,33 +111,30 @@ const ModeSelector = ({ collapsed = false, sidebarWidth = 280 }) => {
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             ${MODES.map((mode) => {
               const isActive = (mode.id === 'admin' && isAdminMode) || (mode.id === 'general' && !isAdminMode);
-              return React.createElement(
-                React.Fragment,
-                { key: mode.id },
-                html`
-                  <button
-                    onClick=${() => selectMode(mode)}
-                    className="w-full flex items-start gap-3 p-4 rounded-xl border text-left transition-all hover:bg-[var(--app-surface-hover)]"
-                    style=${{
-                      borderColor: isActive ? 'var(--app-accent)' : 'var(--app-border-soft)',
-                      background: isActive ? 'var(--app-accent-soft)' : 'transparent',
-                    }}
-                    role="option"
-                    aria-selected=${isActive}
+              return html`
+                <button
+                  key=${mode.id}
+                  onClick=${() => selectMode(mode)}
+                  className="w-full flex items-start gap-3 p-4 rounded-xl border text-left transition-all hover:bg-[var(--app-surface-hover)]"
+                  style=${{
+                    borderColor: isActive ? 'var(--app-accent)' : 'var(--app-border-soft)',
+                    background: isActive ? 'var(--app-accent-soft)' : 'transparent',
+                  }}
+                  role="option"
+                  aria-selected=${isActive}
+                >
+                  <span
+                    className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg"
+                    style=${{ background: isActive ? 'var(--app-accent)' : 'var(--app-surface)', color: isActive ? 'white' : 'var(--app-text-secondary)' }}
                   >
-                    <span
-                      className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg"
-                      style=${{ background: isActive ? 'var(--app-accent)' : 'var(--app-surface)', color: isActive ? 'white' : 'var(--app-text-secondary)' }}
-                    >
-                      <${mode.icon} size=${22} strokeWidth=${2} />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold" style=${{ color: 'var(--app-text-primary)' }}>${mode.label}</p>
-                      <p className="text-xs mt-1" style=${{ color: 'var(--app-text-muted)' }}>${mode.description}</p>
-                    </div>
-                  </button>
-                `
-              );
+                    <${mode.icon} size=${22} strokeWidth=${2} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style=${{ color: 'var(--app-text-primary)' }}>${mode.label}</p>
+                    <p className="text-xs mt-1" style=${{ color: 'var(--app-text-muted)' }}>${mode.description}</p>
+                  </div>
+                </button>
+              `;
             })}
           </div>
         </div>
