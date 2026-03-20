@@ -122,8 +122,12 @@ def register(req: RegisterRequest, db=Depends(get_db)):
     summary = (req.summary or "").strip() or None
     r = db.execute(
         text("""
-            INSERT INTO users (username, email, password_hash, full_name, date_of_birth, user_type, headline, summary)
-            VALUES (:username, :email, :pw_hash, :full_name, :date_of_birth, 'professional', :headline, :summary)
+            INSERT INTO users (
+                username, email, password_hash, full_name, date_of_birth, user_type, headline, summary, account_status
+            )
+            VALUES (
+                :username, :email, :pw_hash, :full_name, :date_of_birth, 'professional', :headline, :summary, 'pending'
+            )
             RETURNING user_numerical, username, email, full_name, date_of_birth
         """),
         {
@@ -198,12 +202,17 @@ def login(req: LoginRequest, db=Depends(get_db)):
         )
 
     account_status = getattr(row, "account_status", "approved")
-    if account_status == "pending":
+    email_lower = (getattr(row, "email", None) or "").lower()
+    # Founder / admin bootstrap account must never be blocked by the professional approval flow.
+    # (Seed used to omit account_status; DB default after migration 017 is 'pending' → 403 on login.)
+    is_founder_account = email_lower == "founders@ithras.com"
+    is_admin_user = getattr(row, "user_type", None) == "admin"
+    if account_status == "pending" and not (is_founder_account or is_admin_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account is awaiting admin approval. You will be able to sign in once approved.",
         )
-    if account_status == "rejected":
+    if account_status == "rejected" and not (is_founder_account or is_admin_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account application was not approved. Please contact support for more information.",
