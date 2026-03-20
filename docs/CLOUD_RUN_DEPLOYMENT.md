@@ -82,7 +82,7 @@ For production, consider switching to Secret Manager references (`--set-secrets`
 | `REDIS_URL` | No | Redis connection string (sessions / cache) |
 | `DEMO_PASSWORD` | No | Password for seeded demo accounts |
 | `LOG_FORMAT` | No | `json` (recommended on Cloud Run) or `text` |
-| `DB_SETUP` | No | Set `TRUE` to run Alembic migrations on startup |
+| `DB_SETUP` | No | Set `TRUE` to run Alembic migrations on startup (Cloud Build substitution `_DB_SETUP`, default `TRUE`) |
 | `REQUIRE_DATABASE` | No | Set `true` to fail hard if DB is unreachable |
 | `UPLOAD_DIR` | No | Path for uploaded files (default `/app/uploads`) |
 | `GEMINI_MODEL` | No | Model name (default `gemini-2.0-flash`) |
@@ -110,22 +110,137 @@ For manual `gcloud builds submit` runs, `cloudbuild.yaml` now enables Cloud Buil
 
 ### Option B — Cloud Build trigger (recommended for CI/CD)
 
-1. Go to Cloud Build → Triggers → Create Trigger
-2. Connect your repository (GitHub / GitLab)
-3. Set **configuration**: Cloud Build configuration file (`cloudbuild.yaml`)
-4. Add **substitution variables** from `deploy/env.example`
-5. Push to your main branch to trigger a deployment
+Use **one** trigger that runs the **root** [`cloudbuild.yaml`](../cloudbuild.yaml) and passes the **same substitutions** you use for a successful `gcloud builds submit`. Nothing else should deploy to Cloud Run for this app.
+
+#### 1. Connect GitHub to Google Cloud
+
+1. In Google Cloud Console: **Cloud Build** → **Triggers** → **Connect repository** (or **Repositories** / **2nd gen** / **Developer Connect**, depending on console version).
+2. Choose **GitHub** (or GitHub Enterprise), complete OAuth / app install, and select the **organization or user** and **repository** that contains Ithras.
+3. Finish so Cloud Build can clone that repo on each push.
+
+#### 2. Create the deploy trigger
+
+| Setting | Recommended value |
+|--------|-------------------|
+| **Name** | e.g. `ithras-deploy-main` |
+| **Event** | Push to a branch |
+| **Source** | Your connected GitHub repo |
+| **Branch** | Regex for your default branch, e.g. `^main$` or `^master$` (must match how you actually push) |
+| **Configuration** | **Cloud Build configuration file (yaml or yml)** |
+| **Location** | **Repository** |
+| **Cloud Build configuration file location** | `cloudbuild.yaml` |
+
+Important:
+
+- The path must be **`cloudbuild.yaml` at the repository root**. The build uses `docker build … .` with context **`.`** (repo root); a monorepo subfolder path will break `Dockerfile.backend` / `Dockerfile.frontend` unless you change the build.
+- **Do not** use “Dockerfile” autodetection as the only step for this project — you need the full pipeline in `cloudbuild.yaml`.
+
+#### 3. Substitution variables (match your working `gcloud builds submit`)
+
+Open [`deploy/env.example`](../deploy/env.example) and copy each line into the trigger’s **Substitution variables** (Console) or `--substitutions` (CLI).
+
+Minimum set (same semantics as a working manual submit):
+
+| Substitution | Maps to your CLI example | Notes |
+|--------------|---------------------------|--------|
+| `_CLOUD_SQL_INSTANCE` | `ithrad-dev:asia-south1:ithras-dev` | `PROJECT:REGION:INSTANCE` |
+| `_DATABASE_URL` | Full `postgresql://…?host=/cloudsql/…` URL | No trailing spaces; quote in CLI if needed |
+| `_JWT_SECRET` | Hex secret | Prefer **Secret Manager** for production (see below) |
+| `_GEMINI_API_KEY` | API key | Prefer **Secret Manager** for production |
+| `_SERVICE_ACCOUNT` | `ithras-backend-sa@ithrad-dev.iam.gserviceaccount.com` | Backend + frontend deploy use this when set |
+| `_REGION` | `asia-south1` | Cloud Run + Artifact Registry region |
+
+Optional (defaults exist in `cloudbuild.yaml` but you can override): `_REDIS_URL`, `_DEMO_PASSWORD`, `_BACKEND_URL`, `_MIN_INSTANCES`, `_MAX_INSTANCES`, `_BACKEND_SERVICE`, `_FRONTEND_SERVICE`, `_REGISTRY`, `_DB_SETUP`.
+
+**Comma in substitutions:** Cloud Build uses commas to separate substitution pairs. If a value itself contains a comma, use the [documented escaping](https://cloud.google.com/build/docs/configuring-builds/substitute-variable-values) or store the value in Secret Manager.
+
+#### 4. Build service account and IAM
+
+The build runs as your project’s **Cloud Build service account** (often `PROJECT_NUMBER-compute@developer.gserviceaccount.com` in newer projects). It must be able to:
+
+- Build and push images (Artifact Registry)
+- Deploy Cloud Run (`run.services.update`, etc.)
+- Act as the runtime service account when deploying (`iam.serviceAccounts.actAs`) if you set `_SERVICE_ACCOUNT`
+
+If manual `gcloud builds submit` works but the trigger fails with permission errors, align the trigger’s **service account** with the account that succeeded, or rerun [`deploy/setup.sh`](../deploy/setup.sh) so both legacy and Compute default build accounts get the needed roles.
+
+#### 5. Do not add a second “Deploy to Cloud Run” on this trigger
+
+`cloudbuild.yaml` already runs **`gcloud run deploy`** for **both** `ithras-backend` and `ithras-frontend` inside the build steps.
+
+- **Turn off** any extra **“Deploy to Cloud Run”** (or similar) action on the same trigger that deploys a **single** container image from the build. Those UIs often attach **one** image to **one** service; if that image is the **backend** artifact but the target service is **ithras-frontend**, the frontend service will run **Uvicorn** and errors like `ModuleNotFoundError: No module named 'shared'` (wrong image on the wrong service).
+
+- If you previously enabled that integration, **disable** it and rely only on the `deploy-backend` / `deploy-frontend` steps in `cloudbuild.yaml`.
+
+- This repo intentionally **does not** use a top-level `images:` block in `cloudbuild.yaml`, so Cloud Build does not advertise two “primary” artifacts that a naive auto-deploy might confuse.
+
+#### 6. Optional: create the trigger with `gcloud`
+
+After the repo is connected, you can create a trigger from the CLI (adjust names, branch, and connection resource to match your project):
+
+```bash
+# List GitHub / Developer Connect connections and repos to get connection/repo resource names
+gcloud builds connections list --region=global --project=ithrad-dev
+gcloud builds repositories list --connection=YOUR_CONNECTION --region=global --project=ithrad-dev
+
+gcloud builds triggers create github \
+  --project=ithrad-dev \
+  --name=ithras-deploy-main \
+  --repository=projects/ithrad-dev/locations/global/connections/CONNECTION_NAME/repositories/REPO_NAME \
+  --branch-pattern="^main$" \
+  --build-config=cloudbuild.yaml \
+  --substitutions=_REGION=asia-south1,_CLOUD_SQL_INSTANCE=ithrad-dev:asia-south1:ithras-dev,_DATABASE_URL="postgresql://ithras:PASSWORD@/placement_db?host=/cloudsql/ithrad-dev:asia-south1:ithras-dev",_JWT_SECRET=YOUR_JWT,_GEMINI_API_KEY=YOUR_KEY,_SERVICE_ACCOUNT=ithras-backend-sa@ithrad-dev.iam.gserviceaccount.com
+```
+
+Resource names for `--repository` differ between 1st/2nd gen GitHub connections; use the values from `gcloud builds repositories list` output.
+
+#### 7. Production secrets (recommended)
+
+Storing `_JWT_SECRET`, `_GEMINI_API_KEY`, and DB password inside the trigger UI works but exposes them to anyone who can edit triggers. Prefer:
+
+- Storing values in **Secret Manager**
+- Using Cloud Build **available secrets** (`availableSecrets` + `secretEnv`) in `cloudbuild.yaml`, or
+- Using **`--set-secrets`** on `gcloud run deploy` for runtime only
+
+That requires small pipeline changes beyond plain `_SUBSTITUTION` env passthrough; plan a follow-up if you need it.
+
+#### 8. Verify after the first triggered build
+
+1. **Cloud Build** → **History** → open the build → confirm all steps green (`build-backend`, `build-frontend`, `deploy-backend`, `deploy-frontend`).
+2. **Cloud Run** → `ithras-backend` and `ithras-frontend` → latest revision should show images ending in `…/ithras-backend@sha256:…` and `…/ithras-frontend@sha256:…` (digest-pinned deploys).
+3. Open the frontend URL; static `/shared/...` module requests should return **200** (see Dockerfile.frontend `COPY shared/`).
+
+---
+
+#### Frontend revision runs Uvicorn / `ModuleNotFoundError: No module named 'shared'`
+
+That means **ithras-frontend** is running the **backend** container. Common causes:
+
+1. **Trigger “Deploy to Cloud Run”** still deploys the **backend** image to **ithras-frontend** after this pipeline runs — **disable** that integration (see above). Your build logs may show a **different** `gcb-trigger-id` for the bad revision than for the successful root `cloudbuild.yaml` run.
+2. **Docker cache-from poisoning**: If `ithras-frontend:latest` in Artifact Registry was ever the backend image, `docker build --cache-from …/ithras-frontend:latest` reused backend layers. The pipeline **no longer** uses remote cache for the frontend build and runs a **sanity check** (must have `nginx`, must not have `/app/main.py` or `uvicorn`).
+3. **One-time cleanup** (optional): In Artifact Registry, delete old `ithras-frontend` digests/tags, then rerun the build.
+
+The `deploy-backend` / `deploy-frontend` steps resolve each image to a **digest** in Artifact Registry (`image@sha256:…`) before `gcloud run deploy`, and refuse to deploy the frontend if the image path matches the backend repository name. That guarantees **this pipeline** never pushes the wrong artifact reference—but a **second** auto-deploy can still run afterward and replace the revision; remove that trigger or restrict it to a single correct image.
+
+If the build step **fails** with “this is the backend image”, the Dockerfile or build context is wrong; if the step **passes** but Cloud Run still shows Uvicorn, a **second** deploy is overwriting the service — fix the trigger.
 
 ---
 
 ## Schema Migrations
 
-Migrations run automatically on deploy when `DB_SETUP=TRUE` is set.
+Migrations run automatically on deploy when `DB_SETUP=TRUE` is set (or when the Cloud Build substitution `_DB_SETUP` is `TRUE`, which is the default in `cloudbuild.yaml`).
 
 The entrypoint (`entrypoint.prod.sh`) will:
 1. Wait for the Cloud SQL socket / TCP port to be ready
 2. Run `python -m core.setup.backend.run_setup` (Alembic `upgrade head` + seeds)
 3. Start `uvicorn`
+
+**Startup probe vs migrations:** Until step 3 completes, **nothing listens on port 8080**. Cloud Run’s TCP startup probe must allow **many** failures over several minutes — not `failureThreshold: 1`, which fails the revision on the first refused connection while migrations still run. This repo’s `deploy-backend` step sets:
+
+- `--startup-probe=initialDelaySeconds=10,timeoutSeconds=5,periodSeconds=10,failureThreshold=24,tcpSocket.port=8080` (~4 minutes of probe retries after the initial delay)
+- `--no-cpu-throttling` so the container keeps full CPU during socket wait and Alembic (default throttling can slow startup before the first HTTP request)
+
+After the database is fully migrated, you can set trigger substitution **`_DB_SETUP=FALSE`** to skip schema sync on every cold start (faster boots; run migrations via CI or manual job when schema changes).
 
 To run migrations manually (e.g. from a Cloud Shell with Cloud SQL Auth Proxy):
 
@@ -245,6 +360,28 @@ The docker-compose `DATABASE_URL` was deployed by mistake. Set `_DATABASE_URL` t
 
 Check that `BACKEND_URL` in the frontend Cloud Run service points to the correct backend URL.  
 Verify with: `gcloud run services describe ithras-frontend --region REGION --format "env_vars"`.
+
+### Container failed to start and listen on PORT=8080
+
+Cloud Run only waits a few minutes for the process to bind to `0.0.0.0:$PORT`. Common causes:
+
+1. **Startup probe too strict (revisions from manual `gcloud` or old deploys)** — If the revision spec shows `failureThreshold: 1` on the TCP startup probe, a single failure while migrations run will mark the revision unhealthy. Redeploy using this repo’s `cloudbuild.yaml` (or add the same `--startup-probe=...` and `--no-cpu-throttling` flags to your manual deploy). See **Schema Migrations** above.
+2. **Cloud SQL socket not ready** — The entrypoint waits up to **180s** for `/cloudsql/INSTANCE/.s.PGSQL.5432`. Ensure `_CLOUD_SQL_INSTANCE` matches your instance connection name exactly and the Cloud Run service account has **Cloud SQL Client**.
+3. **Migrations too slow or failing** — With `DB_SETUP=TRUE`, Alembic runs before Uvicorn. Check **application** logs (stdout/stderr from your container), not only `run.googleapis.com/varlog/system`:
+   ```bash
+   gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="ithras-backend"' \
+     --project=YOUR_PROJECT_ID --limit=50 --format=json
+   ```
+   Filter in Logs Explorer for text like `Schema sync`, `ERROR`, `Traceback`, or `Starting Uvicorn Server`. Or: **Cloud Console → Cloud Run → ithras-backend → Logs**.
+4. **Test without migrations** — Deploy once with `_DB_SETUP=FALSE` on the trigger (or `DB_SETUP=FALSE` via manual `gcloud run deploy`). If the service becomes healthy, fix DB URL / permissions / migrations.
+5. **IAM warning on deploy** — If public access is blocked by org policy, run:
+   ```bash
+   gcloud run services add-iam-policy-binding ithras-backend \
+     --region=REGION --member=allUsers --role=roles/run.invoker --project=PROJECT_ID
+   ```
+   (Or use a domain-restricted identity.) A failed IAM binding does not always prevent the revision from starting; check logs for the real error.
+
+`cloudbuild.yaml` sets **`--cpu-boost`**, **`--no-cpu-throttling`**, **`--memory 1Gi`**, **`--cpu 1`**, and a **tolerant TCP startup probe** on the backend to reduce startup failures during migrations.
 
 ### Migrations fail on first deploy
 
