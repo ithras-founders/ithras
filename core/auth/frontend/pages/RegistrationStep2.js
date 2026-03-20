@@ -12,14 +12,15 @@ const BLUE_PANEL = '#0C6DFD';
 const ACCENT_GOLD = '#FFD700';
 
 const ListField = ({ items, onItemsChange, placeholder, addLabel, typeLabel, disabled }) => {
-  const add = () => onItemsChange([...(items || []), '']);
+  // When `items` is [] we still show one empty row; updates must use that row, not `items.map` on [].
+  const displayItems = (items && items.length) ? items : [''];
+  const add = () => onItemsChange([...displayItems, '']);
   const remove = (i) => {
-    const next = items.filter((_, idx) => idx !== i);
+    const next = displayItems.filter((_, idx) => idx !== i);
     onItemsChange(next.length ? next : ['']);
   };
-  const change = (i, v) => onItemsChange(items.map((it, idx) => idx === i ? v : it));
+  const change = (i, v) => onItemsChange(displayItems.map((it, idx) => (idx === i ? v : it)));
 
-  const displayItems = (items && items.length) ? items : [''];
   return html`
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">${typeLabel}</label>
@@ -31,7 +32,7 @@ const ListField = ({ items, onItemsChange, placeholder, addLabel, typeLabel, dis
             onChange=${(e) => change(i, e.target.value)}
             placeholder=${placeholder}
             disabled=${disabled}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           ${displayItems.length > 1 ? html`
             <button type="button" onClick=${() => remove(i)} disabled=${disabled} className="px-2 text-red-600 hover:bg-red-50 rounded">✕</button>
@@ -98,7 +99,7 @@ const EducationEntryCard = ({ entry, onChange, onRemove, onInstitutionSearch, in
           onBlur=${() => setTimeout(() => setShowDropdown(false), 200)}
           placeholder="Search or type institution name"
           disabled=${disabled}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         ${showDropdown && institutions?.length > 0 ? html`
           <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
