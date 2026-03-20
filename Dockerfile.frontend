@@ -13,11 +13,12 @@ COPY core/app/frontend/index.html .
 COPY core/app/frontend/src ./src
 COPY core/app/frontend/public ./public
 
-# ES modules - frontend expects /products, /core, /admin for imports
-RUN mkdir -p /products /core /admin
+# ES modules - frontend expects /products, /core, /admin, /shared for imports (see nginx.conf.template)
+RUN mkdir -p /products /core /admin /shared
 COPY products/ /products/
 COPY core/ /core/
 COPY admin/ /admin/
+COPY shared/ /shared/
 
 # Unified nginx template + entrypoint (same files used locally)
 COPY core/app/frontend/nginx.conf.template /etc/nginx/conf.d/default.conf.template
