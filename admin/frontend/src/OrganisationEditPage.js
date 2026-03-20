@@ -11,13 +11,13 @@ const ArrowLeftIcon = () => html`<svg xmlns="http://www.w3.org/2000/svg" width="
 const ExternalLinkIcon = () => html`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>`;
 
 const ListEditor = ({ items, onItemsChange, placeholder, addLabel }) => {
-  const add = () => onItemsChange([...(items || []), '']);
+  const displayItems = (items && items.length) ? items : [''];
+  const add = () => onItemsChange([...displayItems, '']);
   const remove = (i) => {
-    const next = (items || []).filter((_, idx) => idx !== i);
+    const next = displayItems.filter((_, idx) => idx !== i);
     onItemsChange(next.length ? next : ['']);
   };
-  const change = (i, v) => onItemsChange((items || []).map((it, idx) => (idx === i ? v : it)));
-  const displayItems = (items && items.length) ? items : [''];
+  const change = (i, v) => onItemsChange(displayItems.map((it, idx) => (idx === i ? v : it)));
   return html`
     <div>
       ${displayItems.map((item, i) => html`
