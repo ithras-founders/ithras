@@ -144,14 +144,16 @@ const UserManagement = () => {
                 fontSize: '13px',
                 fontWeight: isActive ? 600 : 500,
                 color: isActive ? 'var(--app-accent)' : 'var(--app-text-muted)',
-                borderBottom: isActive ? '2px solid var(--app-accent)' : '2px solid transparent',
                 background: 'none',
-                border: 'none',
-                borderBottom: isActive ? '2px solid var(--app-accent)' : '2px solid transparent',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
+                // Avoid mixing `border` shorthand with `borderBottom` (React dev warning)
+                borderTop: 'none',
+                borderLeft: 'none',
+                borderRight: 'none',
+                borderBottom: isActive ? '2px solid var(--app-accent)' : '2px solid transparent',
               }}
             >
               ${tab.label}
