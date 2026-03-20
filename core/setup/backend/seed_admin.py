@@ -31,7 +31,21 @@ def seed_admin():
             {"e": admin_email.lower()}
         )
         if r.scalar():
-            return  # already exists
+            # Migration 017 defaults new rows to account_status='pending'. Older seed inserts omitted
+            # this column, so founders could get 403 on login — always keep founder approved.
+            try:
+                db.execute(
+                    text("""
+                        UPDATE users SET account_status = 'approved'
+                        WHERE LOWER(email) = :e
+                    """),
+                    {"e": admin_email.lower()},
+                )
+                db.commit()
+            except Exception:
+                db.rollback()
+                # Pre-migration DB without account_status column — ignore
+            return
         # Generate username from email
         username = "founders"
         r = db.execute(text("SELECT 1 FROM users WHERE LOWER(username) = :u"), {"u": username})
@@ -39,8 +53,12 @@ def seed_admin():
             username = "founders_admin"  # fallback if founders taken
         db.execute(
             text("""
-                INSERT INTO users (username, email, password_hash, full_name, date_of_birth, user_type)
-                VALUES (:username, :email, :pw_hash, :full_name, :date_of_birth, 'admin')
+                INSERT INTO users (
+                    username, email, password_hash, full_name, date_of_birth, user_type, account_status
+                )
+                VALUES (
+                    :username, :email, :pw_hash, :full_name, :date_of_birth, 'admin', 'approved'
+                )
             """),
             {
                 "username": username,
