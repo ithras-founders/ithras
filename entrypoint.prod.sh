@@ -34,14 +34,15 @@ wait_for_db() {
     SOCKET_DIR="/cloudsql/${INSTANCE}"
     SOCKET_FILE="${SOCKET_DIR}/.s.PGSQL.5432"
     echo "Waiting for Cloud SQL socket: $SOCKET_FILE"
-    for i in $(seq 1 60); do
+    # Cloud Run + first cold start can take >60s for the socket to appear
+    for i in $(seq 1 180); do
       if [ -S "$SOCKET_FILE" ]; then
         echo "Cloud SQL socket ready (${i}s elapsed)"
         return 0
       fi
       sleep 1
     done
-    echo "ERROR: Cloud SQL socket not available after 60s: $SOCKET_FILE"
+    echo "ERROR: Cloud SQL socket not available after 180s: $SOCKET_FILE"
     return 1
   else
     # TCP mode: extract host and port for pg_isready check
