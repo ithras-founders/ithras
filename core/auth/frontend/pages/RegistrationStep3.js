@@ -55,7 +55,7 @@ const OrganisationCard = ({
           onBlur=${() => setTimeout(() => setShowDropdown(false), 200)}
           placeholder="Search or type organisation name"
           disabled=${disabled}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         ${showDropdown && organisations?.length > 0 ? html`
           <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -98,7 +98,7 @@ const OrganisationCard = ({
                   movements: org.movements.map((m, i) => i === mi ? { ...m, businessUnit: e.target.value } : m),
                 })}
                 disabled=${disabled}
-                className="px-3 py-2 border rounded-lg text-sm"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder:text-gray-400"
               />
               <input
                 type="text"
@@ -108,7 +108,7 @@ const OrganisationCard = ({
                   movements: org.movements.map((m, i) => i === mi ? { ...m, function: e.target.value } : m),
                 })}
                 disabled=${disabled}
-                className="px-3 py-2 border rounded-lg text-sm"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder:text-gray-400"
               />
             </div>
             <input
@@ -119,7 +119,7 @@ const OrganisationCard = ({
                 movements: org.movements.map((m, i) => i === mi ? { ...m, title: e.target.value } : m),
                 })}
               disabled=${disabled}
-              className="w-full px-3 py-2 border rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 placeholder:text-gray-400"
             />
             <div className="grid grid-cols-2 gap-2">
               <${MonthYearInput}
