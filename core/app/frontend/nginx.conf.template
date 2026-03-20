@@ -95,12 +95,17 @@ server {
         add_header Cache-Control "public, max-age=3600";
     }
 
-    # Shared module - primitives, components, services, styles (frontend leaf folders)
+    # Shared module - primitives, components, services, styles (COPY shared/ -> /shared/ in Dockerfile.frontend)
     location ^~ /shared/ {
         alias /shared/;
+        types { application/javascript js mjs; text/css css; }
+        default_type application/javascript;
         try_files $uri =404;
         add_header Access-Control-Allow-Origin * always;
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header Pragma "no-cache" always;
+        add_header Expires "0" always;
+        autoindex off;
     }
 
     # ES module imports from /admin/frontend (JS source files) - never fall through to SPA
