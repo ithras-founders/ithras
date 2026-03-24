@@ -1,0 +1,2 @@
+Bundled Fortune 500 reference CSV (_fortune500_source.csv) derived from public rankings data
+(e.g. EatMoreOranges/Fortune-500-Dataset on GitHub, 2023 export). Used only for local seeding.

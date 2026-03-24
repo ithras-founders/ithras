@@ -30,6 +30,11 @@ class PostCreate(BaseModel):
     title: Optional[str] = None
     content: str = ""
     tags: Optional[list[str]] = None
+    poll_options: Optional[list[str]] = None
+
+
+class PollVoteBody(BaseModel):
+    option_index: int
 
 
 class CommentCreate(BaseModel):
@@ -42,6 +47,11 @@ class CommunityRequestCreate(BaseModel):
     category: Optional[str] = None
     purpose: Optional[str] = None
     rules: Optional[list[str]] = None
+
+
+class ChannelRequestCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
 
 
 # ─── Communities ─────────────────────────────────────────────────────────────
@@ -360,8 +370,120 @@ def request_community(data: CommunityRequestCreate, user=Depends(get_current_use
     return {"ok": True}
 
 
+@router.post("/communities/{community_id}/channel-requests", summary="Request new channel (member; admin approval)")
+def request_channel(
+    community_id: int,
+    data: ChannelRequestCreate,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
+    """Submit a request to add a channel. Only community members; community must use channels."""
+    uid = _user_id(user)
+    name = (data.name or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Channel name is required")
+    m = db.execute(
+        text("SELECT 1 FROM community_members WHERE community_id = :cid AND user_id = :uid"),
+        {"cid": community_id, "uid": uid},
+    ).fetchone()
+    if not m:
+        raise HTTPException(status_code=403, detail="You must be a member of this community to request a channel")
+    r = db.execute(
+        text("SELECT id, has_channels FROM communities WHERE id = :cid"),
+        {"cid": community_id},
+    ).fetchone()
+    if not r:
+        raise HTTPException(status_code=404, detail="Community not found")
+    if not r.has_channels:
+        raise HTTPException(status_code=400, detail="This community does not use channels")
+    db.execute(
+        text("""
+            INSERT INTO channel_requests (community_id, user_id, name, description, status)
+            VALUES (:cid, :uid, :name, :desc, 'pending')
+        """),
+        {"cid": community_id, "uid": uid, "name": name, "desc": data.description or ""},
+    )
+    db.commit()
+    return {"ok": True}
+
+
 # ─── Feed endpoints ──────────────────────────────────────────────────────────
 ALLOWED_REACTION_TYPES = {"upvote", "love", "insightful", "celebrate"}
+
+# Cached after first check (restart app after running migration 016_post_polls).
+_POSTS_POLL_OPTIONS_COL_READY: Optional[bool] = None
+_POST_POLL_VOTES_TABLE_READY: Optional[bool] = None
+
+
+def _posts_poll_options_column_ready(db) -> bool:
+    """True if posts.poll_options_json exists."""
+    global _POSTS_POLL_OPTIONS_COL_READY
+    if _POSTS_POLL_OPTIONS_COL_READY is not None:
+        return _POSTS_POLL_OPTIONS_COL_READY
+    try:
+        row = db.execute(
+            text("""
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+                  AND table_name = 'posts' AND column_name = 'poll_options_json'
+                LIMIT 1
+            """)
+        ).fetchone()
+        _POSTS_POLL_OPTIONS_COL_READY = bool(row)
+    except Exception:
+        logging.getLogger(__name__).warning("Could not probe posts.poll_options_json; assuming absent.", exc_info=True)
+        _POSTS_POLL_OPTIONS_COL_READY = False
+    return _POSTS_POLL_OPTIONS_COL_READY
+
+
+def _post_poll_votes_table_ready(db) -> bool:
+    """True if post_poll_votes table exists."""
+    global _POST_POLL_VOTES_TABLE_READY
+    if _POST_POLL_VOTES_TABLE_READY is not None:
+        return _POST_POLL_VOTES_TABLE_READY
+    try:
+        row = db.execute(
+            text("""
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+                  AND table_name = 'post_poll_votes'
+                LIMIT 1
+            """)
+        ).fetchone()
+        _POST_POLL_VOTES_TABLE_READY = bool(row)
+    except Exception:
+        logging.getLogger(__name__).warning("Could not probe post_poll_votes; assuming absent.", exc_info=True)
+        _POST_POLL_VOTES_TABLE_READY = False
+    return _POST_POLL_VOTES_TABLE_READY
+
+
+def _feed_poll_schema_ready(db) -> bool:
+    """Full poll feature set: stored options + voting (migration 016)."""
+    return _posts_poll_options_column_ready(db) and _post_poll_votes_table_ready(db)
+
+
+def _sql_poll_options_column(db) -> str:
+    """SQL SELECT list fragment: either 'p.poll_options_json, ' or ''."""
+    return "p.poll_options_json, " if _posts_poll_options_column_ready(db) else ""
+
+
+def _poll_options_from_row(row) -> list[str]:
+    """Poll option labels from poll_options_json or legacy newline-separated content."""
+    opts: list[str] = []
+    try:
+        raw = getattr(row, "poll_options_json", None)
+        if raw:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list):
+                opts = [str(x).strip() for x in parsed if str(x).strip()]
+    except (json.JSONDecodeError, TypeError):
+        opts = []
+    if len(opts) >= 2:
+        return opts[:20]
+    if (getattr(row, "type", None) or "") == "poll" and (getattr(row, "content", None) or "").strip():
+        legacy = [ln.strip() for ln in str(row.content).split("\n") if ln.strip()]
+        return legacy[:20] if len(legacy) >= 2 else []
+    return []
 
 
 def _post_row_to_dict(row, author_name=None):
@@ -376,17 +498,26 @@ def _post_row_to_dict(row, author_name=None):
     except (json.JSONDecodeError, TypeError):
         pass
     is_pinned = getattr(row, "is_pinned", False) or False
+    ptype = row.type or "discussion"
+    poll_options: list[str] = []
+    if ptype == "poll":
+        poll_options = _poll_options_from_row(row)
+    poll_vote_counts = [0] * len(poll_options) if poll_options else []
     return {
         "id": row.id,
         "author_id": row.author_id,
         "author_name": author_name or "",
         "community_id": row.community_id,
         "channel_id": row.channel_id,
-        "type": row.type or "discussion",
+        "type": ptype,
         "title": row.title or "",
         "content": row.content or "",
         "tags": tags,
         "attachments": attachments,
+        "poll_options": poll_options,
+        "poll_vote_counts": poll_vote_counts,
+        "poll_total_votes": 0,
+        "user_poll_vote": None,
         "comment_count": row.comment_count or 0,
         "reaction_count": row.reaction_count or 0,
         "reaction_counts": {"upvote": 0, "love": 0, "insightful": 0, "celebrate": 0},
@@ -437,6 +568,65 @@ def _batch_attach_reactions(db, items, uid=None):
     return items
 
 
+def _batch_attach_poll_data(db, items, uid=None):
+    """Attach poll_vote_counts, poll_total_votes, user_poll_vote for poll posts."""
+    if not items:
+        return
+    for it in items:
+        if it.get("type") == "poll":
+            it.setdefault("poll_vote_counts", [0] * len(it.get("poll_options") or []))
+            it.setdefault("poll_total_votes", 0)
+            it.setdefault("user_poll_vote", None)
+    if not _post_poll_votes_table_ready(db):
+        return
+    post_ids = [it["id"] for it in items if it.get("type") == "poll" and len(it.get("poll_options") or []) >= 2]
+    if not post_ids:
+        return
+    in_clause = ",".join(str(int(x)) for x in post_ids)
+    id_map = {it["id"]: it for it in items}
+
+    r = db.execute(
+        text(f"""
+            SELECT post_id, option_index, COUNT(*) AS cnt
+            FROM post_poll_votes
+            WHERE post_id IN ({in_clause})
+            GROUP BY post_id, option_index
+        """)
+    )
+    for row in r.fetchall():
+        it = id_map.get(row.post_id)
+        if not it:
+            continue
+        opts_len = len(it.get("poll_options") or [])
+        if opts_len == 0:
+            continue
+        counts = it.get("poll_vote_counts") or [0] * opts_len
+        if len(counts) != opts_len:
+            counts = [0] * opts_len
+        idx = int(row.option_index)
+        if 0 <= idx < opts_len:
+            counts[idx] = int(row.cnt)
+        it["poll_vote_counts"] = counts
+
+    for it in items:
+        if it.get("type") == "poll" and len(it.get("poll_options") or []) >= 2:
+            counts = it.get("poll_vote_counts") or [0] * len(it["poll_options"])
+            it["poll_vote_counts"] = counts
+            it["poll_total_votes"] = sum(counts)
+
+    if uid:
+        r = db.execute(
+            text(f"""
+                SELECT post_id, option_index FROM post_poll_votes
+                WHERE post_id IN ({in_clause}) AND user_id = :uid
+            """),
+            {"uid": uid},
+        )
+        for row in r.fetchall():
+            if row.post_id in id_map:
+                id_map[row.post_id]["user_poll_vote"] = int(row.option_index)
+
+
 @router.get("/feed", summary="Global feed")
 def get_global_feed(
     user=Depends(get_current_user),
@@ -446,10 +636,11 @@ def get_global_feed(
 ):
     """Global feed from joined and followed communities."""
     uid = _user_id(user)
+    pc = _sql_poll_options_column(db)
     r = db.execute(
-        text("""
+        text(f"""
             SELECT p.id, p.author_id, p.community_id, p.channel_id, p.type, p.title, p.content,
-                   p.tags_json, p.attachments_json, p.comment_count, p.reaction_count, p.save_count, p.view_count,
+                   p.tags_json, p.attachments_json, {pc}p.comment_count, p.reaction_count, p.save_count, p.view_count,
                    p.moderation_status, p.is_pinned, p.pinned_at, p.created_at, p.updated_at,
                    u.full_name as author_name,
                    c.name as community_name,
@@ -473,6 +664,7 @@ def get_global_feed(
         d["channel_name"] = row.channel_name or ""
         items.append(d)
     _batch_attach_reactions(db, items, uid)
+    _batch_attach_poll_data(db, items, uid)
 
     total_row = db.execute(
         text("""
@@ -495,10 +687,11 @@ def get_saved_feed(
 ):
     """User's saved posts."""
     uid = _user_id(user)
+    pc = _sql_poll_options_column(db)
     r = db.execute(
-        text("""
+        text(f"""
             SELECT p.id, p.author_id, p.community_id, p.channel_id, p.type, p.title, p.content,
-                   p.tags_json, p.attachments_json, p.comment_count, p.reaction_count, p.save_count, p.view_count,
+                   p.tags_json, p.attachments_json, {pc}p.comment_count, p.reaction_count, p.save_count, p.view_count,
                    p.moderation_status, p.is_pinned, p.pinned_at, p.created_at, p.updated_at,
                    u.full_name as author_name,
                    c.name as community_name,
@@ -522,6 +715,7 @@ def get_saved_feed(
         d["channel_name"] = row.channel_name or ""
         items.append(d)
     _batch_attach_reactions(db, items, uid)
+    _batch_attach_poll_data(db, items, uid)
 
     total_row = db.execute(
         text("SELECT COUNT(*) as n FROM post_saves ps JOIN posts p ON p.id = ps.post_id AND p.moderation_status = 'active' WHERE ps.user_id = :uid"),
@@ -601,10 +795,11 @@ def get_community_feed(
 
     order_sql, useful_join = _feed_order_clause(sort, pinned_first=(sort != "unanswered"))
 
+    pc = _sql_poll_options_column(db)
     r = db.execute(
         text(f"""
             SELECT p.id, p.author_id, p.community_id, p.channel_id, p.type, p.title, p.content,
-                   p.tags_json, p.attachments_json, p.comment_count, p.reaction_count, p.save_count, p.view_count,
+                   p.tags_json, p.attachments_json, {pc}p.comment_count, p.reaction_count, p.save_count, p.view_count,
                    p.moderation_status, p.is_pinned, p.pinned_at, p.created_at, p.updated_at,
                    u.full_name as author_name,
                    c.name as community_name,
@@ -628,6 +823,7 @@ def get_community_feed(
         d["channel_name"] = row.channel_name or ""
         items.append(d)
     _batch_attach_reactions(db, items, uid)
+    _batch_attach_poll_data(db, items, uid)
 
     count_params = {k: v for k, v in params.items() if k not in ("lim", "off")}
     if useful_join:
@@ -673,10 +869,11 @@ def get_channel_feed(
 
     order_sql, useful_join = _feed_order_clause(sort, pinned_first=(sort != "unanswered"))
 
+    pc = _sql_poll_options_column(db)
     r = db.execute(
         text(f"""
             SELECT p.id, p.author_id, p.community_id, p.channel_id, p.type, p.title, p.content,
-                   p.tags_json, p.attachments_json, p.comment_count, p.reaction_count, p.save_count, p.view_count,
+                   p.tags_json, p.attachments_json, {pc}p.comment_count, p.reaction_count, p.save_count, p.view_count,
                    p.moderation_status, p.is_pinned, p.pinned_at, p.created_at, p.updated_at,
                    u.full_name as author_name,
                    c.name as community_name,
@@ -701,6 +898,7 @@ def get_channel_feed(
         items.append(d)
     uid_ch = _user_id(user)
     _batch_attach_reactions(db, items, uid_ch)
+    _batch_attach_poll_data(db, items, uid_ch)
 
     count_params = {k: v for k, v in params.items() if k not in ("lim", "off")}
     if useful_join:
@@ -719,24 +917,60 @@ def create_post(data: PostCreate, user=Depends(get_current_user), db=Depends(get
     uid = _user_id(user)
     tags_json = json.dumps(data.tags or [])
     attachments_json = "[]"
+    typ = data.type or "discussion"
+    poll_json = None
+    if typ == "poll":
+        poll_opts = [str(o).strip() for o in (data.poll_options or []) if str(o).strip()]
+        if len(poll_opts) < 2:
+            raise HTTPException(status_code=400, detail="Poll requires at least two options")
+        if len(poll_opts) > 20:
+            raise HTTPException(status_code=400, detail="Too many poll options")
+        poll_json = json.dumps(poll_opts)
 
-    r = db.execute(
-        text("""
-            INSERT INTO posts (author_id, community_id, channel_id, type, title, content, tags_json, attachments_json)
-            VALUES (:uid, :cid, :chid, :typ, :title, :content, :tags, :att)
-            RETURNING id, created_at
-        """),
-        {
-            "uid": uid,
-            "cid": data.community_id,
-            "chid": data.channel_id,
-            "typ": data.type or "discussion",
-            "title": data.title or "",
-            "content": data.content or "",
-            "tags": tags_json,
-            "att": attachments_json,
-        },
-    )
+    poll_ready = _feed_poll_schema_ready(db)
+    if typ == "poll" and not poll_ready:
+        raise HTTPException(
+            status_code=503,
+            detail="Poll posts require DB migration 016_post_polls. Run: alembic upgrade head",
+        )
+
+    if poll_ready:
+        r = db.execute(
+            text("""
+                INSERT INTO posts (author_id, community_id, channel_id, type, title, content, tags_json, attachments_json, poll_options_json)
+                VALUES (:uid, :cid, :chid, :typ, :title, :content, :tags, :att, :poll)
+                RETURNING id, created_at
+            """),
+            {
+                "uid": uid,
+                "cid": data.community_id,
+                "chid": data.channel_id,
+                "typ": typ,
+                "title": data.title or "",
+                "content": data.content or "",
+                "tags": tags_json,
+                "att": attachments_json,
+                "poll": poll_json,
+            },
+        )
+    else:
+        r = db.execute(
+            text("""
+                INSERT INTO posts (author_id, community_id, channel_id, type, title, content, tags_json, attachments_json)
+                VALUES (:uid, :cid, :chid, :typ, :title, :content, :tags, :att)
+                RETURNING id, created_at
+            """),
+            {
+                "uid": uid,
+                "cid": data.community_id,
+                "chid": data.channel_id,
+                "typ": typ,
+                "title": data.title or "",
+                "content": data.content or "",
+                "tags": tags_json,
+                "att": attachments_json,
+            },
+        )
     row = r.fetchone()
     db.commit()
     try:
@@ -747,13 +981,55 @@ def create_post(data: PostCreate, user=Depends(get_current_user), db=Depends(get
     return {"id": row.id, "created_at": row.created_at.isoformat() if row.created_at else None}
 
 
+@router.post("/posts/{post_id}/poll-vote", summary="Vote on poll")
+def vote_poll(post_id: int, data: PollVoteBody, user=Depends(get_current_user), db=Depends(get_db)):
+    """Cast or change vote on a single-choice poll (one vote per user per post)."""
+    if not _feed_poll_schema_ready(db):
+        raise HTTPException(
+            status_code=503,
+            detail="Poll voting requires DB migration 016_post_polls. Run: alembic upgrade head",
+        )
+    uid = _user_id(user)
+    pc = _sql_poll_options_column(db)
+    r = db.execute(
+        text(f"""
+            SELECT p.id, p.type, p.title, p.content, {pc}p.moderation_status
+            FROM posts p WHERE p.id = :pid
+        """),
+        {"pid": post_id},
+    ).fetchone()
+    if not r or (r.moderation_status or "") != "active":
+        raise HTTPException(status_code=404, detail="Post not found")
+    if (r.type or "") != "poll":
+        raise HTTPException(status_code=400, detail="Not a poll")
+    opts = _poll_options_from_row(r)
+    if len(opts) < 2:
+        raise HTTPException(status_code=400, detail="Invalid poll")
+    idx = int(data.option_index)
+    if idx < 0 or idx >= len(opts):
+        raise HTTPException(status_code=400, detail="Invalid option")
+    db.execute(
+        text("""
+            INSERT INTO post_poll_votes (post_id, user_id, option_index)
+            VALUES (:pid, :uid, :idx)
+            ON CONFLICT (post_id, user_id) DO UPDATE SET
+                option_index = EXCLUDED.option_index,
+                created_at = NOW()
+        """),
+        {"pid": post_id, "uid": uid, "idx": idx},
+    )
+    db.commit()
+    return {"ok": True}
+
+
 @router.get("/posts/{post_id}", summary="Get post")
 def get_post(post_id: int, user=Depends(get_current_user), db=Depends(get_db)):
     """Get post by id with author, community, channel."""
+    pc = _sql_poll_options_column(db)
     r = db.execute(
-        text("""
+        text(f"""
             SELECT p.id, p.author_id, p.community_id, p.channel_id, p.type, p.title, p.content,
-                   p.tags_json, p.attachments_json, p.comment_count, p.reaction_count, p.save_count, p.view_count,
+                   p.tags_json, p.attachments_json, {pc}p.comment_count, p.reaction_count, p.save_count, p.view_count,
                    p.moderation_status, p.is_pinned, p.pinned_at, p.created_at, p.updated_at,
                    u.full_name as author_name,
                    c.name as community_name,
@@ -780,6 +1056,7 @@ def get_post(post_id: int, user=Depends(get_current_user), db=Depends(get_db)):
     d["community_name"] = row.community_name or ""
     d["channel_name"] = row.channel_name or ""
     _batch_attach_reactions(db, [d], uid_gp)
+    _batch_attach_poll_data(db, [d], uid_gp)
     return d
 
 

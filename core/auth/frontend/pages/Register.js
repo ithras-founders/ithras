@@ -3,10 +3,10 @@ import htm from 'htm';
 import { register } from '/shared/services/index.js';
 import IthrasLogo from '/shared/components/IthrasLogo.js';
 import { Input } from '/shared/primitives/index.js';
+import { AUTH_HERO_PANEL_STYLE, AUTH_HERO_COLUMN_CLASS } from '/shared/styles/authHeroPanel.js';
 
 const html = htm.bind(React.createElement);
 
-const BLUE_PANEL = '#0C6DFD';
 const ACCENT_GOLD = '#FFD700';
 
 const Register = ({ onRegister, onShowLogin }) => {
@@ -55,8 +55,8 @@ const Register = ({ onRegister, onShowLogin }) => {
 
   return html`
     <div className="min-h-screen flex bg-[var(--app-bg)]">
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center p-16" style=${{ background: BLUE_PANEL }}>
-        <div className="max-w-md text-center">
+      <div className=${AUTH_HERO_COLUMN_CLASS} style=${AUTH_HERO_PANEL_STYLE}>
+        <div className="max-w-md text-center relative z-[1]">
           <div className="mb-12">
             <${IthrasLogo} size="lg" theme="light" />
           </div>
@@ -66,20 +66,20 @@ const Register = ({ onRegister, onShowLogin }) => {
           >
             Intelligent Talent Hiring & Recruitment Automation System
           </p>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-[1.15]">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-[1.15]" style=${{ fontFamily: 'var(--font-display)' }}>
             Join the trusted professional network
           </h1>
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 md:p-16 bg-white overflow-y-auto custom-scrollbar">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 md:p-16 bg-[var(--app-surface)] overflow-y-auto custom-scrollbar border-l border-[var(--app-border-soft)]">
         <div className="lg:hidden flex items-center gap-3 mb-8">
           <${IthrasLogo} size="md" theme="dark" />
         </div>
 
         <div className="max-w-sm w-full mx-auto">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-1 tracking-tight">Create account</h2>
-          <p className="text-gray-600 text-[15px] mb-8">Enter your details to get started.</p>
+          <h2 className="text-2xl font-semibold text-[var(--app-text-primary)] mb-1 tracking-tight">Create account</h2>
+          <p className="text-[var(--app-text-secondary)] text-[15px] mb-8">Enter your details to get started.</p>
 
           <form onSubmit=${handleSubmit} className="space-y-4">
             ${error ? html`
@@ -138,7 +138,8 @@ const Register = ({ onRegister, onShowLogin }) => {
             <button
               type="submit"
               disabled=${loading}
-              className="w-full py-3 px-6 rounded-xl font-semibold text-white text-[15px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg bg-[#0C6DFD] hover:bg-[#0A5AD4] active:bg-[#0849B0]"
+              className="w-full py-3 px-6 rounded-xl font-semibold text-white text-[15px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style=${{ background: 'var(--app-accent)', boxShadow: 'var(--app-shadow-primary)' }}
             >
               ${loading ? 'Creating account...' : 'Create account'}
             </button>
@@ -148,7 +149,7 @@ const Register = ({ onRegister, onShowLogin }) => {
                 <button
                   type="button"
                   onClick=${onShowLogin}
-                  className="ml-1 font-medium text-[#0C6DFD] hover:underline"
+                  className="ml-1 font-medium text-[var(--app-accent)] hover:underline"
                 >
                   Sign in
                 </button>

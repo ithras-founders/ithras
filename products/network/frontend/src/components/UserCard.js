@@ -11,9 +11,10 @@ function getInitials(name) {
   return (name || 'U').split(/\s+/).map((s) => s[0]).join('').slice(0, 2).toUpperCase();
 }
 
-const UserCard = ({ user, overlapBadges, mutualCount, actions, compact = false }) => {
+const UserCard = ({ user, overlapBadges, mutualCount, actions, compact = false, variant = 'card' }) => {
   const slug = user?.profile_slug;
   const href = slug ? `/p/${slug}` : null;
+  const isList = variant === 'list';
 
   const handleClick = (e) => {
     if (href) {
@@ -23,16 +24,22 @@ const UserCard = ({ user, overlapBadges, mutualCount, actions, compact = false }
     }
   };
 
+  const listWrap = isList ? 'px-4 py-3 border-b last:border-b-0 flex items-start gap-3' : 'p-4 rounded-xl border flex items-start gap-4';
+  const listStyle = isList
+    ? { borderColor: 'var(--app-border-soft)' }
+    : { borderColor: 'var(--app-border-soft)' };
+  const avatarSize = isList ? 'h-10 w-10 text-sm rounded-lg' : 'h-12 w-12 text-base rounded-xl';
+
   return html`
     <div
-      className="p-4 rounded-xl border flex items-start gap-4"
-      style=${{ borderColor: 'var(--app-border-soft)' }}
+      className=${`${listWrap}`}
+      style=${listStyle}
     >
       <div className="flex-shrink-0">
         ${href ? html`
           <a href=${href} onClick=${handleClick} className="block">
             <span
-              className="flex h-12 w-12 items-center justify-center rounded-xl text-base font-semibold"
+              className=${`flex ${avatarSize} items-center justify-center font-semibold`}
               style=${{ background: 'var(--app-accent-soft)', color: 'var(--app-accent)' }}
             >
               ${getInitials(user?.full_name)}
@@ -40,7 +47,7 @@ const UserCard = ({ user, overlapBadges, mutualCount, actions, compact = false }
           </a>
         ` : html`
           <span
-            className="flex h-12 w-12 items-center justify-center rounded-xl text-base font-semibold"
+            className=${`flex ${avatarSize} items-center justify-center font-semibold`}
             style=${{ background: 'var(--app-accent-soft)', color: 'var(--app-accent)' }}
           >
             ${getInitials(user?.full_name)}
@@ -72,12 +79,18 @@ const UserCard = ({ user, overlapBadges, mutualCount, actions, compact = false }
         ${user?.headline ? html`
           <p className="text-sm mt-0.5 truncate" style=${{ color: 'var(--app-text-secondary)' }}>${user.headline}</p>
         ` : null}
-        ${!compact ? html`
+        ${!(compact || isList) ? html`
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm" style=${{ color: 'var(--app-text-muted)' }}>
             ${user?.current_org ? html`<span>${user.current_org}</span>` : null}
             ${user?.institution_name ? html`<span>${user.institution_name}</span>` : null}
             ${user?.major ? html`<span>${user.major}</span>` : null}
             ${user?.function ? html`<span>${user.function}</span>` : null}
+          </div>
+        ` : isList ? html`
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs" style=${{ color: 'var(--app-text-muted)' }}>
+            ${user?.current_org ? html`<span className="truncate max-w-[200px]">${user.current_org}</span>` : null}
+            ${user?.institution_name ? html`<span className="truncate max-w-[200px]">${user.institution_name}</span>` : null}
+            ${user?.major ? html`<span>${user.major}</span>` : null}
           </div>
         ` : null}
         ${overlapBadges && overlapBadges.length > 0 ? html`

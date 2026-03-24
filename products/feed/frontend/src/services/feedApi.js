@@ -49,6 +49,13 @@ export async function requestCommunity(data) {
   });
 }
 
+export async function requestChannel(communityId, data) {
+  return apiRequest(`${BASE}/communities/${communityId}/channel-requests`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function getGlobalFeed(params = {}) {
   const q = new URLSearchParams();
   if (params.limit != null) q.set('limit', params.limit);

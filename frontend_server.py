@@ -21,7 +21,7 @@ FRONTEND_DIR = WORKSPACE / "core" / "app" / "frontend"
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("application/javascript", ".mjs")
 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000").rstrip("/")
 
 async def proxy_to_backend(request: Request) -> Response:
     """Proxy /api/* requests to the FastAPI backend."""
@@ -130,6 +130,9 @@ routes = [
     # API proxy — must allow all HTTP methods
     Route("/api", proxy_to_backend, methods=ALL_METHODS),
     Route("/api/{path:path}", proxy_to_backend, methods=ALL_METHODS),
+    # LongForm images (backend serves /media/longform)
+    Route("/media", proxy_to_backend, methods=ALL_METHODS),
+    Route("/media/{path:path}", proxy_to_backend, methods=ALL_METHODS),
 
     # Source files from workspace root directories
     Route("/core/{path:path}", serve_file_from_root),

@@ -1,34 +1,90 @@
 """Public API - profiles, institutions, organisations by slug. No auth required."""
 import json
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 
+from shared.auth.auth import get_current_user_optional
 from shared.database.database import get_db
 
 router = APIRouter(prefix="/api/v1/public", tags=["public"])
+
+
+def _optional_viewer_id(viewer: Any) -> int | None:
+    if not viewer:
+        return None
+    uid = int(getattr(viewer, "user_numerical", None) or getattr(viewer, "id", 0) or 0)
+    return uid if uid else None
+
+
+def _linked_community_payload(db, *, institution_id: int | None = None, organisation_id: int | None = None, viewer: Any) -> dict | None:
+    if institution_id is not None:
+        r = db.execute(
+            text("""
+                SELECT c.id, c.slug, c.name, c.member_count
+                FROM communities c
+                WHERE c.institution_id = :eid AND c.status = 'listed'
+                ORDER BY c.id ASC
+                LIMIT 1
+            """),
+            {"eid": institution_id},
+        ).fetchone()
+    elif organisation_id is not None:
+        r = db.execute(
+            text("""
+                SELECT c.id, c.slug, c.name, c.member_count
+                FROM communities c
+                WHERE c.organisation_id = :eid AND c.status = 'listed'
+                ORDER BY c.id ASC
+                LIMIT 1
+            """),
+            {"eid": organisation_id},
+        ).fetchone()
+    else:
+        return None
+    if not r:
+        return None
+    vid = _optional_viewer_id(viewer)
+    viewer_is_member = False
+    if vid:
+        m = db.execute(
+            text("SELECT 1 FROM community_members WHERE community_id = :cid AND user_id = :uid LIMIT 1"),
+            {"cid": r.id, "uid": vid},
+        ).fetchone()
+        viewer_is_member = bool(m)
+    return {
+        "id": r.id,
+        "slug": r.slug,
+        "name": r.name,
+        "member_count": r.member_count or 0,
+        "feed_href": f"/feed/c/{r.slug}",
+        "viewer_is_member": viewer_is_member,
+    }
 
 
 @router.get("/profiles/{slug}", summary="Get public profile by slug")
 def get_public_profile(slug: str, db=Depends(get_db)):
     r = db.execute(
         text("""
-            SELECT user_numerical, username, full_name, headline, summary, profile_slug
+            SELECT user_numerical, username, full_name, headline, summary, profile_slug, profile_photo_url
             FROM users
             WHERE profile_slug = :s AND user_type = 'professional'
         """),
         {"s": slug},
     )
-    row = r.fetchone()
-    if not row:
+    profile_row = r.fetchone()
+    if not profile_row:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    uid = row.user_numerical
+    uid = profile_row.user_numerical
     education = []
     try:
         re = db.execute(
             text("""
                 SELECT e.id, e.institution_id, e.institution_name, e.degree, e.majors_json, e.minors_json,
-                       e.start_month, e.end_month, e.status, i.name as institution_display
+                       e.start_month, e.end_month, e.status, i.name as institution_display,
+                       CASE WHEN i.status IN ('listed', 'placeholder') THEN i.slug ELSE NULL END as institution_slug
                 FROM education_entries e
                 LEFT JOIN institutions i ON i.id = e.institution_id
                 WHERE e.user_id = :uid
@@ -50,6 +106,7 @@ def get_public_profile(slug: str, db=Depends(get_db)):
             education.append({
                 "id": er.id,
                 "institution_name": er.institution_name or er.institution_display,
+                "institution_slug": getattr(er, "institution_slug", None) or None,
                 "degree": er.degree,
                 "majors": majors,
                 "minors": minors,
@@ -64,7 +121,8 @@ def get_public_profile(slug: str, db=Depends(get_db)):
     try:
         rg = db.execute(
             text("""
-                SELECT eg.id, eg.organisation_id, eg.organisation_name, o.name as org_display
+                SELECT eg.id, eg.organisation_id, eg.organisation_name, o.name as org_display,
+                       CASE WHEN o.status IN ('listed', 'placeholder') THEN o.slug ELSE NULL END as organisation_slug
                 FROM experience_groups eg
                 LEFT JOIN organisations o ON o.id = eg.organisation_id
                 WHERE eg.user_id = :uid
@@ -89,6 +147,7 @@ def get_public_profile(slug: str, db=Depends(get_db)):
             experience.append({
                 "id": eg.id,
                 "organisation_name": eg.organisation_name or eg.org_display,
+                "organisation_slug": getattr(eg, "organisation_slug", None) or None,
                 "movements": movements,
             })
     except Exception:
@@ -104,14 +163,14 @@ def get_public_profile(slug: str, db=Depends(get_db)):
             """),
             {"uid": uid},
         )
-        for row in ar.fetchall():
+        for ar_row in ar.fetchall():
             additional_responsibilities.append({
-                "id": row.id,
-                "title": row.title,
-                "organisation_name": row.organisation_name,
-                "description": row.description,
-                "start_month": row.start_month,
-                "end_month": row.end_month,
+                "id": ar_row.id,
+                "title": ar_row.title,
+                "organisation_name": ar_row.organisation_name,
+                "description": ar_row.description,
+                "start_month": ar_row.start_month,
+                "end_month": ar_row.end_month,
             })
     except Exception:
         pass
@@ -126,22 +185,23 @@ def get_public_profile(slug: str, db=Depends(get_db)):
             """),
             {"uid": uid},
         )
-        for row in oa.fetchall():
+        for oa_row in oa.fetchall():
             other_achievements.append({
-                "id": row.id,
-                "category": row.category,
-                "title": row.title,
-                "description": row.description,
+                "id": oa_row.id,
+                "category": oa_row.category,
+                "title": oa_row.title,
+                "description": oa_row.description,
             })
     except Exception:
         pass
 
     return {
         "profile": {
-            "full_name": row.full_name,
-            "headline": row.headline,
-            "summary": row.summary,
-            "profile_slug": row.profile_slug,
+            "full_name": profile_row.full_name,
+            "headline": profile_row.headline,
+            "summary": profile_row.summary,
+            "profile_slug": profile_row.profile_slug,
+            "profile_photo_url": getattr(profile_row, "profile_photo_url", None),
         },
         "education": education,
         "experience": experience,
@@ -151,9 +211,14 @@ def get_public_profile(slug: str, db=Depends(get_db)):
 
 
 @router.get("/institutions/{slug}", summary="Get public institution by slug")
-def get_public_institution(slug: str, db=Depends(get_db)):
+def get_public_institution(slug: str, db=Depends(get_db), viewer=Depends(get_current_user_optional)):
     r = db.execute(
-        text("SELECT id, name, slug, status, logo_url, description, website FROM institutions WHERE slug = :s AND status IN ('listed', 'placeholder')"),
+        text("""
+            SELECT id, name, slug, status, logo_url, description, website,
+                   short_name, institution_type, founded_year, country, state, city, campus_type,
+                   linkedin_url, twitter_url, facebook_url, wikipedia_url
+            FROM institutions WHERE slug = :s AND status IN ('listed', 'placeholder')
+        """),
         {"s": slug},
     )
     row = r.fetchone()
@@ -198,20 +263,37 @@ def get_public_institution(slug: str, db=Depends(get_db)):
             pass
         combos.append({"degree": c.degree, "majors": majors})
 
+    def _g(attr, default=None):
+        return getattr(row, attr, default) if hasattr(row, attr) else default
+
+    linked_community = _linked_community_payload(db, institution_id=row.id, viewer=viewer)
+
     return {
         "institution": {
             "id": row.id,
             "name": row.name,
             "slug": row.slug,
             "status": row.status,
-            "logo_url": getattr(row, "logo_url", None),
-            "description": getattr(row, "description", None),
-            "website": getattr(row, "website", None),
+            "logo_url": _g("logo_url"),
+            "description": _g("description"),
+            "website": _g("website"),
+            "short_name": _g("short_name"),
+            "institution_type": _g("institution_type"),
+            "founded_year": _g("founded_year"),
+            "country": _g("country"),
+            "state": _g("state"),
+            "city": _g("city"),
+            "campus_type": _g("campus_type"),
+            "linkedin_url": _g("linkedin_url"),
+            "twitter_url": _g("twitter_url"),
+            "facebook_url": _g("facebook_url"),
+            "wikipedia_url": _g("wikipedia_url"),
         },
         "alumni_count": alumni_count,
         "current_count": current_count,
         "total_count": current_count + alumni_count,
         "degree_majors": combos,
+        "linked_community": linked_community,
     }
 
 
@@ -274,9 +356,14 @@ def get_institution_people(slug: str, db=Depends(get_db)):
 
 
 @router.get("/organisations/{slug}", summary="Get public organisation by slug")
-def get_public_organisation(slug: str, db=Depends(get_db)):
+def get_public_organisation(slug: str, db=Depends(get_db), viewer=Depends(get_current_user_optional)):
     r = db.execute(
-        text("SELECT id, name, slug, status, logo_url, description, website FROM organisations WHERE slug = :s AND status IN ('listed', 'placeholder')"),
+        text("""
+            SELECT id, name, slug, status, logo_url, description, website,
+                   short_name, organisation_type, industry, headquarters, founded_year, company_size,
+                   linkedin_url, twitter_url, crunchbase_url
+            FROM organisations WHERE slug = :s AND status IN ('listed', 'placeholder')
+        """),
         {"s": slug},
     )
     row = r.fetchone()
@@ -316,20 +403,35 @@ def get_public_organisation(slug: str, db=Depends(get_db)):
     except Exception:
         pass
 
+    def _go(attr, default=None):
+        return getattr(row, attr, default) if hasattr(row, attr) else default
+
+    linked_community = _linked_community_payload(db, organisation_id=row.id, viewer=viewer)
+
     return {
         "organisation": {
             "id": row.id,
             "name": row.name,
             "slug": row.slug,
             "status": row.status,
-            "logo_url": getattr(row, "logo_url", None),
-            "description": getattr(row, "description", None),
-            "website": getattr(row, "website", None),
+            "logo_url": _go("logo_url"),
+            "description": _go("description"),
+            "website": _go("website"),
+            "short_name": _go("short_name"),
+            "organisation_type": _go("organisation_type"),
+            "industry": _go("industry"),
+            "headquarters": _go("headquarters"),
+            "founded_year": _go("founded_year"),
+            "company_size": _go("company_size"),
+            "linkedin_url": _go("linkedin_url"),
+            "twitter_url": _go("twitter_url"),
+            "crunchbase_url": _go("crunchbase_url"),
         },
         "combos": combos,
         "current_count": current_count,
         "alumni_count": alumni_count,
         "total_count": current_count + alumni_count,
+        "linked_community": linked_community,
     }
 
 

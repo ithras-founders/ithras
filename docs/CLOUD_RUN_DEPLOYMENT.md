@@ -232,7 +232,7 @@ Migrations run automatically on deploy when `DB_SETUP=TRUE` is set (or when the 
 
 The entrypoint (`entrypoint.prod.sh`) will:
 1. Wait for the Cloud SQL socket / TCP port to be ready
-2. Run `python -m core.setup.backend.run_setup` (Alembic `upgrade head` + seeds)
+2. Run `python -m core.setup.backend.run_setup` (Alembic `upgrade head`, including idempotent **022_directory_entities_seed**: Fortune 500, India companies, and institution JSON under `/core/data/seeds/directory/` in the backend image)
 3. Start `uvicorn`
 
 **Startup probe vs migrations:** Until step 3 completes, **nothing listens on port 8080**. Cloud Run’s TCP startup probe must allow **many** failures over several minutes — not `failureThreshold: 1`, which fails the revision on the first refused connection while migrations still run. This repo’s `deploy-backend` step sets:

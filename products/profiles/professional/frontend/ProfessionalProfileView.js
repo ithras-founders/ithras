@@ -293,8 +293,13 @@ const ProfessionalProfileView = ({ user, onLogout }) => {
 
   return html`
     <${AppShell} user=${user} onLogout=${onLogout} navItems=${[]} showSettings=${true} sidebarContent=${feedSidebar}>
+      <div className="mb-3 px-1" role="status">
+        <p className="text-xs font-medium" style=${{ color: 'var(--app-text-muted)' }}>
+          <strong style=${{ color: 'var(--app-text-secondary)' }}>Editing your profile</strong>
+          — changes here update what others see on your public page.
+        </p>
+      </div>
       <${ProfileLayout}
-        reduceParentPadding=${true}
         profile=${profileData}
         education=${education}
         experience=${experience}
@@ -330,6 +335,7 @@ const ProfessionalProfileView = ({ user, onLogout }) => {
         achievementFormOverride=${achievementFormOverride}
         editingAchievementId=${editingAchievement?.id || null}
         addingAchievement=${addingAchievement}
+        onProfilePhotoRefresh=${refresh}
       />
     </${AppShell}>
   `;

@@ -2,13 +2,13 @@
  * Shared profile page layout: sidebar (hero + about) + main (education + experience).
  * Matches the Ithras profile template design.
  */
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import htm from 'htm';
 import StatusChip from '/shared/components/StatusChip.js';
+import { resolveApiMediaUrl } from '/shared/services/apiBase.js';
+import { uploadProfilePhoto } from '/shared/services/profile.js';
 
 const html = htm.bind(React.createElement);
-
-const ACCENT = '#1E6EF2';
 
 const GraduationCapIcon = () => html`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`;
 const Building2Icon = () => html`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/></svg>`;
@@ -32,6 +32,15 @@ function formatMonth(value) {
 
 function rangeLabel(start, end) {
   return `${formatMonth(start)} - ${formatMonth(end)}`;
+}
+
+/** Client-side navigation for SPA; allow modifier / middle-click for new tab. */
+function navigateInApp(href, e) {
+  if (!href) return;
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button === 1) return;
+  e.preventDefault();
+  window.history.pushState(null, '', href);
+  window.dispatchEvent(new CustomEvent('ithras:path-changed'));
 }
 
 /** Calculate duration between start_month and end_month (yyyymm strings). Returns e.g. "2 years 1 month". */
@@ -141,7 +150,7 @@ const TrashIcon = () => html`<svg xmlns="http://www.w3.org/2000/svg" width="14" 
  * @param {ReactNode} [props.achievementFormOverride] - edit form
  * @param {number|null} [props.editingAchievementId] - id being edited
  * @param {boolean} [props.addingAchievement] - adding new
- * @param {boolean} [props.reduceParentPadding] - use negative margin to reduce parent's padding by ~50% (when inside AppShell)
+ * @param {Function} [props.onProfilePhotoRefresh] - after successful photo upload (e.g. refetch profile + refresh session)
  */
 const ProfileLayout = ({
   profile,
@@ -184,12 +193,31 @@ const ProfileLayout = ({
   achievementFormOverride,
   editingAchievementId = null,
   addingAchievement = false,
-  reduceParentPadding = false,
+  onProfilePhotoRefresh,
 }) => {
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const photoInputRef = useRef(null);
   const summary = summaryProp ?? profile?.summary ?? '';
   const displayName = profile?.full_name || 'Profile';
   const initials = getInitials(displayName);
   const profileUrl = profile?.profile_slug ? `ithras.com/p/${profile.profile_slug}` : null;
+  const photoAbsUrl = resolveApiMediaUrl(profile?.profile_photo_url);
+
+  const onPhotoFileChange = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f || !editable || !isOwnProfile) return;
+    setPhotoBusy(true);
+    try {
+      await uploadProfilePhoto(f);
+      onProfilePhotoRefresh?.();
+      window.dispatchEvent(new CustomEvent('ithras:refresh-session'));
+    } catch (err) {
+      window.alert(err?.message || 'Upload failed');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
 
   const hasCurrentEducation = education.some((e) => educationStatusTag(e) === 'current');
   const hasCurrentExperience = experience.some((o) => experienceStatusTag(o) === 'current');
@@ -197,15 +225,43 @@ const ProfileLayout = ({
   const showEducationFirst = !showExperienceFirst;
 
   return html`
-    <div className=${`min-h-screen ${reduceParentPadding ? '-mx-3' : ''}`} style=${{ background: 'var(--app-bg)' }}>
-      <div className="mx-auto max-w-[1600px] w-full py-6 px-1 md:px-1.5 lg:px-2">
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-[1fr_3fr_2fr]">
-          <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start order-1">
-            <div className="overflow-hidden rounded-3xl border-0 shadow-sm bg-[var(--app-surface)]">
-              <div className="h-28" style=${{ background: ACCENT }} />
-              <div className="relative px-6 pb-6 pt-0">
-                <div className="-mt-12 flex h-24 w-24 items-center justify-center rounded-3xl border-4 border-white bg-white text-3xl font-semibold shadow-sm" style=${{ color: 'var(--app-text-primary)' }}>
-                  ${initials}
+    <div className="min-h-screen w-full" style=${{ background: 'var(--app-bg)' }}>
+      <div className="w-full py-2 sm:py-3 px-0">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,2.4fr)_minmax(0,1fr)] xl:gap-5">
+          <aside className="space-y-3 sm:space-y-4 lg:sticky lg:top-4 lg:self-start order-1">
+            <div className="overflow-hidden rounded-2xl border shadow-[var(--app-shadow-subtle)] bg-[var(--app-surface)]" style=${{ borderColor: 'var(--app-border-soft)' }}>
+              <div className="h-24 sm:h-28" style=${{ background: 'var(--app-accent)' }} />
+              <div className="relative px-4 pb-4 pt-0 sm:px-5 sm:pb-5">
+                <div className="-mt-11 sm:-mt-12 flex flex-col items-start gap-2">
+                  <div className="relative h-20 w-20 sm:h-24 sm:w-24 rounded-2xl sm:rounded-3xl border-4 shadow-[var(--app-shadow-card)] overflow-hidden flex-shrink-0" style=${{ borderColor: 'var(--app-surface)', background: 'var(--app-surface-muted)', color: 'var(--app-text-primary)' }}>
+                    ${photoAbsUrl
+                      ? html`<img src=${photoAbsUrl} alt="" className="h-full w-full object-cover" width="96" height="96" />`
+                      : html`<div className="flex h-full w-full items-center justify-center text-2xl sm:text-3xl font-semibold">${initials}</div>`}
+                    ${photoBusy
+                      ? html`<div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white" style=${{ background: 'rgba(0,0,0,0.45)' }}>…</div>`
+                      : null}
+                  </div>
+                  ${editable && isOwnProfile
+                    ? html`
+                        <input
+                          ref=${photoInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="sr-only"
+                          aria-label="Upload profile photo"
+                          onChange=${onPhotoFileChange}
+                        />
+                        <button
+                          type="button"
+                          disabled=${photoBusy}
+                          onClick=${() => photoInputRef.current?.click()}
+                          className="text-xs font-medium rounded-lg px-2 py-1 border ith-focus-ring disabled:opacity-50"
+                          style=${{ borderColor: 'var(--app-border-soft)', color: 'var(--app-accent)' }}
+                        >
+                          ${photoBusy ? 'Uploading…' : 'Change photo'}
+                        </button>
+                      `
+                    : null}
                 </div>
                 <div className="mt-4 space-y-3">
                   <div>
@@ -236,7 +292,7 @@ const ProfileLayout = ({
                   ` : html`
                     <button
                       className="mt-3 w-full rounded-xl py-2.5 font-medium text-white transition-opacity hover:opacity-90"
-                      style=${{ background: ACCENT }}
+                      style=${{ background: 'var(--app-accent)', boxShadow: 'var(--app-shadow-primary)' }}
                     >
                       Connect
                     </button>
@@ -245,30 +301,36 @@ const ProfileLayout = ({
               </div>
             </div>
 
-            <div className="rounded-3xl border-0 shadow-sm bg-[var(--app-surface)] p-6">
-              <h2 className="text-base font-semibold mb-3" style=${{ color: 'var(--app-text-primary)' }}>About</h2>
+            <div className="rounded-2xl border bg-[var(--app-surface)] p-3 sm:p-4 shadow-[var(--app-shadow-subtle)]" style=${{ borderColor: 'var(--app-border-soft)' }}>
+              <h2 className="text-base font-semibold mb-2" style=${{ color: 'var(--app-text-primary)' }}>About</h2>
               ${editingAbout && aboutFormOverride ? html`<div>${aboutFormOverride}</div>` : html`
-                ${summary ? html`
-                  <p className="text-sm leading-7" style=${{ color: 'var(--app-text-secondary)' }}>${summary}</p>
-                  ${editable && onEditAbout ? html`
-                    <button type="button" onClick=${onEditAbout} className="mt-3 flex items-center gap-1.5 text-sm font-medium" style=${{ color: 'var(--app-accent)' }}>
-                      <${PencilIcon} /> Edit
-                    </button>
-                  ` : null}
-                ` : html`
-                  <p className="text-sm leading-6" style=${{ color: 'var(--app-text-muted)' }}>${editable && onEditAbout ? 'Add a short bio...' : 'No bio yet.'}</p>
-                  ${editable && onEditAbout ? html`
-                    <button type="button" onClick=${onEditAbout} className="mt-3 flex items-center gap-1.5 text-sm font-medium" style=${{ color: 'var(--app-accent)' }}>
-                      <${PlusIcon} /> Add bio
-                    </button>
-                  ` : null}
-                `}
+                ${summary
+                  ? html`<div className="space-y-3">
+                      <p className="text-sm leading-7" style=${{ color: 'var(--app-text-secondary)' }}>${summary}</p>
+                      ${editable && onEditAbout
+                        ? html`
+                            <button type="button" onClick=${onEditAbout} className="flex items-center gap-1.5 text-sm font-medium" style=${{ color: 'var(--app-accent)' }}>
+                              <${PencilIcon} /> Edit
+                            </button>
+                          `
+                        : null}
+                    </div>`
+                  : html`<div className="space-y-3">
+                      <p className="text-sm leading-6" style=${{ color: 'var(--app-text-muted)' }}>${editable && onEditAbout ? 'Add a short bio...' : 'No bio yet.'}</p>
+                      ${editable && onEditAbout
+                        ? html`
+                            <button type="button" onClick=${onEditAbout} className="flex items-center gap-1.5 text-sm font-medium" style=${{ color: 'var(--app-accent)' }}>
+                              <${PlusIcon} /> Add bio
+                            </button>
+                          `
+                        : null}
+                    </div>`}
               `}
             </div>
           </aside>
 
-          <main className="flex flex-col gap-6 order-2" style=${{ background: 'var(--app-bg)' }}>
-            <div key="education-section" className=${`rounded-xl border p-6 ${showEducationFirst ? 'order-1' : 'order-2'}`} style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
+          <main className="flex flex-col gap-3 sm:gap-4 order-2 min-w-0" style=${{ background: 'var(--app-bg)' }}>
+            <div key="education-section" className=${`rounded-xl border p-3 sm:p-4 ${showEducationFirst ? 'order-1' : 'order-2'}`} style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
               <div className="flex flex-row items-center justify-between pb-2">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--app-surface-subtle)]" style=${{ color: 'var(--app-text-secondary)' }}>
@@ -282,8 +344,8 @@ const ProfileLayout = ({
                   </button>
                 ` : null}
               </div>
-              <div className="pt-0 space-y-5">
-                ${addingEducation && educationFormOverride ? html`<div key="edu-form" className="mb-5">${educationFormOverride}</div>` : null}
+              <div className="pt-0 space-y-4">
+                ${addingEducation && educationFormOverride ? html`<div key="edu-form" className="mb-4">${educationFormOverride}</div>` : null}
                 ${education.length === 0 && !addingEducation
                   ? html`<div key="edu-empty" className="text-sm py-4" style=${{ color: 'var(--app-text-muted)' }}>No education added yet. ${editable && onAddEducation ? html`<button type="button" onClick=${onAddEducation} className="ml-2 text-[var(--app-accent)] hover:underline">Add your first</button>` : null}</div>`
                   : education.map((entry, eduIdx) => {
@@ -297,15 +359,24 @@ const ProfileLayout = ({
                       const majorLabel = majors.length ? ` · ${majors.join(', ')}` : '';
                       const minorLabel = minors.length ? ` (Minor: ${minors.join(', ')})` : '';
                       return React.createElement('div', { key: entry?.id ?? `edu-${eduIdx}` },
-                        html`<div className="rounded-2xl border p-5" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
-                          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        html`<div className="rounded-xl border p-3" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div className="space-y-2 flex-1">
                               <div className="flex items-center gap-3">
                                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--app-surface-subtle)]" style=${{ color: 'var(--app-text-secondary)' }}>
                                   <${GraduationCapIcon} />
                                 </div>
                                 <div>
-                                  <h3 className="text-base font-semibold" style=${{ color: 'var(--app-text-primary)' }}>${entry.institution_name || 'Institution'}</h3>
+                                  <h3 className="text-base font-semibold" style=${{ color: 'var(--app-text-primary)' }}>
+                                    ${entry.institution_slug
+                                      ? html`<a
+                                          href=${`/i/${encodeURIComponent(entry.institution_slug)}`}
+                                          className="hover:underline rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
+                                          style=${{ color: 'inherit', textDecoration: 'none' }}
+                                          onClick=${(e) => navigateInApp(`/i/${entry.institution_slug}`, e)}
+                                        >${entry.institution_name || 'Institution'}</a>`
+                                      : entry.institution_name || 'Institution'}
+                                  </h3>
                                   <p className="text-sm" style=${{ color: 'var(--app-text-secondary)' }}>
                                     ${entry.degree}${majorLabel}${minorLabel}
                                   </p>
@@ -331,7 +402,7 @@ const ProfileLayout = ({
               </div>
             </div>
 
-            <div key="experience-section" className=${`rounded-xl border p-6 ${showExperienceFirst ? 'order-1' : 'order-2'}`} style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
+            <div key="experience-section" className=${`rounded-xl border p-3 sm:p-4 ${showExperienceFirst ? 'order-1' : 'order-2'}`} style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
               <div className="flex flex-row items-center justify-between pb-2">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--app-surface-subtle)]" style=${{ color: 'var(--app-text-secondary)' }}>
@@ -345,8 +416,8 @@ const ProfileLayout = ({
                   </button>
                 ` : null}
               </div>
-              <div className="pt-0 space-y-6">
-                ${addingExperience && experienceFormOverride ? html`<div key="exp-form" className="mb-5">${experienceFormOverride}</div>` : null}
+              <div className="pt-0 space-y-4">
+                ${addingExperience && experienceFormOverride ? html`<div key="exp-form" className="mb-4">${experienceFormOverride}</div>` : null}
                 ${experience.length === 0 && !addingExperience
                   ? html`<div key="exp-empty" className="text-sm py-4" style=${{ color: 'var(--app-text-muted)' }}>No experience added yet. ${editable && onAddExperience ? html`<button type="button" onClick=${onAddExperience} className="ml-2 text-[var(--app-accent)] hover:underline">Add your first</button>` : null}</div>`
                   : experience.map((org, expIdx) => {
@@ -358,15 +429,24 @@ const ProfileLayout = ({
                       const movements = org.movements || [];
                       const isCurrent = orgTag === 'current';
                       return React.createElement('div', { key: org?.id ?? `exp-${expIdx}` },
-                        html`<div className="rounded-3xl border p-5 md:p-6" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
-                          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        html`<div className="rounded-xl border p-3 md:p-4" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div className="space-y-2">
                               <div className="flex items-center gap-3">
                                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--app-surface-subtle)]" style=${{ color: 'var(--app-text-secondary)' }}>
                                   <${Building2Icon} />
                                 </div>
                                 <div>
-                                  <h3 className="text-lg font-semibold" style=${{ color: 'var(--app-text-primary)' }}>${org.organisation_name || 'Organisation'}</h3>
+                                  <h3 className="text-lg font-semibold" style=${{ color: 'var(--app-text-primary)' }}>
+                                    ${org.organisation_slug
+                                      ? html`<a
+                                          href=${`/o/${encodeURIComponent(org.organisation_slug)}`}
+                                          className="hover:underline rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
+                                          style=${{ color: 'inherit', textDecoration: 'none' }}
+                                          onClick=${(e) => navigateInApp(`/o/${org.organisation_slug}`, e)}
+                                        >${org.organisation_name || 'Organisation'}</a>`
+                                      : org.organisation_name || 'Organisation'}
+                                  </h3>
                                   <div className="mt-1 flex flex-col gap-0.5 text-sm" style=${{ color: 'var(--app-text-muted)' }}>
                                     <span className="flex items-center gap-1.5">
                                       <${CalendarIcon} />
@@ -417,13 +497,13 @@ const ProfileLayout = ({
                             const textMutedStyle = { color: 'var(--app-text-muted)' };
                             const textSecondaryStyle = { color: 'var(--app-text-secondary)' };
                             const lineStyle = { background: 'var(--app-border-soft)' };
-                            const accentStyle = { background: ACCENT };
-                            const accentColorStyle = { color: ACCENT };
+                            const accentStyle = { background: 'var(--app-accent)' };
+                            const accentColorStyle = { color: 'var(--app-accent)' };
                             const textPrimaryStyle = { color: 'var(--app-text-primary)' };
                             return html`
-                              <div className="mt-6 space-y-4">
+                              <div className="mt-4 space-y-3">
                                 ${groups.map((grp, grpIdx) => React.createElement('div', { key: `grp-${grpIdx}-${grp.key}` },
-                                  html`<div className="rounded-xl border p-4" style=${boxStyle}>
+                                  html`<div className="rounded-xl border p-3" style=${boxStyle}>
                                     ${(grp.bu || grp.func) ? html`
                                       <div className="mb-3 flex justify-between gap-4 text-sm" style=${textSecondaryStyle}>
                                         ${grp.bu ? html`<span><span className="font-medium">Business unit:</span> ${String(grp.bu)}</span>` : html`<span></span>`}
@@ -475,8 +555,8 @@ const ProfileLayout = ({
             </div>
           </main>
 
-          <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start order-3">
-            <div key="responsibilities-section" className="rounded-xl border p-6" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
+          <aside className="space-y-3 sm:space-y-4 lg:sticky lg:top-4 lg:self-start order-3 min-w-0">
+            <div key="responsibilities-section" className="rounded-xl border p-3 sm:p-4" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
               <div className="flex flex-row items-center justify-between pb-2">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--app-surface-subtle)]" style=${{ color: 'var(--app-text-secondary)' }}>
@@ -490,8 +570,8 @@ const ProfileLayout = ({
                   </button>
                 ` : null}
               </div>
-              <div className="pt-0 space-y-5">
-                ${addingResponsibility && responsibilityFormOverride ? html`<div key="resp-form" className="mb-5">${responsibilityFormOverride}</div>` : null}
+              <div className="pt-0 space-y-4">
+                ${addingResponsibility && responsibilityFormOverride ? html`<div key="resp-form" className="mb-4">${responsibilityFormOverride}</div>` : null}
                 ${additionalResponsibilities.length === 0 && !addingResponsibility
                   ? html`<div key="resp-empty" className="text-sm py-4" style=${{ color: 'var(--app-text-muted)' }}>No additional responsibilities. ${editable && onAddResponsibility ? html`<button type="button" onClick=${onAddResponsibility} className="ml-2 text-[var(--app-accent)] hover:underline">Add</button>` : null}</div>`
                   : additionalResponsibilities.map((item, idx) => {
@@ -501,8 +581,8 @@ const ProfileLayout = ({
                       }
                       const sub = item.organisation_name ? ` · ${item.organisation_name}` : '';
                       return React.createElement(React.Fragment, { key }, html`
-                        <div className="rounded-2xl border p-5" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
-                          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div className="rounded-xl border p-3" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div className="space-y-2 flex-1">
                               <h3 className="text-base font-semibold" style=${{ color: 'var(--app-text-primary)' }}>${item.title}${sub}</h3>
                               ${item.description ? html`<p className="text-sm" style=${{ color: 'var(--app-text-secondary)' }}>${item.description}</p>` : null}
@@ -526,7 +606,7 @@ const ProfileLayout = ({
               </div>
             </div>
 
-            <div key="achievements-section" className="rounded-xl border p-6" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
+            <div key="achievements-section" className="rounded-xl border p-3 sm:p-4" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
               <div className="flex flex-row items-center justify-between pb-2">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--app-surface-subtle)]" style=${{ color: 'var(--app-text-secondary)' }}>
@@ -540,8 +620,8 @@ const ProfileLayout = ({
                   </button>
                 ` : null}
               </div>
-              <div className="pt-0 space-y-5">
-                ${addingAchievement && achievementFormOverride ? html`<div key="ach-form" className="mb-5">${achievementFormOverride}</div>` : null}
+              <div className="pt-0 space-y-4">
+                ${addingAchievement && achievementFormOverride ? html`<div key="ach-form" className="mb-4">${achievementFormOverride}</div>` : null}
                 ${otherAchievements.length === 0 && !addingAchievement
                   ? html`<div key="ach-empty" className="text-sm py-4" style=${{ color: 'var(--app-text-muted)' }}>No other achievements. ${editable && onAddAchievement ? html`<button type="button" onClick=${onAddAchievement} className="ml-2 text-[var(--app-accent)] hover:underline">Add</button>` : null}</div>`
                   : otherAchievements.map((item, idx) => {
@@ -551,8 +631,8 @@ const ProfileLayout = ({
                       }
                       const catLabel = (item.category || 'other').charAt(0).toUpperCase() + (item.category || 'other').slice(1);
                       return React.createElement(React.Fragment, { key }, html`
-                        <div className="rounded-2xl border p-5" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
-                          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div className="rounded-xl border p-3" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface)' }}>
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                             <div className="space-y-2 flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium" style=${{ background: 'var(--app-accent-soft)', color: 'var(--app-accent)' }}>${catLabel}</span>

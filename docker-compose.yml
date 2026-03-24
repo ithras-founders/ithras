@@ -34,6 +34,7 @@ services:
       DB_SETUP: "FALSE"
       DEMO_PASSWORD: ${DEMO_PASSWORD:-password}
       ASSETS_COMPANIES_DIR: /app_assets/companies
+      LONGFORM_MEDIA_DIR: /products/data/longform_media
       DB_HOST: db
       DB_PORT: 5432
       POSTGRES_USER: ithras_user
@@ -42,10 +43,13 @@ services:
     volumes:
       - ./core/app/backend:/app
       - ./core:/core
+      # Seeds for Alembic 022 / seed_directory_entities (host data/ is not under core/)
+      - ./data/seeds/directory:/core/data/seeds/directory:ro
       - ./shared:/shared
       - ./admin:/admin
       - ./products:/products
       - ./assets:/app_assets
+      - ./data/longform_media:/products/data/longform_media
       - ./tests:/tests
     depends_on:
       db:
@@ -70,6 +74,7 @@ services:
     container_name: ithras-frontend
     environment:
       BACKEND_URL: http://backend:8000
+      USE_SAME_ORIGIN_API: "1"
     depends_on:
       backend:
         condition: service_healthy

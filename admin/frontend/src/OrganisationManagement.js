@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { apiRequest } from '/shared/services/apiBase.js';
+import AdminPageHeader from '/shared/components/admin/AdminPageHeader.js';
 
 const html = htm.bind(React.createElement);
 
@@ -81,19 +82,35 @@ const OrganisationManagement = () => {
 
   return html`
     <div>
-      <h1 className="text-2xl font-bold text-[var(--app-text-primary)] mb-6">Organisation Management</h1>
-      ${error ? html`<div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">${error}</div>` : null}
-      <div className="flex gap-1 p-1 rounded-xl bg-[var(--app-surface)] border border-[var(--app-border-soft)] w-fit mb-6">
+      <${AdminPageHeader}
+        title="Organisation Management"
+        subtitle="Approve organisation + role combinations and curate the listed directory."
+      />
+      ${error
+        ? html`<div
+            className="mb-6 p-4 rounded-[var(--radius-lg)] text-sm border"
+            style=${{
+              color: 'var(--status-danger-text)',
+              background: 'var(--app-danger-soft)',
+              borderColor: 'var(--app-border-soft)',
+            }}
+          >
+            ${error}
+          </div>`
+        : null}
+      <div className="flex gap-1 p-1 rounded-[var(--app-radius-card)] bg-[var(--app-surface-subtle)] border border-[var(--app-border-soft)] w-fit mb-6">
         <button
+          type="button"
           onClick=${() => setTab('pending')}
-          className=${`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${tab === 'pending' ? 'bg-white text-[var(--app-text-primary)] shadow-sm' : 'text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]'}`}
+          className=${`ith-focus-ring px-5 py-2.5 rounded-[var(--radius-lg)] font-semibold text-sm transition-all ${tab === 'pending' ? 'bg-[var(--app-surface)] text-[var(--app-text-primary)] shadow-[var(--app-shadow-subtle)]' : 'text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]'}`}
         >
           Pending Approval
           ${pending.length > 0 ? html`<span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">${pending.length}</span>` : null}
         </button>
         <button
+          type="button"
           onClick=${() => setTab('listed')}
-          className=${`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all ${tab === 'listed' ? 'bg-white text-[var(--app-text-primary)] shadow-sm' : 'text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]'}`}
+          className=${`ith-focus-ring px-5 py-2.5 rounded-[var(--radius-lg)] font-semibold text-sm transition-all ${tab === 'listed' ? 'bg-[var(--app-surface)] text-[var(--app-text-primary)] shadow-[var(--app-shadow-subtle)]' : 'text-[var(--app-text-secondary)] hover:text-[var(--app-text-primary)]'}`}
         >
           Listed
         </button>

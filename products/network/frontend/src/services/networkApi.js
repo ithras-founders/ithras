@@ -91,8 +91,11 @@ export async function getProfileOverlap(profileSlug) {
   return apiRequest(`/v1/network/profiles/${encodeURIComponent(profileSlug)}/overlap`);
 }
 
-export async function getNotifications() {
-  const res = await apiRequest('/v1/network/notifications', { quiet: true });
+export async function getNotifications(params = {}) {
+  const q = new URLSearchParams();
+  if (params.limit != null) q.set('limit', String(params.limit));
+  const suffix = q.toString() ? `?${q}` : '';
+  const res = await apiRequest(`/v1/network/notifications${suffix}`, { quiet: true });
   return {
     unread_count: res?.unread_count ?? 0,
     items: res?.items ?? [],

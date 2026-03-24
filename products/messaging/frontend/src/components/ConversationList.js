@@ -22,10 +22,23 @@ const EMPTY_MESSAGES = {
   archived: { title: 'No archived conversations', description: 'Archived conversations will appear here' },
 };
 
-const ConversationList = ({ conversations = [], activeConversationId, activeSection, onSelect }) => {
-  const empty = EMPTY_MESSAGES[activeSection] || EMPTY_MESSAGES.other;
+const filterConversations = (list, q) => {
+  const needle = (q || '').trim().toLowerCase();
+  if (!needle) return list || [];
+  return (list || []).filter((c) => {
+    const title = (c.title || '').toLowerCase();
+    const preview = (c.last_message_preview || '').toLowerCase();
+    return title.includes(needle) || preview.includes(needle);
+  });
+};
 
-  if (!conversations || conversations.length === 0) {
+const ConversationList = ({ conversations = [], activeConversationId, activeSection, onSelect, filterText = '' }) => {
+  const empty = EMPTY_MESSAGES[activeSection] || EMPTY_MESSAGES.other;
+  const filtered = filterConversations(conversations, filterText);
+  const baseEmpty = !conversations || conversations.length === 0;
+  const filterEmpty = !baseEmpty && filtered.length === 0;
+
+  if (baseEmpty) {
     return html`
       <div className="flex flex-col h-full" style=${{ background: 'var(--app-surface)' }}>
         <div className="flex-1 overflow-auto">
@@ -39,12 +52,25 @@ const ConversationList = ({ conversations = [], activeConversationId, activeSect
     `;
   }
 
+  if (filterEmpty) {
+    return html`
+      <div className="flex flex-col h-full overflow-y-auto" style=${{ background: 'var(--app-surface)', borderRight: '1px solid var(--app-border-soft)' }}>
+        <div className="flex flex-1 flex-col items-center justify-center px-4 py-8 text-center">
+          <p className="text-sm font-medium" style=${{ color: 'var(--app-text-primary)' }}>No matches</p>
+          <p className="text-xs mt-1 max-w-[14rem]" style=${{ color: 'var(--app-text-muted)' }}>
+            Try another name or keyword. Search runs on loaded conversations only.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
   return html`
     <div
       className="flex flex-col h-full overflow-y-auto"
       style=${{ background: 'var(--app-surface)', borderRight: '1px solid var(--app-border-soft)' }}
     >
-      ${conversations.map((c) => html`
+      ${filtered.map((c) => html`
         <${ConversationListItem}
           key=${c.id}
           conversation=${c}

@@ -1,5 +1,53 @@
 /** Profile API: education, experience, institutions, organisations */
-import { apiRequest } from './apiBase.js';
+import { apiRequest, getApiBaseUrl } from './apiBase.js';
+
+function authHeadersForMultipart() {
+  let sessionId;
+  let authToken;
+  try {
+    sessionId = sessionStorage.getItem('ithras_session_id');
+    const saved = localStorage.getItem('ithras_session');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      authToken = parsed?.access_token || parsed?.session_id || parsed?.sessionId;
+    }
+  } catch (_) { /* ignore */ }
+  return {
+    ...(sessionId ? { 'x-session-id': sessionId } : {}),
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+  };
+}
+
+/** POST multipart profile photo; returns full `/v1/profile/me` payload. */
+export async function uploadProfilePhoto(file) {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/v1/profile/me/photo`;
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: authHeadersForMultipart(),
+    body: form,
+    redirect: 'manual',
+  });
+  if (res.status === 401) {
+    try {
+      localStorage.removeItem('ithras_session');
+      sessionStorage.removeItem('ithras_session_id');
+      sessionStorage.removeItem('ithras_hr_view');
+    } catch (_) { /* ignore */ }
+    window.dispatchEvent(new CustomEvent('ithras:auth:expired'));
+  }
+  if (!res.ok) {
+    let msg = `API Error: ${res.status}`;
+    try {
+      const err = await res.json();
+      if (err.detail) msg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+    } catch (_) { /* ignore */ }
+    throw new Error(msg);
+  }
+  return res.json();
+}
 
 export const updateProfile = (data) =>
   apiRequest('/v1/profile/me', {
@@ -152,3 +200,7 @@ export const getInstitutionPeople = (slug) =>
 
 export const getOrganisationPeople = (slug) =>
   apiRequest(`/v1/public/organisations/${encodeURIComponent(slug)}/people`, { quiet: true });
+
+/** Authenticated: recent posts for a community (member-only per feed API). */
+export const getCommunityFeedPreview = (communityId, { limit = 6 } = {}) =>
+  apiRequest(`/v1/feed/communities/${communityId}/feed?limit=${limit}&offset=0`, { quiet: true });

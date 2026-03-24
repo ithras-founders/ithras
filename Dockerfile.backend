@@ -19,6 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Application code
 COPY core/app/backend/ .
 COPY core/ /core/
+# Directory seed files for Alembic 022 + seed_directory_entities (see /core/data/seeds/directory)
+COPY data/seeds/directory /core/data/seeds/directory/
 COPY shared/ /shared/
 COPY products/ /products/
 COPY admin/ /admin/

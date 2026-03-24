@@ -32,7 +32,7 @@
  * @property {number|null} channel_id
  * @property {string} community_name
  * @property {string} channel_name
- * @property {'discussion'|'question'|'resource'|'announcement'|'opportunity'|'event'|'poll'|'milestone'|'introduction'} type
+ * @property {string} type — API may return legacy values; UI treats posts as discussions.
  * @property {string} title
  * @property {string} content
  * @property {string[]} tags
@@ -67,22 +67,9 @@
  * @property {string|null} created_at
  *
  * @typedef {Object} FeedFilterState
- * @property {string} [type]
  * @property {string} [search]
  * @property {number} [channel_id]
  */
-
-export const POST_TYPES = [
-  { key: 'discussion', label: 'Discussion' },
-  { key: 'question', label: 'Question' },
-  { key: 'resource', label: 'Resource' },
-  { key: 'announcement', label: 'Announcement' },
-  { key: 'opportunity', label: 'Opportunity' },
-  { key: 'event', label: 'Event' },
-  { key: 'poll', label: 'Poll' },
-  { key: 'milestone', label: 'Milestone' },
-  { key: 'introduction', label: 'Introduction' },
-];
 
 export const COMMUNITY_TYPES = [
   { key: 'institution', label: 'Institution' },

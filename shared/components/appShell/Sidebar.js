@@ -23,9 +23,17 @@ const DEFAULT_NAV_ITEMS = [
  *   onLogout?: () => void,
  *   navItems?: Array<{ key: string, label: string, href: string, icon: React.ComponentType }>,
  *   showSettings?: boolean,
+ *   navSectionTitle?: string | null,
  * }}
  */
-const Sidebar = ({ collapsed, activeTab = '', onLogout, navItems = DEFAULT_NAV_ITEMS, showSettings = true }) => {
+const Sidebar = ({
+  collapsed,
+  activeTab = '',
+  onLogout,
+  navItems = DEFAULT_NAV_ITEMS,
+  showSettings = true,
+  navSectionTitle = null,
+}) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const ref = useRef(null);
   const width = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
@@ -39,11 +47,14 @@ const Sidebar = ({ collapsed, activeTab = '', onLogout, navItems = DEFAULT_NAV_I
 
   return html`
     <aside
-      className="flex-shrink-0 flex flex-col border-r border-[var(--app-border-soft)] bg-[var(--app-surface)] transition-all duration-300 ease-in-out overflow-hidden"
-      style=${{ width: `${width}px` }}
+      className="flex h-full min-h-0 w-full flex-col bg-[var(--app-surface)] transition-all duration-300 ease-in-out overflow-hidden"
+      style=${{ width: `${width}px`, maxWidth: `${width}px` }}
       aria-label="Main navigation"
     >
-      <nav className="flex-1 py-5 px-3 space-y-1 overflow-y-auto min-h-0">
+      <nav className="flex-1 min-h-0 py-5 px-3 space-y-1 overflow-y-auto">
+        ${navSectionTitle && !collapsed
+          ? html`<p className="text-[11px] font-semibold uppercase tracking-wider mb-3 px-1" style=${{ color: 'var(--app-text-muted)' }}>${navSectionTitle}</p>`
+          : null}
         ${hasNavItems ? navItems.map(
           (item) => html`
             <${SidebarNavItem}

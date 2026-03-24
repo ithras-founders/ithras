@@ -107,17 +107,29 @@ const CommunityManagement = ({ onNavigateToDetail, onNavigateToCreate, onNavigat
     }
   };
 
+  const goToChannelRequests = () => {
+    window.history.pushState(null, '', '/admin/channel-requests');
+    window.dispatchEvent(new CustomEvent('ithras:path-changed'));
+  };
+
   return html`
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold" style=${{ color: 'var(--app-text-primary)' }}>Community Management</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick=${goToRequests}
             className="px-4 py-2 rounded-lg text-sm font-medium border"
             style=${{ borderColor: 'var(--app-border-soft)', color: 'var(--app-text-secondary)' }}
           >
-            Community Requests
+            Community requests
+          </button>
+          <button
+            onClick=${goToChannelRequests}
+            className="px-4 py-2 rounded-lg text-sm font-medium border"
+            style=${{ borderColor: 'var(--app-border-soft)', color: 'var(--app-text-secondary)' }}
+          >
+            Channel requests
           </button>
           <button
             onClick=${goToCreate}

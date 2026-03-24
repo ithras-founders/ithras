@@ -1,16 +1,14 @@
 /**
  * TopBar - Full-width sticky top bar.
- * General mode: [ BrandArea ][ Search ][ Feed ][ Network ][ Messages ][ Profile ]
+ * General mode: [ BrandArea ][ Search (hidden on /search) ][ Feed ][ Network ][ LongForm ][ Prepare ][ Jobs ][ Messages ][ Profile ]
  * Admin mode: [ BrandArea ][ Search ][ Users ][ Entities ][ Communities ][ Profile ]
  */
 import React from 'react';
 import htm from 'htm';
-import { Users, Building2, MessageCircle, Activity } from 'lucide-react';
+import { Users, Building2, MessageCircle, Activity, BookOpen, Newspaper, Briefcase, Search, Menu, Moon, Sun } from 'lucide-react';
 import BrandArea from './BrandArea.js';
 import SearchBar from './SearchBar.js';
 import ProfileMenu from './ProfileMenu.js';
-import NotificationBell from './NotificationBell.js';
-
 const html = htm.bind(React.createElement);
 
 const FeedIcon = () => html`
@@ -35,6 +33,12 @@ const MessagesIcon = () => html`
   </svg>
 `;
 
+const PrepareIcon = () => html`<${BookOpen} size=${20} strokeWidth=${2} />`;
+
+const LongFormIcon = () => html`<${Newspaper} size=${20} strokeWidth=${2} />`;
+
+const JobsIcon = () => html`<${Briefcase} size=${20} strokeWidth=${2} />`;
+
 const NavButton = ({ href, label, icon, isActive, badge = 0 }) => {
   const handleClick = (e) => {
     e.preventDefault();
@@ -45,10 +49,11 @@ const NavButton = ({ href, label, icon, isActive, badge = 0 }) => {
     <a
       href=${href}
       onClick=${handleClick}
-      className="relative flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-lg min-w-[56px] transition-colors hover:bg-[var(--app-surface-hover)]"
+      className="relative ith-focus-ring flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-[var(--radius-pill)] min-w-[56px] transition-colors hover:bg-[var(--app-surface-hover)]"
       style=${{
         background: isActive ? 'var(--app-accent-soft)' : 'transparent',
         color: isActive ? 'var(--app-accent)' : 'var(--app-text-secondary)',
+        boxShadow: isActive ? 'inset 0 0 0 1px var(--app-accent-soft)' : 'none',
       }}
     >
       <span className="flex-shrink-0 relative">
@@ -85,6 +90,15 @@ const NavButton = ({ href, label, icon, isActive, badge = 0 }) => {
  *   searchPlaceholder?: string,
  *   variant?: 'admin' | 'general',
  *   pendingUsersCount?: number,
+ *   onSearchActivate?: () => void,
+ *   topSearchValue?: string,
+ *   onTopSearchChange?: (v: string) => void,
+ *   onTopSearchSubmit?: (q: string) => void,
+ *   onTopSearchNavigate?: (href: string) => void,
+ *   logoTheme?: 'light' | 'dark',
+ *   theme?: 'light' | 'dark',
+ *   onThemeToggle?: () => void,
+ *   onMobileMenuOpen?: () => void,
  * }}
  */
 const TopBar = ({
@@ -95,43 +109,133 @@ const TopBar = ({
   searchPlaceholder = 'Search...',
   variant,
   pendingUsersCount = 0,
+  onSearchActivate,
+  topSearchValue = '',
+  onTopSearchChange,
+  onTopSearchSubmit,
+  onTopSearchNavigate,
+  logoTheme = 'dark',
+  theme = 'light',
+  onThemeToggle,
+  onMobileMenuOpen,
 }) => {
   const path = typeof window !== 'undefined' ? (window.location.pathname || '') : '';
+  const isFullSearchPage = path === '/search';
   const isAdminMode = variant === 'admin' || (variant == null && path.startsWith('/admin'));
 
   const isFeed = path === '/feed' || path.startsWith('/feed/');
+  const isPrepare = path === '/prepare' || path.startsWith('/prepare/');
+  const isLongForm = path === '/longform' || path.startsWith('/longform/');
   const isNetwork = path === '/network' || path.startsWith('/network/');
+  const isJobs = path === '/jobs' || path.startsWith('/jobs/');
   const isMessages = path === '/messages' || path.startsWith('/messages/');
   const isUsers = path === '/admin/users' || path.startsWith('/admin/users');
   const isEntities = path.startsWith('/admin/institutions') || path.startsWith('/admin/organisations');
   const isCommunities = path.startsWith('/admin/communities') || path.startsWith('/admin/community-requests');
   const isTechnology = path.startsWith('/admin/technology');
 
+  const adminNavSpec = [
+    { key: 'users', href: '/admin/users', label: 'Users', icon: Users, isActive: isUsers, badge: pendingUsersCount },
+    { key: 'entities', href: '/admin/institutions', label: 'Entities', icon: Building2, isActive: isEntities, badge: 0 },
+    { key: 'communities', href: '/admin/communities', label: 'Communities', icon: MessageCircle, isActive: isCommunities, badge: 0 },
+    { key: 'technology', href: '/admin/technology', label: 'Technology', icon: Activity, isActive: isTechnology, badge: 0 },
+  ];
+  const generalNavSpec = [
+    { key: 'feed', href: '/feed', label: 'Feed', icon: FeedIcon, isActive: isFeed, badge: 0 },
+    { key: 'network', href: '/network', label: 'Network', icon: NetworkIcon, isActive: isNetwork, badge: 0 },
+    { key: 'longform', href: '/longform', label: 'LongForm', icon: LongFormIcon, isActive: isLongForm, badge: 0 },
+    { key: 'prepare', href: '/prepare', label: 'Prepare', icon: PrepareIcon, isActive: isPrepare, badge: 0 },
+    { key: 'jobs', href: '/jobs', label: 'Jobs', icon: JobsIcon, isActive: isJobs, badge: 0 },
+    { key: 'messages', href: '/messages', label: 'Messages', icon: MessagesIcon, isActive: isMessages, badge: 0 },
+  ];
   const navButtons = isAdminMode
-    ? html`
-        <${NavButton} key="users" href="/admin/users" label="Users" icon=${Users} isActive=${isUsers} badge=${pendingUsersCount} />
-        <${NavButton} key="entities" href="/admin/institutions" label="Entities" icon=${Building2} isActive=${isEntities} />
-        <${NavButton} key="communities" href="/admin/communities" label="Communities" icon=${MessageCircle} isActive=${isCommunities} />
-        <${NavButton} key="technology" href="/admin/technology" label="Technology" icon=${Activity} isActive=${isTechnology} />
-      `
-    : html`
-        <${NavButton} key="feed" href="/feed" label="Feed" icon=${FeedIcon} isActive=${isFeed} />
-        <${NavButton} key="network" href="/network" label="Network" icon=${NetworkIcon} isActive=${isNetwork} />
-        <${NavButton} key="messages" href="/messages" label="Messages" icon=${MessagesIcon} isActive=${isMessages} />
-        ${!isAdminMode ? html`<${NotificationBell} key="notifications" />` : null}
-      `;
+    ? adminNavSpec.map(({ key, href, label, icon, isActive, badge }) =>
+        React.createElement(NavButton, { key, href, label, icon, isActive, badge }),
+      )
+    : generalNavSpec.map(({ key, href, label, icon, isActive, badge }) =>
+        React.createElement(NavButton, { key, href, label, icon, isActive, badge }),
+      );
 
   return html`
-    <header className="sticky top-0 left-0 right-0 z-20 flex-shrink-0 h-14 flex items-center overflow-x-hidden overflow-y-visible border-b border-[var(--app-border-soft)] bg-[var(--app-surface)] shadow-sm">
-      <${BrandArea} collapsed=${collapsed} onCollapseToggle=${onCollapseToggle} />
-      <div className="flex-1 min-w-0 flex items-center gap-4 pl-4 pr-4 h-full">
-        <div className="flex-1 min-w-0 max-w-md hidden sm:block">
-          <${SearchBar} placeholder=${searchPlaceholder} />
-        </div>
+    <header className="ith-topbar-glass sticky top-0 left-0 right-0 z-50 flex-shrink-0 h-14 flex items-center overflow-x-hidden overflow-y-visible">
+      <${BrandArea} collapsed=${collapsed} onCollapseToggle=${onCollapseToggle} logoTheme=${logoTheme} />
+      <div className="flex-1 min-w-0 flex items-center gap-3 sm:gap-4 pl-2 sm:pl-4 pr-3 sm:pr-4 h-full">
+        ${onMobileMenuOpen
+          ? html`
+              <button
+                type="button"
+                className="md:hidden ith-focus-ring p-2 rounded-[var(--radius-md)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)]"
+                onClick=${onMobileMenuOpen}
+                aria-label="Open navigation menu"
+              >
+                <${Menu} size=${22} strokeWidth=${2} />
+              </button>
+            `
+          : null}
+        ${onSearchActivate && !isFullSearchPage
+          ? html`
+              <button
+                type="button"
+                className="sm:hidden ith-focus-ring p-2 rounded-[var(--radius-md)] text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)]"
+                onClick=${() => onSearchActivate()}
+                aria-label="Open search"
+                title="Search"
+              >
+                <${Search} size=${20} strokeWidth=${2} />
+              </button>
+            `
+          : null}
+        ${!isFullSearchPage
+          ? html`
+              <div className="flex-1 min-w-0 max-w-md hidden sm:flex items-center gap-1.5">
+                ${onSearchActivate && typeof onTopSearchSubmit === 'function'
+                  ? html`
+                      <div className="flex-1 min-w-0">
+                        <${SearchBar}
+                          placeholder=${`${searchPlaceholder} — suggestions as you type, Enter for full search`}
+                          value=${topSearchValue}
+                          onChange=${onTopSearchChange}
+                          onSubmit=${onTopSearchSubmit}
+                          suggestEnabled=${Boolean(user && onTopSearchNavigate)}
+                          onNavigateHref=${onTopSearchNavigate}
+                        />
+                      </div>
+                    `
+                  : onSearchActivate
+                    ? html`
+                        <button
+                          type="button"
+                          onClick=${() => onSearchActivate()}
+                          className="ith-focus-ring relative w-full flex items-center gap-3 pl-10 pr-4 py-2 rounded-[var(--radius-md)] border text-left text-sm transition-colors border-[var(--app-border-soft)] bg-[var(--app-surface-subtle)] text-[var(--app-text-muted)] hover:border-[var(--app-border-strong)]"
+                          aria-label="Open advanced search"
+                        >
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-text-muted)] pointer-events-none">
+                            <${Search} size=${18} strokeWidth=${2} />
+                          </span>
+                          <span className="truncate">${searchPlaceholder} — full page</span>
+                        </button>
+                      `
+                    : html`<${SearchBar} placeholder=${searchPlaceholder} />`}
+              </div>
+            `
+          : null}
         <div className="flex-1 min-w-0" />
-        <div className="flex items-center gap-1 mr-2">
+        <div className="flex items-center gap-0.5 sm:gap-1 mr-1 overflow-x-auto max-w-[min(52vw,240px)] sm:max-w-none sm:overflow-visible scrollbar-none">
           ${navButtons}
         </div>
+        ${onThemeToggle
+          ? html`
+              <button
+                type="button"
+                onClick=${onThemeToggle}
+                className="ith-focus-ring p-2 rounded-[var(--radius-md)] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-hover)]"
+                title=${theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                aria-label=${theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                ${theme === 'dark' ? html`<${Sun} size=${20} />` : html`<${Moon} size=${20} />`}
+              </button>
+            `
+          : null}
         <${ProfileMenu} user=${user} onLogout=${onLogout} showDropdown=${true} />
       </div>
     </header>

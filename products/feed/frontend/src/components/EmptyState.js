@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import htm from 'htm';
+import Button from '/shared/components/ui/Button.js';
 
 const html = htm.bind(React.createElement);
 
@@ -13,24 +14,25 @@ const DefaultIcon = () => html`
 `;
 
 const EmptyState = ({ title, description, icon, ctaLabel, onCta, className = '' }) => html`
-  <div className=${`flex flex-col items-center justify-center py-12 px-6 text-center ${className}`}>
-    <div className="mb-4 flex items-center justify-center">
+  <div
+    className=${`flex flex-col items-center justify-center py-14 px-6 text-center rounded-[var(--app-radius-card)] border ${className}`}
+    style=${{
+      borderColor: 'var(--app-border-soft)',
+      background: 'var(--app-surface)',
+      boxShadow: 'var(--app-shadow-card)',
+    }}
+  >
+    <div
+      className="mb-5 flex items-center justify-center w-16 h-16 rounded-2xl"
+      style=${{ background: 'var(--app-accent-soft)', color: 'var(--app-accent)' }}
+    >
       ${icon || html`<${DefaultIcon} />`}
     </div>
-    <h3 className="text-lg font-semibold mb-2" style=${{ color: 'var(--app-text-primary)' }}>${title}</h3>
+    <h3 className="text-lg font-semibold mb-2 tracking-tight" style=${{ color: 'var(--app-text-primary)' }}>${title}</h3>
     ${description ? html`
-      <p className="text-sm max-w-md mb-6" style=${{ color: 'var(--app-text-muted)' }}>${description}</p>
+      <p className="text-sm max-w-md mb-6 leading-relaxed" style=${{ color: 'var(--app-text-muted)' }}>${description}</p>
     ` : null}
-    ${ctaLabel && onCta ? html`
-      <button
-        onClick=${onCta}
-        type="button"
-        className="px-4 py-2 rounded-lg font-medium transition-colors"
-        style=${{ background: 'var(--app-accent)', color: 'white' }}
-      >
-        ${ctaLabel}
-      </button>
-    ` : null}
+    ${ctaLabel && onCta ? html`<${Button} variant="primary" size="md" onClick=${onCta}>${ctaLabel}</${Button}>` : null}
   </div>
 `;
 

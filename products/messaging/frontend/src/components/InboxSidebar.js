@@ -46,11 +46,11 @@ const ComposeIcon = () => html`
 `;
 
 const sections = [
-  { key: 'priority', label: 'Priority', icon: InboxIcon, description: 'Connections' },
-  { key: 'following', label: 'Following', icon: UsersIcon, description: 'People you follow' },
-  { key: 'requests', label: 'Requests', icon: UserPlusIcon, description: 'Message requests' },
-  { key: 'other', label: 'Other', icon: InboxIcon, description: 'Everyone else' },
-  { key: 'archived', label: 'Archived', icon: ArchiveIcon, description: 'Archived chats' },
+  { key: 'priority', label: 'Priority', icon: InboxIcon, helper: 'Direct messages from people you’re connected with.' },
+  { key: 'following', label: 'Following', icon: UsersIcon, helper: 'People you follow but aren’t connected to yet.' },
+  { key: 'requests', label: 'Requests', icon: UserPlusIcon, helper: 'Invites to start a conversation (followers).' },
+  { key: 'other', label: 'Other', icon: InboxIcon, helper: 'Everyone who doesn’t fit Priority or Following.' },
+  { key: 'archived', label: 'Archived', icon: ArchiveIcon, helper: 'Threads you’ve moved out of the main inbox.' },
 ];
 
 const InboxSidebar = ({ activeSection, onSectionChange, onCompose, counts = {}, collapsed = false }) => html`
@@ -85,17 +85,28 @@ const InboxSidebar = ({ activeSection, onSectionChange, onCompose, counts = {}, 
             }}
           >
             <span className="flex-shrink-0 flex items-center justify-center"><${s.icon} /></span>
-            ${!collapsed ? html`
-              <span className="flex-1">${s.label}</span>
-              ${count > 0 ? html`
-                <span
-                  className="flex-shrink-0 min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs font-medium px-1.5"
-                  style=${{ background: 'var(--app-accent-soft)', color: 'var(--app-accent)' }}
-                >
-                  ${count}
-                </span>
-              ` : null}
-            ` : null}
+            ${!collapsed
+              ? html`
+                  <span className="flex flex-1 min-w-0 items-center gap-2">
+                    <span className="flex-1 min-w-0">
+                      <span className="block">${s.label}</span>
+                      <span className="block text-[11px] font-normal leading-snug mt-0.5" style=${{ color: 'var(--app-text-muted)' }}>
+                        ${s.helper}
+                      </span>
+                    </span>
+                    ${count > 0
+                      ? html`
+                          <span
+                            className="flex-shrink-0 min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs font-medium px-1.5"
+                            style=${{ background: 'var(--app-accent-soft)', color: 'var(--app-accent)' }}
+                          >
+                            ${count}
+                          </span>
+                        `
+                      : null}
+                  </span>
+                `
+              : null}
           </button>
         `;
       })}

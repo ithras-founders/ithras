@@ -8,13 +8,13 @@ import { searchInstitutions, getInstitutionAllowedFields } from '/shared/service
 const html = htm.bind(React.createElement);
 
 const AutocompleteListField = ({ items, onItemsChange, suggestions = [], placeholder, addLabel, typeLabel, disabled }) => {
-  const add = () => onItemsChange([...(items || []), '']);
+  const displayItems = (items && items.length) ? items : [''];
+  const add = () => onItemsChange([...displayItems, '']);
   const remove = (i) => {
-    const next = (items || []).filter((_, idx) => idx !== i);
+    const next = displayItems.filter((_, idx) => idx !== i);
     onItemsChange(next.length ? next : ['']);
   };
-  const change = (i, v) => onItemsChange((items || []).map((it, idx) => (idx === i ? v : it)));
-  const displayItems = (items && items.length) ? items : [''];
+  const change = (i, v) => onItemsChange(displayItems.map((it, idx) => (idx === i ? v : it)));
   return html`
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">${typeLabel}</label>

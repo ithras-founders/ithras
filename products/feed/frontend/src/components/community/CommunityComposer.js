@@ -1,6 +1,5 @@
 /**
- * CommunityComposer - Premium conversation entry point.
- * Feels like starting a conversation, not filling a form.
+ * CommunityComposer - Collapsed / expanded entry for starting a post.
  */
 import React, { useState } from 'react';
 import htm from 'htm';
@@ -8,7 +7,19 @@ import ExpandedComposer from './ExpandedComposer.js';
 
 const html = htm.bind(React.createElement);
 
-const CommunityComposer = ({ onSuccess, communityId, channelId, community, user, defaultExpanded = true }) => {
+const userInitials = (user) => {
+  const n = user?.full_name || user?.username || user?.email || '';
+  if (!n) return '?';
+  return n
+    .split(/[\s@]+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+};
+
+const CommunityComposer = ({ onSuccess, communityId, channelId, community, user, defaultExpanded = false }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   const channels = community?.channels || [];
@@ -20,23 +31,28 @@ const CommunityComposer = ({ onSuccess, communityId, channelId, community, user,
   return html`
     <div
       className="rounded-3xl border p-4 shadow-sm sm:p-6 transition-all duration-300"
-      style=${{
-        background: 'var(--app-surface)',
-        borderColor: 'var(--app-border-soft)',
-      }}
+      style=${{ background: 'var(--app-surface)', borderColor: 'var(--app-border-soft)' }}
     >
       ${!expanded
         ? html`
             <button
               type="button"
               onClick=${() => setExpanded(true)}
-              className="flex w-full items-center gap-4 rounded-3xl px-5 py-4 sm:p-6 text-left transition-all duration-200 hover:bg-[rgba(0,0,0,0.015)]"
+              className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors ith-focus-ring sm:gap-4 sm:px-5 sm:py-4"
+              style=${{ color: 'var(--app-text-primary)' }}
+              onMouseEnter=${(e) => { e.currentTarget.style.background = 'var(--app-surface-hover)'; }}
+              onMouseLeave=${(e) => { e.currentTarget.style.background = 'transparent'; }}
             >
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold sm:h-11 sm:w-11"
+                style=${{ background: 'var(--app-accent-soft)', color: 'var(--app-accent)' }}
+                aria-hidden="true"
+              >
+                ${userInitials(user)}
+              </span>
               <div className="min-w-0 flex-1">
-                <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium uppercase tracking-[0.18em]" style=${{ color: 'var(--app-text-muted)' }}>
-                    Posting in
-                  </span>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium uppercase tracking-[0.18em]" style=${{ color: 'var(--app-text-muted)' }}>Posting in</span>
                   <span
                     className="group inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition"
                     style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-surface-subtle)', color: 'var(--app-text-secondary)' }}
@@ -50,11 +66,11 @@ const CommunityComposer = ({ onSuccess, communityId, channelId, community, user,
                     </svg>
                   </span>
                 </div>
-                <div className="text-[15px]" style=${{ color: 'var(--app-text-muted)' }}>
-                  Start a discussion, ask a question, or share something…
+                <div className="text-sm sm:text-[15px]" style=${{ color: 'var(--app-text-muted)' }}>
+                  Share an update or start a thread…
                 </div>
               </div>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0" style=${{ color: 'var(--app-text-muted)' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 hidden sm:block" style=${{ color: 'var(--app-text-muted)' }}>
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
             </button>

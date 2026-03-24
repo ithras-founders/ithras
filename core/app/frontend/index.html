@@ -6,6 +6,7 @@
     <title>Ithras | Professional Career Platform</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
     <meta name="api-url" content="/api">
+    <script src="/docker-api-base.js"></script>
     <script type="importmap">
     {
       "imports": {
@@ -22,16 +23,39 @@
         "html2canvas": "https://esm.sh/html2canvas@1.4.1",
         "jspdf": "https://esm.sh/jspdf@2.5.2",
         "lucide-react": "https://esm.sh/lucide-react@0.468.0?deps=react@18.2.0&external=react",
-        "d3": "https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm"
+        "d3": "https://cdn.jsdelivr.net/npm/d3@7.8.5/+esm",
+        "dompurify": "https://esm.sh/dompurify@3.2.4",
+        "@tiptap/react": "https://esm.sh/@tiptap/react@2.11.2?deps=react@18.2.0,react-dom@18.2.0&external=react,react-dom",
+        "@tiptap/starter-kit": "https://esm.sh/@tiptap/starter-kit@2.11.2?external=react,react-dom",
+        "@tiptap/extension-image": "https://esm.sh/@tiptap/extension-image@2.11.2?external=react,react-dom",
+        "@tiptap/extension-link": "https://esm.sh/@tiptap/extension-link@2.11.2?external=react,react-dom",
+        "@tiptap/extension-placeholder": "https://esm.sh/@tiptap/extension-placeholder@2.11.2?external=react,react-dom",
+        "@tiptap/core": "https://esm.sh/@tiptap/core@2.11.2?external=react,react-dom",
+        "@tiptap/extension-text-style": "https://esm.sh/@tiptap/extension-text-style@2.11.2?external=react,react-dom",
+        "@tiptap/extension-font-family": "https://esm.sh/@tiptap/extension-font-family@2.11.2?external=react,react-dom",
+        "@tiptap/extension-underline": "https://esm.sh/@tiptap/extension-underline@2.11.2?external=react,react-dom",
+        "@tiptap/extension-superscript": "https://esm.sh/@tiptap/extension-superscript@2.11.2?external=react,react-dom",
+        "@tiptap/extension-subscript": "https://esm.sh/@tiptap/extension-subscript@2.11.2?external=react,react-dom"
+      },
+      "scopes": {
+        "https://esm.sh/": {
+          "react": "https://esm.sh/react@18.2.0?dev",
+          "react-dom": "https://esm.sh/react-dom@18.2.0?dev",
+          "react-dom/client": "https://esm.sh/react-dom@18.2.0/client?dev"
+        }
       }
     }
     </script>
     <script>
+        /* Same-origin /api when using frontend_server.py, Docker nginx, or another /api proxy.
+           If you must hit the API directly from another dev port, use an absolute URL, e.g.:
+           window.API_URL = 'http://127.0.0.1:8000/api';
+           (Or sessionStorage.setItem('ithras_api_base', 'http://127.0.0.1:8000/api') in the console.) */
         window.API_URL = '/api';
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/shared/styles/index.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/react-colorful@5.6.1/dist/index.css">
 </head>
 <body class="antialiased overflow-x-hidden">

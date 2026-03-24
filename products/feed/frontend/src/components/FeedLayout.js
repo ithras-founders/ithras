@@ -1,6 +1,6 @@
 /**
  * FeedLayout - Three-column layout for feed.
- * Left: sidebar (240px), Center: main feed (flex-1), Right: trending/suggestions (280px)
+ * Left: sidebar (240px), Center: main feed (flex-1), Right rail (300px): trending or community channels
  */
 import React from 'react';
 import htm from 'htm';
@@ -18,7 +18,7 @@ const FeedLayout = ({ leftSidebar, children, rightSidebar }) => html`
       ${children}
     </main>
     ${rightSidebar != null ? html`
-      <aside className="flex-shrink-0 w-[280px] border-l hidden lg:block overflow-y-auto" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-bg)' }}>
+      <aside className="flex-shrink-0 w-[300px] border-l hidden lg:block overflow-y-auto custom-scrollbar" style=${{ borderColor: 'var(--app-border-soft)', background: 'var(--app-bg)' }}>
         ${rightSidebar}
       </aside>
     ` : null}

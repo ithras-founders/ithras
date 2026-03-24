@@ -7,8 +7,30 @@ import { getGlobalFeed } from '../services/feedApi.js';
 import PostComposer from '../components/PostComposer.js';
 import PremiumPostCard from '../components/PremiumPostCard.js';
 import EmptyState from '../components/EmptyState.js';
+import Card from '/shared/components/ui/Card.js';
+import Skeleton from '/shared/components/ui/Skeleton.js';
 
 const html = htm.bind(React.createElement);
+
+const FeedLoadingSkeleton = () => html`
+  <${Card} padding="lg" elevated=${false} className="space-y-5">
+    ${[1, 2, 3].map(
+      (i) => html`
+        <div key=${i} className="space-y-3">
+          <div className="flex gap-3">
+            <${Skeleton} height=${44} width=${44} rounded="var(--radius-lg)" />
+            <div className="flex-1 space-y-2 pt-1">
+              <${Skeleton} height=${14} width="45%" />
+              <${Skeleton} height=${12} width="30%" />
+            </div>
+          </div>
+          <${Skeleton} height=${72} width="100%" rounded="var(--radius-md)" />
+          <${Skeleton} height=${12} width="85%" />
+        </div>
+      `,
+    )}
+  </${Card}>
+`;
 
 const GlobalFeed = ({ user }) => {
   const [items, setItems] = useState([]);
@@ -39,12 +61,16 @@ const GlobalFeed = ({ user }) => {
   }
 
   return html`
-    <div className="min-h-screen px-4 py-10" style=${{ background: '#f8fafc' }}>
-      <div className="mx-auto max-w-4xl space-y-6">
-        <${PostComposer} onSuccess=${refresh} />
-        ${loading ? html`
-          <div className="py-12 text-center text-sm" style=${{ color: 'var(--app-text-muted)' }}>Loading...</div>
-        ` : items.length === 0 ? html`
+    <div className="min-h-[60vh]">
+      <div className="mx-auto max-w-6xl space-y-4 sm:space-y-5">
+        <div className="px-1">
+          <h1 className="text-lg font-semibold tracking-tight" style=${{ color: 'var(--app-text-primary)' }}>Updates</h1>
+          <p className="text-sm mt-0.5" style=${{ color: 'var(--app-text-muted)' }}>
+            Posts from communities you’ve joined. Use Discover to browse or join new spaces.
+          </p>
+        </div>
+        <${PostComposer} user=${user} onSuccess=${refresh} />
+        ${loading ? html`<${FeedLoadingSkeleton} />` : items.length === 0 ? html`
           <${EmptyState}
             title="No posts yet"
             description="Join communities to build your feed. When you join, posts from those communities will appear here."

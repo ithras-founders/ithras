@@ -18,6 +18,19 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
+    const onRefreshSession = () => {
+      validateSession()
+        .then((res) => {
+          const userData = res?.user;
+          if (userData) setUser(userData);
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('ithras:refresh-session', onRefreshSession);
+    return () => window.removeEventListener('ithras:refresh-session', onRefreshSession);
+  }, []);
+
+  useEffect(() => {
     const saved = localStorage.getItem('ithras_session');
     if (!saved) return;
     const parsed = (() => { try { return JSON.parse(saved); } catch { return null; } })();

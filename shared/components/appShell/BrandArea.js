@@ -13,9 +13,9 @@ const SIDEBAR_EXPANDED = 280;
 const SIDEBAR_COLLAPSED = 96;
 
 /**
- * @param {{ collapsed: boolean, onCollapseToggle: () => void }}
+ * @param {{ collapsed: boolean, onCollapseToggle: () => void, logoTheme?: 'light' | 'dark' }}
  */
-const BrandArea = ({ collapsed, onCollapseToggle }) => {
+const BrandArea = ({ collapsed, onCollapseToggle, logoTheme = 'dark' }) => {
   const width = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 
   return html`
@@ -38,7 +38,7 @@ const BrandArea = ({ collapsed, onCollapseToggle }) => {
           className="flex items-center min-w-0 overflow-visible flex-1 justify-center"
           aria-label="Ithras feed"
         >
-          <${IthrasLogo} size="sm" theme="dark" className="flex-shrink-0 transition-all duration-300" />
+          <${IthrasLogo} size="sm" theme=${logoTheme} className="flex-shrink-0 transition-all duration-300" />
         </a>
         <button
           onClick=${onCollapseToggle}

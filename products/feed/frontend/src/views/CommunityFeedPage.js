@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { getCommunityBySlug, getCommunityFeed, getChannelFeed } from '../services/feedApi.js';
 import CommunityHero from '../components/community/CommunityHero.js';
-import CommunityChannelNav from '../components/community/CommunityChannelNav.js';
+import { navigateToCommunityAll, navigateToCommunityChannel } from '../utils/communityNav.js';
 import CommunityFeedControlBar from '../components/community/CommunityFeedControlBar.js';
 import CommunityComposer from '../components/community/CommunityComposer.js';
 import PremiumPostCard from '../components/PremiumPostCard.js';
@@ -22,7 +22,6 @@ const CommunityFeedPage = ({ communitySlug, channelSlug, user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sort, setSort] = useState('latest');
-  const [typeFilter, setTypeFilter] = useState(null);
 
   const effectiveChannelId = channel?.id ?? null;
 
@@ -30,8 +29,8 @@ const CommunityFeedPage = ({ communitySlug, channelSlug, user }) => {
     if (!community) return;
     setLoading(true);
     const fetchFn = channel
-      ? () => getChannelFeed(channel.id, { sort, type: typeFilter, limit: 30 })
-      : () => getCommunityFeed(community.id, { channel_id: effectiveChannelId, sort, type: typeFilter, limit: 30 });
+      ? () => getChannelFeed(channel.id, { sort, limit: 30 })
+      : () => getCommunityFeed(community.id, { channel_id: effectiveChannelId, sort, limit: 30 });
     fetchFn()
       .then((r) => setItems(r.items || []))
       .catch(() => setItems([]))
@@ -61,13 +60,13 @@ const CommunityFeedPage = ({ communitySlug, channelSlug, user }) => {
     if (!community) return;
     setLoading(true);
     const fetchFn = channel
-      ? () => getChannelFeed(channel.id, { sort, type: typeFilter, limit: 30 })
-      : () => getCommunityFeed(community.id, { channel_id: effectiveChannelId, sort, type: typeFilter, limit: 30 });
+      ? () => getChannelFeed(channel.id, { sort, limit: 30 })
+      : () => getCommunityFeed(community.id, { channel_id: effectiveChannelId, sort, limit: 30 });
     fetchFn()
       .then((r) => setItems(r.items || []))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [community?.id, channel?.id, effectiveChannelId, sort, typeFilter]);
+  }, [community?.id, channel?.id, effectiveChannelId, sort]);
 
   if (error && !community) {
     return html`
@@ -89,29 +88,97 @@ const CommunityFeedPage = ({ communitySlug, channelSlug, user }) => {
   const pinnedItems = items.filter((p) => p.is_pinned);
   const regularItems = items.filter((p) => !p.is_pinned);
 
+  const chList = community.channels || [];
+  const showChannelNav = community.has_channels && chList.length > 0;
+
+  const goFeed = (e) => {
+    e.preventDefault();
+    window.history.pushState(null, '', '/feed');
+    window.dispatchEvent(new CustomEvent('ithras:path-changed'));
+  };
+
   return html`
     <div
       className="min-h-screen px-4 py-10"
-      style=${{ background: '#f8fafc' }}
+      style=${{ background: 'var(--app-bg)' }}
     >
       <div className="mx-auto max-w-4xl">
+        <nav className="flex flex-wrap items-center gap-1.5 text-xs mb-6" aria-label="Breadcrumb">
+          <a
+            href="/feed"
+            onClick=${goFeed}
+            className="font-medium hover:underline ith-focus-ring rounded-sm"
+            style=${{ color: 'var(--app-accent)' }}
+          >
+            Feed
+          </a>
+          <span style=${{ color: 'var(--app-text-faint)' }} aria-hidden="true">/</span>
+          <span className="font-medium truncate max-w-[40vw]" style=${{ color: 'var(--app-text-primary)' }}>${community.name}</span>
+          ${channel
+            ? html`
+                <span style=${{ color: 'var(--app-text-faint)' }} aria-hidden="true">/</span>
+                <span className="truncate max-w-[36vw]" style=${{ color: 'var(--app-text-secondary)' }}>#${channel.name}</span>
+              `
+            : null}
+        </nav>
+        ${channel?.description
+          ? html`
+              <p className="text-sm leading-relaxed mb-4 -mt-2 max-w-2xl" style=${{ color: 'var(--app-text-muted)' }}>
+                ${channel.description}
+              </p>
+            `
+          : null}
+        ${showChannelNav
+          ? html`
+              <div className="lg:hidden mb-6">
+                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style=${{ color: 'var(--app-text-muted)' }}>
+                  Channels
+                </p>
+                <p className="text-[11px] mb-2 leading-snug" style=${{ color: 'var(--app-text-muted)' }}>
+                  Use the list on large screens. Swipe sideways to switch on mobile.
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" style=${{ WebkitOverflowScrolling: 'touch' }}>
+                  <button
+                    type="button"
+                    onClick=${() => navigateToCommunityAll(communitySlug)}
+                    className="shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ith-focus-ring"
+                    style=${{
+                      background: effectiveChannelId == null ? 'var(--app-accent-soft)' : 'var(--app-surface-subtle)',
+                      color: effectiveChannelId == null ? 'var(--app-accent)' : 'var(--app-text-secondary)',
+                      boxShadow: effectiveChannelId == null ? 'inset 0 0 0 1px var(--app-accent-soft)' : 'none',
+                    }}
+                  >
+                    All
+                  </button>
+                  ${chList.map(
+                    (ch) => html`
+                      <button
+                        key=${ch.id}
+                        type="button"
+                        title=${ch.name}
+                        onClick=${() => navigateToCommunityChannel(communitySlug, ch.slug)}
+                        className="shrink-0 max-w-[200px] truncate rounded-full px-3 py-1.5 text-sm font-medium transition-colors ith-focus-ring"
+                        style=${{
+                          background: effectiveChannelId === ch.id ? 'var(--app-accent-soft)' : 'var(--app-surface-subtle)',
+                          color: effectiveChannelId === ch.id ? 'var(--app-accent)' : 'var(--app-text-secondary)',
+                          boxShadow: effectiveChannelId === ch.id ? 'inset 0 0 0 1px var(--app-accent-soft)' : 'none',
+                        }}
+                      >
+                        ${ch.name}
+                      </button>
+                    `,
+                  )}
+                </div>
+              </div>
+            `
+          : null}
         <div className="space-y-8">
           <${CommunityHero} community=${community} onRefresh=${refresh} />
-          ${community.has_channels && (community.channels || []).length > 0 ? html`
-            <${CommunityChannelNav}
-              channels=${community.channels}
-              activeChannelId=${effectiveChannelId}
-              onSelectChannel=${(id) => setChannel(community.channels?.find((c) => c.id === id) || null)}
-              communitySlug=${communitySlug}
-            />
-          ` : null}
           <div className="space-y-5">
-            ${community.is_member ? html`<${CommunityComposer} onSuccess=${refresh} communityId=${community.id} channelId=${effectiveChannelId} community=${community} user=${user} defaultExpanded=${true} />` : null}
+            ${community.is_member ? html`<${CommunityComposer} onSuccess=${refresh} communityId=${community.id} channelId=${effectiveChannelId} community=${community} user=${user} />` : null}
             <${CommunityFeedControlBar}
               sort=${sort}
               onSortChange=${setSort}
-              typeFilter=${typeFilter}
-              onTypeFilterChange=${setTypeFilter}
             />
           </div>
           ${loading ? html`

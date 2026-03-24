@@ -1,0 +1,197 @@
+/* Full-screen composer (publication owner) */
+.longform-composer-overlay .longform-tiptap-editor .ProseMirror,
+.longform-composer-overlay .longform-composer-editor {
+  background: #ffffff;
+}
+
+.longform-composer-overlay .longform-tiptap-editor .ProseMirror {
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+/* LongForm reader + TipTap editor surface */
+.longform-body {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.longform-body p {
+  margin: 0 0 1em;
+}
+
+.longform-body h1,
+.longform-body h2,
+.longform-body h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 1.25em 0 0.5em;
+}
+
+.longform-body h1 {
+  font-size: 1.75rem;
+}
+
+.longform-body h2 {
+  font-size: 1.4rem;
+}
+
+.longform-body h3 {
+  font-size: 1.2rem;
+}
+
+.longform-body ul,
+.longform-body ol {
+  margin: 0 0 1em;
+  padding-left: 1.5em;
+}
+
+.longform-body li {
+  margin-bottom: 0.35em;
+}
+
+.longform-body blockquote {
+  margin: 0 0 1em;
+  padding-left: 1em;
+  border-left: 3px solid var(--app-border-strong, #ccc);
+  color: var(--app-text-secondary, #555);
+}
+
+.longform-body pre {
+  margin: 0 0 1em;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  background: var(--app-surface-subtle, #f4f4f5);
+  font-size: 0.9em;
+}
+
+.longform-body code {
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+  background: var(--app-surface-subtle, #f4f4f5);
+}
+
+.longform-body pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.longform-body a {
+  color: var(--app-accent, #2563eb);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.longform-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.75em 0;
+}
+
+.longform-body hr {
+  margin: 1.5em 0;
+  border: none;
+  border-top: 1px solid var(--app-border-soft, #e5e5e5);
+}
+
+.longform-body sup,
+.longform-body sub {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+.longform-body sup {
+  top: -0.35em;
+}
+
+.longform-body sub {
+  top: 0.2em;
+}
+
+.longform-body u {
+  text-underline-offset: 2px;
+}
+
+.longform-tiptap-editor .ProseMirror {
+  outline: none;
+  min-height: 240px;
+}
+
+/* Composer — Medium-style title / subtitle */
+.longform-composer-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--app-text-primary, #111);
+}
+
+.longform-composer-title:focus-visible,
+.longform-composer-subtitle:focus-visible {
+  outline: 2px solid var(--app-accent, #6366f1);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.longform-composer-subtitle {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.25rem;
+  line-height: 1.45;
+  font-weight: 400;
+  color: var(--app-text-secondary, #444);
+}
+
+.longform-composer-prose .ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--app-text-muted, #888);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Composer left rail */
+.longform-composer-rail {
+  scrollbar-gutter: stable;
+}
+
+.longform-rail-section-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-text-muted, #6b7280);
+  margin: 0 0 0.5rem;
+}
+
+.longform-rail-section-btns {
+  margin: 0;
+}
+
+.longform-menu-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--app-text-primary, #111);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.longform-menu-btn:hover:not(:disabled) {
+  background: var(--app-surface-hover, #f4f4f5);
+}
+
+.longform-menu-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.longform-menu-btn[data-active='true'] {
+  background: var(--app-accent-soft, #eef2ff);
+  color: var(--app-accent, #4f46e5);
+}

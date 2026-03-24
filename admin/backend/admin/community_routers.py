@@ -738,6 +738,146 @@ def request_changes_community_request(request_id: int, data: CommunityRequestCha
     return {"ok": True}
 
 
+# ─── Channel Requests (member-submitted; admin creates channel on approve) ───
+@router.get("/channel-requests", summary="List channel requests (admin)")
+def list_channel_requests(
+    user=Depends(require_admin),
+    db=Depends(get_db),
+    status: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    conditions = ["1=1"]
+    params: dict = {"lim": limit, "off": offset}
+    if status:
+        conditions.append("cr.status = :status")
+        params["status"] = status
+    where = " AND ".join(conditions)
+    rows = db.execute(
+        text(f"""
+            SELECT cr.id, cr.community_id, cr.user_id, cr.name, cr.description, cr.status, cr.created_at,
+                   c.name as community_name, c.slug as community_slug,
+                   u.full_name as requester_name
+            FROM channel_requests cr
+            JOIN communities c ON c.id = cr.community_id
+            JOIN users u ON u.user_numerical = cr.user_id
+            WHERE {where}
+            ORDER BY cr.created_at DESC
+            LIMIT :lim OFFSET :off
+        """),
+        params,
+    ).fetchall()
+    items = []
+    for row in rows:
+        items.append({
+            "id": row.id,
+            "communityId": row.community_id,
+            "communityName": row.community_name or "",
+            "communitySlug": row.community_slug or "",
+            "requesterId": row.user_id,
+            "requesterName": row.requester_name or "",
+            "name": row.name,
+            "description": row.description or "",
+            "status": row.status or "pending",
+            "createdAt": row.created_at.isoformat() if row.created_at else None,
+        })
+    total = db.execute(
+        text(f"SELECT COUNT(*) FROM channel_requests cr WHERE {where}"),
+        {k: v for k, v in params.items() if k not in ("lim", "off")},
+    ).scalar() or 0
+    return {"items": items, "total": total}
+
+
+@router.post("/channel-requests/{request_id}/approve", summary="Approve channel request (admin)")
+def approve_channel_request(request_id: int, user=Depends(require_admin), db=Depends(get_db)):
+    admin_id = _admin_id(user)
+    r = db.execute(
+        text("""
+            SELECT cr.id, cr.community_id, cr.name, cr.description
+            FROM channel_requests cr
+            WHERE cr.id = :rid AND cr.status = 'pending'
+        """),
+        {"rid": request_id},
+    ).fetchone()
+    if not r:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    community_id = r.community_id
+    r2 = db.execute(text("SELECT id, has_channels FROM communities WHERE id = :cid"), {"cid": community_id})
+    crow = r2.fetchone()
+    if not crow:
+        raise HTTPException(status_code=404, detail="Community not found")
+    if not crow.has_channels:
+        raise HTTPException(status_code=400, detail="Community does not use channels")
+    slug = _slug(r.name)
+    r3 = db.execute(
+        text("SELECT 1 FROM channels WHERE community_id = :cid AND slug = :s"),
+        {"cid": community_id, "s": slug},
+    )
+    if r3.scalar():
+        slug = f"{slug}-{community_id}"
+    db.execute(
+        text("INSERT INTO channels (community_id, name, slug, description) VALUES (:cid, :name, :slug, :desc)"),
+        {"cid": community_id, "name": r.name, "slug": slug, "desc": r.description or ""},
+    )
+    ch_id = db.execute(text("SELECT lastval()")).scalar()
+    db.execute(text("UPDATE channel_requests SET status = 'approved' WHERE id = :rid"), {"rid": request_id})
+    _log_action(db, admin_id, "channel_request_approved", community_id, {"request_id": request_id, "channel_id": ch_id})
+    db.commit()
+    return {"id": ch_id, "slug": slug, "community_id": community_id}
+
+
+@router.post("/channel-requests/{request_id}/reject", summary="Reject channel request (admin)")
+def reject_channel_request(
+    request_id: int,
+    data: Optional[CommunityRequestReject] = None,
+    user=Depends(require_admin),
+    db=Depends(get_db),
+):
+    admin_id = _admin_id(user)
+    r = db.execute(
+        text("SELECT id, community_id FROM channel_requests WHERE id = :rid AND status = 'pending'"),
+        {"rid": request_id},
+    ).fetchone()
+    if not r:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    db.execute(text("UPDATE channel_requests SET status = 'rejected' WHERE id = :rid"), {"rid": request_id})
+    _log_action(
+        db,
+        admin_id,
+        "channel_request_rejected",
+        r.community_id,
+        {"request_id": request_id, "reason": data.reason if data else None},
+    )
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/channel-requests/{request_id}/request-changes", summary="Request changes on channel request (admin)")
+def request_changes_channel_request(
+    request_id: int,
+    data: CommunityRequestChanges,
+    user=Depends(require_admin),
+    db=Depends(get_db),
+):
+    admin_id = _admin_id(user)
+    r = db.execute(
+        text("SELECT id, community_id FROM channel_requests WHERE id = :rid AND status = 'pending'"),
+        {"rid": request_id},
+    ).fetchone()
+    if not r:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    db.execute(text("UPDATE channel_requests SET status = 'changes_requested' WHERE id = :rid"), {"rid": request_id})
+    _log_action(
+        db,
+        admin_id,
+        "channel_request_changes_requested",
+        r.community_id,
+        {"request_id": request_id, "message": data.message},
+    )
+    db.commit()
+    return {"ok": True}
+
+
 # ─── Activity Log ───────────────────────────────────────────────────────────
 @router.get("/communities/{community_id}/activity", summary="Community activity log (admin)")
 def get_community_activity(

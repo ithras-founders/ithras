@@ -4,10 +4,10 @@ import { addExperience, addMovement as addMovementApi, searchOrganisations } fro
 import IthrasLogo from '/shared/components/IthrasLogo.js';
 import MonthYearInput from '/shared/primitives/MonthYearInput.js';
 import StatusChip from '/shared/components/StatusChip.js';
+import { AUTH_HERO_PANEL_STYLE, AUTH_HERO_COLUMN_CLASS } from '/shared/styles/authHeroPanel.js';
 
 const html = htm.bind(React.createElement);
 
-const BLUE_PANEL = '#0C6DFD';
 const ACCENT_GOLD = '#FFD700';
 
 const OrganisationCard = ({
@@ -251,29 +251,32 @@ const RegistrationStep3 = ({ onComplete, onBack }) => {
 
   return html`
     <div className="min-h-screen flex bg-[var(--app-bg)]">
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center p-16" style=${{ background: BLUE_PANEL }}>
-        <div className="max-w-md text-center">
+      <div className=${AUTH_HERO_COLUMN_CLASS} style=${AUTH_HERO_PANEL_STYLE}>
+        <div className="max-w-md text-center relative z-[1]">
           <div className="mb-12">
             <${IthrasLogo} size="lg" theme="light" />
           </div>
           <p className="text-[10px] md:text-xs font-semibold tracking-[0.12em] uppercase mb-6" style=${{ color: ACCENT_GOLD }}>
             Step 3 of 3
           </p>
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Add your experience</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight" style=${{ fontFamily: 'var(--font-display)' }}>Add your experience</h1>
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 md:p-16 bg-white overflow-y-auto">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 md:p-16 bg-[var(--app-surface)] overflow-y-auto border-l border-[var(--app-border-soft)]">
         <div className="lg:hidden flex items-center gap-3 mb-8">
           <${IthrasLogo} size="md" theme="dark" />
         </div>
 
         <div className="max-w-lg w-full mx-auto">
+          <div className="w-full h-1 rounded-full bg-[var(--app-surface-subtle)] mb-4 overflow-hidden">
+            <div className="h-full rounded-full bg-[var(--app-accent)]" style=${{ width: '100%' }} />
+          </div>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-sm font-medium text-[var(--app-text-muted)]">Step 3 of 3</span>
-            <span className="text-gray-400">Experience</span>
+            <span className="text-[var(--app-text-faint)]">Experience</span>
           </div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Add your professional experience</h2>
+          <h2 className="text-2xl font-semibold text-[var(--app-text-primary)] mb-6 tracking-tight">Add your professional experience</h2>
 
           <form onSubmit=${handleSubmit} className="space-y-6">
             ${error ? html`
@@ -312,7 +315,8 @@ const RegistrationStep3 = ({ onComplete, onBack }) => {
               <button
                 type="submit"
                 disabled=${loading}
-                className="flex-1 py-3 px-6 rounded-xl font-semibold text-white bg-[#0C6DFD] hover:bg-[#0A5AD4] disabled:opacity-50"
+                className="flex-1 py-3 px-6 rounded-xl font-semibold text-white disabled:opacity-50 transition-colors"
+                style=${{ background: 'var(--app-accent)', boxShadow: 'var(--app-shadow-primary)' }}
               >
                 ${loading ? 'Saving...' : 'Complete registration'}
               </button>

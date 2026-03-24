@@ -16,6 +16,7 @@ import CommunityManagement from '/admin/frontend/src/community/CommunityManageme
 import CommunityDetailPage from '/admin/frontend/src/community/CommunityDetailPage.js';
 import CommunityCreatePage from '/admin/frontend/src/community/CommunityCreatePage.js';
 import CommunityRequestList from '/admin/frontend/src/community/CommunityRequestList.js';
+import ChannelRequestList from '/admin/frontend/src/community/ChannelRequestList.js';
 import TelemetryOverview from '/admin/frontend/src/telemetry/TelemetryOverview.js';
 import ApiTelemetryPage from '/admin/frontend/src/telemetry/sections/ApiTelemetryPage.js';
 import UserActivityPage from '/admin/frontend/src/telemetry/sections/UserActivityPage.js';
@@ -34,6 +35,11 @@ import NetworkView from '/products/network/frontend/index.js';
 import MessagingView from '/products/messaging/frontend/index.js';
 import AboutUsPage from '/core/app/frontend/src/AboutUsPage.js';
 import PendingApprovalPage from '/core/auth/frontend/pages/PendingApprovalPage.js';
+import SearchPage from '/shared/components/search/SearchPage.js';
+import PreparationView from '/products/preparation/frontend/index.js';
+import LongFormView from '/products/longform/frontend/index.js';
+import PublicLongFormPostShell from '/products/longform/frontend/src/PublicLongFormPostShell.js';
+import JobsComingSoonView from '/core/app/frontend/src/JobsComingSoonView.js';
 
 const html = htm.bind(React.createElement);
 
@@ -51,7 +57,12 @@ const App = () => {
     };
   }, []);
 
-  const path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+  let path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+  if (path === '/prepare/longform' || path.startsWith('/prepare/longform/')) {
+    const suffix = path.replace(/^\/prepare\/longform/, '') || '';
+    window.history.replaceState(null, '', `/longform${suffix}`);
+    path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+  }
 
   if (showSetup) {
     return html`<${SetupScreen}
@@ -75,16 +86,28 @@ const App = () => {
     if (isOwnProfile) {
       return html`<${ProfessionalProfileView} user=${user} onLogout=${handleLogout} />`;
     }
-    return html`<${PublicProfileView} slug=${slug} user=${user} onBack=${() => window.history.back()} />`;
+    return html`<${PublicProfileView} slug=${slug} user=${user} onLogout=${handleLogout} />`;
   }
 
   // Other public pages (no auth required)
   const iMatch = path.match(/^\/i\/([^/]+)$/);
   const oMatch = path.match(/^\/o\/([^/]+)$/);
-  if (iMatch) return html`<${AboutInstitutionPage} slug=${iMatch[1]} />`;
-  if (oMatch) return html`<${AboutCompanyPage} slug=${oMatch[1]} />`;
+  if (iMatch) {
+    return html`<${AboutInstitutionPage} slug=${iMatch[1]} user=${user} onLogout=${handleLogout} />`;
+  }
+  if (oMatch) {
+    return html`<${AboutCompanyPage} slug=${oMatch[1]} user=${user} onLogout=${handleLogout} />`;
+  }
 
   if (path === '/about') return html`<${AboutUsPage} user=${user} onLogout=${handleLogout} />`;
+
+  const longformPublicPostMatch = path.match(/^\/longform\/p\/([^/]+)\/([^/]+)$/);
+  if (!user && longformPublicPostMatch) {
+    return html`<${PublicLongFormPostShell}
+      publicationSlug=${longformPublicPostMatch[1]}
+      postSlug=${longformPublicPostMatch[2]}
+    />`;
+  }
 
   if (!user) {
     if (path === '/pending-approval') {
@@ -143,18 +166,44 @@ const App = () => {
     return html`<${MessagingView} user=${user} onLogout=${handleLogout} />`;
   }
 
+  if (path === '/search') {
+    return html`<${SearchPage} user=${user} onLogout=${handleLogout} />`;
+  }
+
+  if (path === '/prepare' || path.startsWith('/prepare/')) {
+    return html`<${PreparationView} user=${user} onLogout=${handleLogout} />`;
+  }
+
+  if (path === '/longform' || path.startsWith('/longform/')) {
+    return html`<${LongFormView} user=${user} onLogout=${handleLogout} />`;
+  }
+
+  if (path === '/jobs' || path.startsWith('/jobs/')) {
+    return html`<${JobsComingSoonView} user=${user} onLogout=${handleLogout} />`;
+  }
+
   // Admin users go to admin area
   if (user?.user_type === 'admin') {
-    if (!path.startsWith('/admin')) {
+    if (
+      !path.startsWith('/admin') &&
+      path !== '/search' &&
+      path !== '/prepare' &&
+      !path.startsWith('/prepare/') &&
+      path !== '/longform' &&
+      !path.startsWith('/longform/') &&
+      path !== '/jobs' &&
+      !path.startsWith('/jobs/')
+    ) {
       window.location.replace('/admin/institutions');
       return html`<div className="p-8">Redirecting...</div>`;
     }
-    const adminTab = path.includes('/organisations') ? 'organisations' : path.includes('/users') ? 'users' : path.includes('/communities') || path.includes('/community-requests') ? 'communities' : 'institutions';
+    const adminTab = path.includes('/organisations') ? 'organisations' : path.includes('/users') ? 'users' : path.includes('/communities') || path.includes('/community-requests') || path.includes('/channel-requests') ? 'communities' : 'institutions';
     const instEditMatch = path.match(/^\/admin\/institutions\/(\d+)$/);
     const orgEditMatch = path.match(/^\/admin\/organisations\/(\d+)$/);
     const communityDetailMatch = path.match(/^\/admin\/communities\/(\d+)$/);
     const communityNewMatch = path.match(/^\/admin\/communities\/new$/);
     const communityRequestsMatch = path.match(/^\/admin\/community-requests$/);
+    const channelRequestsMatch = path.match(/^\/admin\/channel-requests$/);
     const goBackInstitutions = () => { window.history.pushState(null, '', '/admin/institutions'); window.dispatchEvent(new CustomEvent('ithras:path-changed')); };
     const goBackOrganisations = () => { window.history.pushState(null, '', '/admin/organisations'); window.dispatchEvent(new CustomEvent('ithras:path-changed')); };
     const goBackCommunities = () => { window.history.pushState(null, '', '/admin/communities'); window.dispatchEvent(new CustomEvent('ithras:path-changed')); };
@@ -190,6 +239,13 @@ const App = () => {
       return html`
         <${AdminLayout} activeTab="communities" user=${user} onLogout=${handleLogout}>
           <${CommunityRequestList} onNavigateToCommunity=${(id) => { window.history.pushState(null, '', `/admin/communities/${id}`); window.dispatchEvent(new CustomEvent('ithras:path-changed')); }} />
+        </${AdminLayout}>
+      `;
+    }
+    if (channelRequestsMatch) {
+      return html`
+        <${AdminLayout} activeTab="communities" user=${user} onLogout=${handleLogout}>
+          <${ChannelRequestList} onNavigateToCommunity=${(id) => { window.history.pushState(null, '', `/admin/communities/${id}`); window.dispatchEvent(new CustomEvent('ithras:path-changed')); }} />
         </${AdminLayout}>
       `;
     }

@@ -1,6 +1,5 @@
 /**
- * PostComposer - Premium post composer with searchable community selector.
- * Matches CommunityComposer styling; community/channel dropdown actually works.
+ * PostComposer - Create a post (discussion-style only).
  */
 import React, { useState, useEffect, useRef } from 'react';
 import htm from 'htm';
@@ -8,11 +7,16 @@ import { getMyCommunities, getCommunity, createPost } from '../services/feedApi.
 
 const html = htm.bind(React.createElement);
 
-const POST_TYPE_CHIPS = [
-  { key: 'discussion', label: 'Discussion' },
-  { key: 'question', label: 'Question' },
-  { key: 'announcement', label: 'Announcement' },
-];
+const chrome = {
+  fieldBg: 'var(--app-surface-muted)',
+  fieldBorder: 'var(--app-border-soft)',
+  mutedText: 'var(--app-text-muted)',
+  secondaryText: 'var(--app-text-secondary)',
+  popoverBg: 'var(--app-surface)',
+  popoverBorder: 'var(--app-border-soft)',
+  rowHover: 'var(--app-surface-hover)',
+  rowActive: 'var(--app-accent-soft)',
+};
 
 const TagsInput = ({ tags, onChange, placeholder = '+ Add tag' }) => {
   const [val, setVal] = useState('');
@@ -37,8 +41,12 @@ const TagsInput = ({ tags, onChange, placeholder = '+ Add tag' }) => {
       ${(tags || []).map((t, i) => html`
         <span
           key=${`tag-${i}-${String(t)}`}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
-          style=${{ background: 'rgba(0,0,0,0.04)', color: 'var(--app-text-secondary)' }}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors border"
+          style=${{
+            background: 'var(--app-surface-subtle)',
+            color: 'var(--app-text-secondary)',
+            borderColor: 'var(--app-border-soft)',
+          }}
         >
           ${t}
           <button type="button" onClick=${() => onChange((tags || []).filter((_, idx) => idx !== i))} className="hover:opacity-70 leading-none p-0.5 rounded" aria-label="Remove tag">×</button>
@@ -53,15 +61,17 @@ const TagsInput = ({ tags, onChange, placeholder = '+ Add tag' }) => {
           onKeyDown=${(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } if (e.key === 'Escape') { setShowInput(false); setVal(''); } }}
           onBlur=${() => { if (!val.trim()) setShowInput(false); add(); }}
           placeholder="Tag name"
-          className="w-20 py-1 px-2 text-xs rounded-lg border-0 bg-transparent focus:ring-1 focus:ring-[var(--app-accent)] focus:outline-none"
-          style=${{ border: '1px solid var(--app-border-soft)' }}
+          className="w-24 py-1.5 px-2 text-xs rounded-lg outline-none ith-focus-ring"
+          style=${{ border: `1px solid ${chrome.fieldBorder}`, background: chrome.fieldBg, color: 'var(--app-text-primary)' }}
         />
       ` : html`
         <button
           type="button"
           onClick=${() => setShowInput(true)}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition hover:bg-[rgba(0,0,0,0.04)]"
-          style=${{ color: '#64748b' }}
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors ith-focus-ring"
+          style=${{ color: chrome.mutedText, background: 'transparent' }}
+          onMouseEnter=${(e) => { e.currentTarget.style.background = 'var(--app-surface-hover)'; }}
+          onMouseLeave=${(e) => { e.currentTarget.style.background = 'transparent'; }}
         >
           ${placeholder}
         </button>
@@ -70,12 +80,25 @@ const TagsInput = ({ tags, onChange, placeholder = '+ Add tag' }) => {
   `;
 };
 
-const PostComposer = ({ onSuccess, communityId, channelId }) => {
+const userInitials = (user) => {
+  const n = user?.full_name || user?.username || user?.email || '';
+  if (!n) return '?';
+  return n
+    .split(/[\s@]+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+};
+
+const PostComposer = ({ onSuccess, communityId, channelId, user }) => {
   const [communities, setCommunities] = useState([]);
   const [selectedCommunity, setSelectedCommunity] = useState(communityId || null);
   const [selectedChannel, setSelectedChannel] = useState(channelId || null);
   const [communityDetail, setCommunityDetail] = useState(null);
-  const [postType, setPostType] = useState('discussion');
+  const [expanded, setExpanded] = useState(false);
+  const [expandNonce, setExpandNonce] = useState(0);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState([]);
@@ -84,6 +107,19 @@ const PostComposer = ({ onSuccess, communityId, channelId }) => {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [search, setSearch] = useState('');
   const popoverRef = useRef(null);
+
+  const openExpanded = () => {
+    setExpandNonce((n) => n + 1);
+    setExpanded(true);
+  };
+
+  useEffect(() => {
+    if (!expanded) return;
+    setTitle('');
+    setContent('');
+    setTags([]);
+    setError('');
+  }, [expanded, expandNonce]);
 
   useEffect(() => {
     getMyCommunities()
@@ -136,13 +172,17 @@ const PostComposer = ({ onSuccess, communityId, channelId }) => {
       setError('Please select a community');
       return;
     }
+    if (!content.trim()) {
+      setError('Add some content.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
       await createPost({
         communityId: selectedCommunity,
         channelId: hasChannels ? effectiveChannel : null,
-        type: postType,
+        type: 'discussion',
         title: title.trim(),
         content: content.trim(),
         tags,
@@ -150,6 +190,7 @@ const PostComposer = ({ onSuccess, communityId, channelId }) => {
       setTitle('');
       setContent('');
       setTags([]);
+      setExpanded(false);
       onSuccess?.();
     } catch (err) {
       setError(err.message || 'Failed to create post');
@@ -165,39 +206,90 @@ const PostComposer = ({ onSuccess, communityId, channelId }) => {
     setSearch('');
   };
 
+  const fieldStyle = {
+    borderColor: chrome.fieldBorder,
+    background: chrome.fieldBg,
+    color: 'var(--app-text-primary)',
+  };
+
+  if (!expanded) {
+    return html`
+      <div
+        className="rounded-[var(--app-radius-card)] border p-3 sm:p-4"
+        style=${{
+          background: 'var(--app-surface)',
+          borderColor: 'var(--app-border-soft)',
+          boxShadow: 'var(--app-shadow-card)',
+        }}
+      >
+        <button
+          type="button"
+          onClick=${openExpanded}
+          className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors ith-focus-ring"
+          style=${{ color: 'var(--app-text-primary)' }}
+          onMouseEnter=${(e) => { e.currentTarget.style.background = 'var(--app-surface-hover)'; }}
+          onMouseLeave=${(e) => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+            style=${{ background: 'var(--app-accent-soft)', color: 'var(--app-accent)' }}
+            aria-hidden="true"
+          >
+            ${userInitials(user)}
+          </span>
+          <span className="min-w-0 flex-1 text-sm" style=${{ color: 'var(--app-text-muted)' }}>
+            Start a post in your communities…
+          </span>
+        </button>
+      </div>
+    `;
+  }
+
+  const submitDisabled = loading || !selectedCommunity || !content.trim();
+
   return html`
     <div
-      className="rounded-3xl border p-4 shadow-sm sm:p-6"
-      style=${{ background: 'var(--app-surface)', borderColor: 'var(--app-border-soft)' }}
+      className="rounded-[var(--app-radius-card)] border p-4 sm:p-6"
+      style=${{
+        background: 'var(--app-surface)',
+        borderColor: 'var(--app-border-soft)',
+        boxShadow: 'var(--app-shadow-card)',
+      }}
     >
       <form onSubmit=${handleSubmit} className="space-y-4">
         ${error ? html`
-          <div className="px-4 py-2.5 rounded-xl text-sm" style=${{ background: 'var(--app-danger-soft)', color: 'var(--app-danger)' }}>${error}</div>
+          <div className="px-4 py-2.5 rounded-xl text-sm border" style=${{ background: 'var(--app-danger-soft)', color: 'var(--app-danger)', borderColor: 'var(--app-border-soft)' }}>${error}</div>
         ` : null}
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium uppercase tracking-[0.18em]" style=${{ color: '#94a3b8' }}>
-            Posting in
-          </span>
+          <span className="text-xs font-semibold uppercase tracking-[0.14em]" style=${{ color: chrome.mutedText }}>Posting in</span>
           <div className="relative" ref=${popoverRef}>
             <button
               type="button"
               onClick=${() => setPopoverOpen(!popoverOpen)}
-              className="group inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition hover:border-slate-300 hover:bg-white"
-              style=${{ borderColor: '#e2e8f0', background: '#f8fafc', color: '#475569' }}
+              className="group inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ith-focus-ring"
+              style=${{ borderColor: chrome.fieldBorder, background: chrome.fieldBg, color: chrome.secondaryText }}
+              onMouseEnter=${(e) => { e.currentTarget.style.borderColor = 'var(--app-border-strong)'; e.currentTarget.style.background = 'var(--app-surface-hover)'; }}
+              onMouseLeave=${(e) => { e.currentTarget.style.borderColor = chrome.fieldBorder; e.currentTarget.style.background = chrome.fieldBg; }}
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold" style=${{ background: selectedCommunity ? '#0f172a' : '#e2e8f0', color: selectedCommunity ? '#ffffff' : '#64748b' }}>
+              <span
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+                style=${{
+                  background: selectedCommunity ? 'var(--app-accent)' : 'var(--app-surface-subtle)',
+                  color: selectedCommunity ? '#ffffff' : 'var(--app-text-muted)',
+                }}
+              >
                 ${communityInitials}
               </span>
               <span className="max-w-[200px] truncate sm:max-w-[280px]">${communityName}${hasChannels ? ` · ${channelName}` : ''}</span>
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 shrink-0 transition" style=${{ color: '#94a3b8', transform: popoverOpen ? 'rotate(180deg)' : 'none' }}>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 shrink-0 transition" style=${{ color: chrome.mutedText, transform: popoverOpen ? 'rotate(180deg)' : 'none' }}>
                 <path d="m5 7.5 5 5 5-5" />
               </svg>
             </button>
             ${popoverOpen ? html`
               <div
-                className="absolute left-0 top-full z-50 mt-2 min-w-[280px] rounded-2xl border bg-white py-2 shadow-lg"
-                style=${{ borderColor: '#e2e8f0' }}
+                className="absolute left-0 top-full z-50 mt-2 min-w-[280px] rounded-2xl border py-2"
+                style=${{ background: chrome.popoverBg, borderColor: chrome.popoverBorder, boxShadow: 'var(--app-shadow-floating)' }}
               >
                 <div className="px-3 pb-2">
                   <input
@@ -205,23 +297,25 @@ const PostComposer = ({ onSuccess, communityId, channelId }) => {
                     value=${search}
                     onChange=${(e) => setSearch(e.target.value)}
                     placeholder="Search communities..."
-                    className="w-full rounded-xl border px-3 py-2 text-sm outline-none placeholder:opacity-60"
-                    style=${{ borderColor: '#e2e8f0', background: '#f8fafc' }}
+                    className="w-full rounded-xl px-3 py-2 text-sm outline-none ith-focus-ring placeholder:opacity-50"
+                    style=${{ ...fieldStyle, border: `1px solid ${chrome.fieldBorder}` }}
                     autoFocus
                   />
                 </div>
-                <div className="max-h-64 overflow-y-auto">
+                <div className="max-h-64 overflow-y-auto custom-scrollbar">
                   ${filteredCommunities.length === 0 ? html`
-                    <p className="px-4 py-3 text-sm" style=${{ color: '#64748b' }}>No communities found</p>
+                    <p className="px-4 py-3 text-sm" style=${{ color: chrome.mutedText }}>No communities found</p>
                   ` : filteredCommunities.map((c) => html`
                     <button
                       key=${c.id}
                       type="button"
                       onClick=${() => handleSelectCommunity(c)}
-                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-[#f1f5f9]"
-                      style=${{ color: selectedCommunity === c.id ? '#0f172a' : '#334155', background: selectedCommunity === c.id ? '#f1f5f9' : 'transparent' }}
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ith-focus-ring"
+                      style=${{ color: 'var(--app-text-primary)', background: selectedCommunity === c.id ? chrome.rowActive : 'transparent' }}
+                      onMouseEnter=${(e) => { if (selectedCommunity !== c.id) e.currentTarget.style.background = chrome.rowHover; }}
+                      onMouseLeave=${(e) => { e.currentTarget.style.background = selectedCommunity === c.id ? chrome.rowActive : 'transparent'; }}
                     >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold" style=${{ background: '#e2e8f0', color: '#475569' }}>
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold" style=${{ background: 'var(--app-surface-subtle)', color: 'var(--app-text-secondary)' }}>
                         ${(c.name || 'C').slice(0, 2).toUpperCase()}
                       </span>
                       <span className="truncate">${c.name || 'Community'}</span>
@@ -235,53 +329,41 @@ const PostComposer = ({ onSuccess, communityId, channelId }) => {
             <select
               value=${effectiveChannel || ''}
               onChange=${(e) => setSelectedChannel(e.target.value ? parseInt(e.target.value, 10) : null)}
-              className="rounded-full border px-3.5 py-2 text-sm font-medium outline-none"
-              style=${{ borderColor: '#e2e8f0', background: '#f8fafc', color: '#475569' }}
+              className="rounded-full border px-3.5 py-2 text-sm font-medium outline-none ith-focus-ring cursor-pointer"
+              style=${{ borderColor: chrome.fieldBorder, background: chrome.fieldBg, color: chrome.secondaryText }}
             >
-              ${channels.map((ch) => html`
-                <option key=${ch.id} value=${ch.id}>${ch.name}</option>
-              `)}
+              ${channels.map((ch) => html`<option key=${ch.id} value=${ch.id}>${ch.name}</option>`)}
             </select>
           ` : null}
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          ${POST_TYPE_CHIPS.map((t) => {
-            const isActive = postType === t.key;
-            return html`
-              <button
-                key=${t.key}
-                type="button"
-                onClick=${() => setPostType(t.key)}
-                className="rounded-full px-3.5 py-2 text-sm font-medium transition"
-                style=${{
-                  background: isActive ? '#0f172a' : '#f1f5f9',
-                  color: isActive ? '#ffffff' : '#475569',
-                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                }}
-              >
-                ${t.label}
-              </button>
-            `;
-          })}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick=${() => setExpanded(false)}
+            className="text-xs font-semibold uppercase tracking-wider ith-focus-ring rounded-lg px-2 py-1"
+            style=${{ color: 'var(--app-text-muted)' }}
+          >
+            Collapse
+          </button>
         </div>
 
         <input
           type="text"
           value=${title}
           onChange=${(e) => setTitle(e.target.value)}
-          placeholder="Add a title"
-          className="mb-3 h-12 w-full rounded-2xl border px-4 text-sm outline-none transition placeholder:opacity-60 focus:border-[var(--app-border-strong)] focus:bg-[var(--app-surface)]"
-          style=${{ borderColor: '#e2e8f0', background: '#f8fafc', color: 'var(--app-text-primary)' }}
+          placeholder="Title (optional)"
+          className="h-12 w-full rounded-2xl border px-4 text-sm outline-none transition placeholder:opacity-50 ith-focus-ring"
+          style=${fieldStyle}
         />
 
         <textarea
           value=${content}
           onChange=${(e) => setContent(e.target.value)}
-          placeholder="Share something with your community..."
+          placeholder="What would you like to share?"
           rows=${4}
-          className="mb-4 w-full rounded-2xl border px-4 py-3 text-sm outline-none transition resize-none placeholder:opacity-60 focus:border-[var(--app-border-strong)] focus:bg-[var(--app-surface)]"
-          style=${{ borderColor: '#e2e8f0', background: '#f8fafc', color: 'var(--app-text-primary)' }}
+          className="w-full rounded-2xl border px-4 py-3 text-sm outline-none transition resize-none placeholder:opacity-50 ith-focus-ring"
+          style=${fieldStyle}
           required
         />
 
@@ -289,9 +371,11 @@ const PostComposer = ({ onSuccess, communityId, channelId }) => {
           <${TagsInput} tags=${tags} onChange=${setTags} />
           <button
             type="submit"
-            disabled=${loading || !content.trim() || !selectedCommunity}
-            className="rounded-2xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-            style=${{ background: '#0f172a' }}
+            disabled=${submitDisabled}
+            className="rounded-2xl px-6 py-2.5 text-sm font-semibold text-white transition ith-focus-ring disabled:opacity-45 disabled:cursor-not-allowed"
+            style=${{ background: 'var(--app-accent)', boxShadow: 'var(--app-shadow-primary)' }}
+            onMouseEnter=${(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.filter = 'brightness(1.08)'; }}
+            onMouseLeave=${(e) => { e.currentTarget.style.filter = ''; }}
           >
             ${loading ? 'Posting…' : 'Post'}
           </button>

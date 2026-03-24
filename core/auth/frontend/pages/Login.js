@@ -3,10 +3,9 @@ import htm from 'htm';
 import { login } from '/shared/services/index.js';
 import IthrasLogo from '/shared/components/IthrasLogo.js';
 import { Input } from '/shared/primitives/index.js';
+import { AUTH_HERO_PANEL_STYLE, AUTH_HERO_COLUMN_CLASS } from '/shared/styles/authHeroPanel.js';
 
 const html = htm.bind(React.createElement);
-
-const BLUE_PANEL = '#0C6DFD';
 
 const CommunityIcon = () => html`
   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -121,21 +120,21 @@ const Login = ({ onLogin, onShowRegister }) => {
           gap: '5px',
           padding: '6px 14px',
           borderRadius: '8px',
-          background: 'rgba(12,109,253,0.08)',
-          color: '#0C6DFD',
+          background: 'var(--app-accent-softer)',
+          color: 'var(--app-accent)',
           fontSize: '13px',
           fontWeight: 600,
           textDecoration: 'none',
-          border: '1px solid rgba(12,109,253,0.18)',
+          border: '1px solid var(--app-accent-soft)',
           transition: 'background 160ms',
         }}
-        onMouseEnter=${(e) => { e.currentTarget.style.background = 'rgba(12,109,253,0.14)'; }}
-        onMouseLeave=${(e) => { e.currentTarget.style.background = 'rgba(12,109,253,0.08)'; }}
+        onMouseEnter=${(e) => { e.currentTarget.style.background = 'var(--app-accent-soft)'; }}
+        onMouseLeave=${(e) => { e.currentTarget.style.background = 'var(--app-accent-softer)'; }}
       >
         About Us
       </a>
 
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center p-16" style=${{ background: BLUE_PANEL }}>
+      <div className=${AUTH_HERO_COLUMN_CLASS} style=${AUTH_HERO_PANEL_STYLE}>
         <div className="max-w-md text-center">
 
           <div className="mb-10 inline-flex items-center gap-3">
@@ -228,14 +227,14 @@ const Login = ({ onLogin, onShowRegister }) => {
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 md:p-16 bg-white">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 md:p-16 bg-[var(--app-surface)] border-l border-[var(--app-border-soft)]">
         <div className="lg:hidden flex items-center gap-3 mb-12">
           <${IthrasLogo} size="md" theme="dark" />
         </div>
 
         <div className="max-w-sm w-full mx-auto">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-1 tracking-tight">Sign in</h2>
-          <p className="text-gray-600 text-[15px] mb-8">Enter your username or email and password.</p>
+          <h2 className="text-2xl font-semibold text-[var(--app-text-primary)] mb-1 tracking-tight">Sign in</h2>
+          <p className="text-[var(--app-text-secondary)] text-[15px] mb-8">Enter your username or email and password.</p>
 
           <form onSubmit=${handleSubmit} className="space-y-5">
             ${error ? html`
@@ -298,7 +297,8 @@ const Login = ({ onLogin, onShowRegister }) => {
             <button
               type="submit"
               disabled=${loading}
-              className="w-full py-3 px-6 rounded-xl font-semibold text-white text-[15px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg bg-[#0C6DFD] hover:bg-[#0A5AD4] active:bg-[#0849B0]"
+              className="w-full py-3 px-6 rounded-xl font-semibold text-white text-[15px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style=${{ background: 'var(--app-accent)', boxShadow: 'var(--app-shadow-primary)' }}
             >
               ${loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -308,7 +308,7 @@ const Login = ({ onLogin, onShowRegister }) => {
                 <button
                   type="button"
                   onClick=${onShowRegister}
-                  className="ml-1 font-medium text-[#0C6DFD] hover:underline"
+                  className="ml-1 font-medium text-[var(--app-accent)] hover:underline"
                 >
                   Sign up
                 </button>

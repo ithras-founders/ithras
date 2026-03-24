@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { getPublicInstitution, getInstitutionPeople } from '/shared/services/index.js';
-import IthrasLogo from '/shared/components/IthrasLogo.js';
+import DirectoryEntityShell from './DirectoryEntityShell.js';
 import CompanyHeroCard from './components/CompanyHeroCard.js';
 import MemberList from './components/MemberList.js';
 import AlumniList from './components/AlumniList.js';
@@ -15,6 +15,7 @@ import NotEnoughData from './components/NotEnoughData.js';
 import StatsChart from './components/StatsChart.js';
 import ProgrammeDistributionChart from './components/ProgrammeDistributionChart.js';
 import { HeroSkeleton, StatsGridSkeleton, MemberListSkeleton } from './components/SkeletonLoader.js';
+import EntityPageCommunitySection from './components/EntityPageCommunitySection.js';
 import { GraduationCap } from 'lucide-react';
 
 const html = htm.bind(React.createElement);
@@ -32,7 +33,13 @@ const tenureFromMonths = (start, end) => {
   return `${(months / 12).toFixed(1)} yrs`;
 };
 
-const AboutInstitutionPage = ({ slug }) => {
+const goHome = (e) => {
+  e.preventDefault();
+  window.history.pushState(null, '', '/');
+  window.dispatchEvent(new CustomEvent('ithras:path-changed'));
+};
+
+const AboutInstitutionPage = ({ slug, user, onLogout }) => {
   const [apiData, setApiData] = useState(null);
   const [people, setPeople] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +63,7 @@ const AboutInstitutionPage = ({ slug }) => {
   }, [slug]);
 
   const inst = apiData?.institution || {};
+  const linkedCommunity = apiData?.linked_community || null;
   const degreeMajors = apiData?.degree_majors || [];
   const currentCount = apiData?.current_count ?? 0;
   const alumniCount = apiData?.alumni_count ?? 0;
@@ -105,28 +113,50 @@ const AboutInstitutionPage = ({ slug }) => {
     department: null,
   }));
 
+  const breadcrumb = (titleLine) => html`
+    <div className="pb-4 mb-6 border-b" style=${{ borderColor: 'var(--app-border-soft)' }}>
+      <p className="text-xs font-medium" style=${{ color: 'var(--app-text-muted)' }}>
+        Institutions / ${titleLine}
+      </p>
+      <p className="text-lg font-semibold mt-0.5" style=${{ color: 'var(--app-text-primary)' }}>
+        ${titleLine}
+      </p>
+    </div>
+  `;
+
   if (loading) {
     return html`
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <header className="sticky top-0 z-10 flex items-center justify-between px-4 md:px-6 py-3 border-b border-gray-200 bg-white">
-          <a href="/" className="flex items-center"><${IthrasLogo} size="sm" theme="dark" /></a>
-          <span className="text-sm text-gray-500">Loading...</span>
-        </header>
-        <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-6 py-8 space-y-8">
-          <${HeroSkeleton} />
-          <${StatsGridSkeleton} />
-          <${MemberListSkeleton} />
-        </main>
-      </div>
+      <${DirectoryEntityShell} user=${user} onLogout=${onLogout}>
+        <div className="px-4 md:px-6 py-6 max-w-6xl mx-auto w-full">
+          <div className="pb-4 mb-6 border-b" style=${{ borderColor: 'var(--app-border-soft)' }}>
+            <p className="text-xs font-medium" style=${{ color: 'var(--app-text-muted)' }}>Institutions</p>
+            <p className="text-lg font-semibold mt-0.5" style=${{ color: 'var(--app-text-secondary)' }}>Loading…</p>
+          </div>
+          <div className="space-y-8">
+            <${HeroSkeleton} />
+            <${StatsGridSkeleton} />
+            <${MemberListSkeleton} />
+          </div>
+        </div>
+      </${DirectoryEntityShell}>
     `;
   }
 
   if (error) {
     return html`
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-50">
-        <p className="text-red-600 font-medium">${error}</p>
-        <a href="/" className="mt-4 text-sm text-blue-600 hover:underline">Go home</a>
-      </div>
+      <${DirectoryEntityShell} user=${user} onLogout=${onLogout}>
+        <main className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center">
+          <p className="font-medium" style=${{ color: 'var(--app-danger, #dc2626)' }}>${error}</p>
+          <a
+            href="/"
+            onClick=${goHome}
+            className="mt-4 text-sm font-medium hover:underline"
+            style=${{ color: 'var(--app-accent)' }}
+          >
+            Go home
+          </a>
+        </main>
+      </${DirectoryEntityShell}>
     `;
   }
 
@@ -137,17 +167,13 @@ const AboutInstitutionPage = ({ slug }) => {
     { id: 'insights', label: 'Insights' },
   ];
 
-  return html`
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="sticky top-0 z-10 flex items-center justify-between px-4 md:px-6 py-3 border-b border-gray-200 bg-white">
-        <a href="/" className="flex items-center"><${IthrasLogo} size="sm" theme="dark" /></a>
-        <div className="text-right">
-          <p className="text-sm text-gray-500">Institutions / ${inst.name || slug}</p>
-          <p className="font-semibold text-gray-900">${inst.name || slug}</p>
-        </div>
-      </header>
+  const title = inst.name || slug;
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-6 py-8 space-y-6">
+  return html`
+    <${DirectoryEntityShell} user=${user} onLogout=${onLogout}>
+      <div className="px-4 md:px-6 py-6 max-w-6xl mx-auto w-full space-y-6">
+        ${breadcrumb(title)}
+
         ${inst.status === 'placeholder'
           ? html`
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800 text-sm">
@@ -157,11 +183,21 @@ const AboutInstitutionPage = ({ slug }) => {
           : null}
 
         <${CompanyHeroCard}
-          org=${{ ...inst, name: inst.name || slug }}
-          extras=${{ teamCount: degreeMajors.length, openRoles: degreeMajors.length, avgTenure: null }}
+          org=${{ ...inst, name: title }}
+          extras=${{
+            teamCount: degreeMajors.length,
+            openRoles: degreeMajors.length,
+            avgTenure: null,
+            industry: inst.institution_type,
+            headquarters: [inst.city, inst.state, inst.country].filter(Boolean).join(', '),
+            founded: inst.founded_year,
+            tags: [inst.campus_type, inst.short_name].filter(Boolean),
+          }}
           stats=${{ current_count: currentCount, alumni_count: alumniCount, total_count: totalCount }}
           variant="institution"
         />
+
+        <${EntityPageCommunitySection} linkedCommunity=${linkedCommunity} user=${user} />
 
         <div className="flex gap-1 p-1 rounded-xl bg-white border border-gray-200 w-fit">
           ${tabs.map((t) => html`
@@ -227,8 +263,8 @@ const AboutInstitutionPage = ({ slug }) => {
               : html`<${NotEnoughData} message="Not enough data available for insights. Add more students and alumni to see derived insights." />`}
           </section>
         ` : null}
-      </main>
-    </div>
+      </div>
+    </${DirectoryEntityShell}>
   `;
 };
 

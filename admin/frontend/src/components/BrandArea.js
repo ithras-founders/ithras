@@ -17,9 +17,10 @@ const SIDEBAR_COLLAPSED = 96;
  * @param {{
  *   collapsed: boolean,
  *   onCollapseToggle: () => void,
+ *   logoTheme?: 'light' | 'dark',
  * }} props
  */
-const BrandArea = ({ collapsed, onCollapseToggle }) => {
+const BrandArea = ({ collapsed, onCollapseToggle, logoTheme = 'dark' }) => {
   const width = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 
   return html`
@@ -39,7 +40,7 @@ const BrandArea = ({ collapsed, onCollapseToggle }) => {
         >
           <${IthrasLogo}
             size=${collapsed ? 'sm' : 'sm'}
-            theme="dark"
+            theme=${logoTheme}
             className="flex-shrink-0 transition-all duration-300"
           />
         </a>

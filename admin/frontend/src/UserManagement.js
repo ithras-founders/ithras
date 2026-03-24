@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import htm from 'htm';
 import { apiRequest } from '/shared/services/apiBase.js';
+import AdminPageHeader from '/shared/components/admin/AdminPageHeader.js';
+import Button from '/shared/components/ui/Button.js';
+import Card from '/shared/components/ui/Card.js';
 
 const html = htm.bind(React.createElement);
 
@@ -99,7 +102,7 @@ const UserManagement = () => {
 
   if (loading) return html`
     <div>
-      <h1 className="text-2xl font-bold text-[var(--app-text-primary)] mb-6">User Management</h1>
+      <${AdminPageHeader} title="User Management" subtitle="Review signups, approve or reject accounts, and manage access." />
       <div className="flex items-center gap-2 text-[var(--app-text-muted)]">
         <div className="animate-spin h-5 w-5 border-2 border-[var(--app-accent)] border-t-transparent rounded-full"></div>
         Loading...
@@ -109,85 +112,87 @@ const UserManagement = () => {
 
   return html`
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[var(--app-text-primary)]">User Management</h1>
-        ${pendingCount > 0 ? html`
-          <span style=${{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            padding: '4px 12px',
-            borderRadius: '999px',
-            fontSize: '13px',
-            fontWeight: 600,
-            background: '#FFFBEB',
-            border: '1px solid #FDE68A',
-            color: '#92400E',
-          }}>
-            ⏳ ${pendingCount} awaiting approval
-          </span>
-        ` : null}
-      </div>
+      <${AdminPageHeader}
+        title="User Management"
+        subtitle="Review signups, approve or reject accounts, and manage access."
+        actions=${pendingCount > 0
+          ? html`<span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-pill)] text-sm font-medium"
+              style=${{
+                background: 'var(--app-warning-soft)',
+                color: 'var(--status-warning-text)',
+                border: '1px solid var(--app-border-soft)',
+              }}
+            >
+              ⏳ ${pendingCount} awaiting approval
+            </span>`
+          : null}
+      />
 
-      ${error ? html`<div className="mb-4 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">${error}</div>` : null}
+      ${error
+        ? html`<div
+            className="mb-4 p-4 rounded-[var(--radius-lg)] text-sm border"
+            style=${{
+              color: 'var(--status-danger-text)',
+              background: 'var(--app-danger-soft)',
+              borderColor: 'var(--app-border-soft)',
+            }}
+          >
+            ${error}
+          </div>`
+        : null}
 
-      <div className="flex gap-1 mb-6 border-b border-[var(--app-border-soft)]">
+      <div className="flex flex-wrap gap-1 mb-6 pb-1 border-b border-[var(--app-border-soft)]">
         ${TABS.map((tab) => {
           const count = tab.key === 'all' ? users.length : users.filter((u) => u.account_status === tab.key).length;
           const isActive = activeTab === tab.key;
           return html`
             <button
               key=${tab.key}
-              onClick=${() => setActiveTab(tab.key)}
+              type="button"
+              className="ith-focus-ring flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] text-sm font-medium transition-colors"
               style=${{
-                padding: '8px 14px',
-                fontSize: '13px',
-                fontWeight: isActive ? 600 : 500,
                 color: isActive ? 'var(--app-accent)' : 'var(--app-text-muted)',
-                background: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                // Avoid mixing `border` shorthand with `borderBottom` (React dev warning)
-                borderTop: 'none',
-                borderLeft: 'none',
-                borderRight: 'none',
+                background: isActive ? 'var(--app-accent-soft)' : 'transparent',
                 borderBottom: isActive ? '2px solid var(--app-accent)' : '2px solid transparent',
+                marginBottom: '-2px',
               }}
+              onClick=${() => setActiveTab(tab.key)}
             >
               ${tab.label}
-              ${count > 0 ? html`
-                <span style=${{
-                  background: isActive ? 'var(--app-accent)' : '#E5E7EB',
-                  color: isActive ? '#fff' : '#6B7280',
-                  borderRadius: '999px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  padding: '0 6px',
-                  minWidth: '18px',
-                  textAlign: 'center',
-                }}>
-                  ${count}
-                </span>
-              ` : null}
+              ${count > 0
+                ? html`<span
+                    className="tabular-nums text-[11px] font-bold px-1.5 py-0.5 rounded-[var(--radius-pill)]"
+                    style=${{
+                      background: isActive ? 'var(--app-accent)' : 'var(--app-surface-subtle)',
+                      color: isActive ? '#fff' : 'var(--app-text-secondary)',
+                    }}
+                  >
+                    ${count}
+                  </span>`
+                : null}
             </button>
           `;
         })}
       </div>
 
-      ${filtered.length === 0 ? html`
-        <div className="text-center py-12 text-[var(--app-text-muted)]">
-          No ${activeTab === 'all' ? '' : activeTab} users.
-        </div>
-      ` : null}
-
-      <div className="grid gap-3">
-        ${filtered.map((u) => {
+      ${filtered.length === 0
+        ? html`
+            <div className="ith-admin-list-shell items-center text-center py-12 text-[var(--app-text-muted)]">
+              No ${activeTab === 'all' ? '' : activeTab} users.
+            </div>
+          `
+        : html`
+            <div className="flex flex-col gap-3">
+              ${filtered.map((u) => {
           const isActioning = !!actionLoading[u.id];
           const isPending = u.account_status === 'pending';
           return html`
-            <div key=${u.id} className="app-card p-4 rounded-xl border border-[var(--app-border-soft)] bg-[var(--app-surface)] flex items-center gap-4">
+            <div
+              key=${u.id}
+              className="flex items-center gap-4 p-4 rounded-[var(--app-radius-lg)] border bg-[var(--app-surface)] transition-shadow hover:shadow-[var(--app-shadow-card)]"
+              style=${{ borderColor: 'var(--app-border-soft)' }}
+            >
               <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-medium bg-[var(--app-accent-soft)] text-[var(--app-accent)] flex-shrink-0">
                 ${initials(u.full_name || u.username)}
               </div>
@@ -199,7 +204,10 @@ const UserManagement = () => {
                 <p className="text-sm text-[var(--app-text-secondary)]">${u.email}</p>
                 ${u.headline ? html`<p className="text-sm text-[var(--app-text-muted)] mt-0.5">${u.headline}</p>` : null}
                 <div className="flex gap-2 mt-1.5 flex-wrap">
-                  <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">${u.user_type || 'general'}</span>
+                  <span
+                    className="inline-flex px-2 py-0.5 rounded-[var(--radius-sm)] text-xs font-medium"
+                    style=${{ background: 'var(--app-surface-subtle)', color: 'var(--app-text-secondary)' }}
+                    >${u.user_type || 'general'}</span>
                   ${u.created_at ? html`<span className="text-xs text-[var(--app-text-muted)]">Joined ${new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>` : null}
                   ${u.profile_slug ? html`<a href="/p/${u.profile_slug}" target="_blank" rel="noopener" className="text-xs text-[var(--app-accent)] hover:underline">View profile</a>` : null}
                 </div>
@@ -256,7 +264,7 @@ const UserManagement = () => {
                 ${(u.email || '').toLowerCase() !== 'founders@ithras.com' ? html`
                   <button
                     onClick=${() => deleteUser(u)}
-                    className="p-2 rounded-lg text-[var(--app-danger)] hover:bg-red-50"
+                    className="p-2 rounded-lg text-[var(--app-danger)] hover:bg-[var(--app-danger-soft)] ith-focus-ring"
                     title="Delete user"
                   >
                     <${TrashIcon} />
@@ -265,21 +273,32 @@ const UserManagement = () => {
               </div>
             </div>
           `;
-        })}
-      </div>
-
-      ${deleteConfirm ? html`
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick=${() => setDeleteConfirm(null)}>
-          <div className="bg-white rounded-xl p-6 max-w-md w-full" onClick=${(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-2">Delete user?</h3>
-            <p className="text-[var(--app-text-secondary)] mb-4">This will permanently delete ${deleteConfirm.full_name || deleteConfirm.email}. This action cannot be undone.</p>
-            <div className="flex gap-3">
-              <button onClick=${confirmDelete} className="px-4 py-2 rounded-lg font-medium bg-red-600 text-white hover:bg-red-700">Delete</button>
-              <button onClick=${() => setDeleteConfirm(null)} className="px-4 py-2 rounded-lg border">Cancel</button>
+              })}
             </div>
-          </div>
-        </div>
-      ` : null}
+          `}
+
+      ${deleteConfirm
+        ? html`
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              style=${{ background: 'var(--backdrop-scrim)' }}
+              onClick=${() => setDeleteConfirm(null)}
+            >
+              <div onClick=${(e) => e.stopPropagation()} className="max-w-md w-full">
+                <${Card} elevated=${true} padding="lg">
+                  <h3 className="text-lg font-semibold mb-2 text-[var(--app-text-primary)]">Delete user?</h3>
+                  <p className="text-[var(--app-text-secondary)] text-sm mb-6">
+                    This will permanently delete ${deleteConfirm.full_name || deleteConfirm.email}. This action cannot be undone.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <${Button} variant="danger" onClick=${confirmDelete}>Delete</${Button}>
+                    <${Button} variant="secondary" onClick=${() => setDeleteConfirm(null)}>Cancel</${Button}>
+                  </div>
+                </${Card}>
+              </div>
+            </div>
+          `
+        : null}
     </div>
   `;
 };

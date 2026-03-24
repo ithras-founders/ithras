@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from starlette.staticfiles import StaticFiles
 
 # ─── Path setup (before any shared imports) ────────────────────────────────────
 _current = os.path.dirname(os.path.abspath(__file__))
@@ -102,6 +103,8 @@ profiles_professional_backend = '/products/profiles/professional/backend' if os.
 feed_backend = '/products/feed/backend' if os.path.exists('/products') else os.path.join(_ws, 'products', 'feed', 'backend')
 network_backend = '/products/network/backend' if os.path.exists('/products') else os.path.join(_ws, 'products', 'network', 'backend')
 messaging_backend = '/products/messaging/backend' if os.path.exists('/products') else os.path.join(_ws, 'products', 'messaging', 'backend')
+search_backend = '/products/search/backend' if os.path.exists('/products') else os.path.join(_ws, 'products', 'search', 'backend')
+longform_backend = '/products/longform/backend' if os.path.exists('/products') else os.path.join(_ws, 'products', 'longform', 'backend')
 setup_backend = '/core/setup/backend' if os.path.exists('/core') else os.path.join(_ws, 'core', 'setup', 'backend')
 for _path in (
     os.path.join(_core, 'auth', 'backend'),
@@ -112,6 +115,8 @@ for _path in (
     feed_backend,
     network_backend,
     messaging_backend,
+    search_backend,
+    longform_backend,
 ):
     _abs = os.path.abspath(_path) if not _path.startswith('/') else _path
     if os.path.exists(_abs) and _abs not in sys.path:
@@ -151,6 +156,19 @@ try:
 except ImportError as e:
     messaging_router = None
     logging.getLogger("ithras").warning("Messaging router not loaded: %s", e)
+try:
+    from search.routers import router as search_router
+except ImportError as e:
+    search_router = None
+    logging.getLogger("ithras").warning("Search router not loaded: %s", e)
+try:
+    from longform.routers import router as longform_router
+except ImportError:
+    longform_router = None
+    logging.getLogger("ithras").exception(
+        "LongForm router not loaded — all /api/v1/longform/* routes will 404. "
+        "Typical causes: products/longform/backend not on PYTHONPATH, or a failed import inside longform (e.g. missing nh3)."
+    )
 
 # ─── App ────────────────────────────────────────────────────────────────────
 app = FastAPI(title="Ithras Placement API", version="1.0.0")
@@ -182,6 +200,36 @@ if network_router:
     app.include_router(network_router)
 if messaging_router:
     app.include_router(messaging_router)
+if search_router:
+    app.include_router(search_router)
+if longform_router:
+    app.include_router(longform_router)
+
+try:
+    from longform.media_paths import get_longform_media_root
+
+    _longform_media_dir = get_longform_media_root()
+    _longform_media_dir.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/media/longform",
+        StaticFiles(directory=str(_longform_media_dir)),
+        name="longform_media",
+    )
+except Exception as _lf_mount_exc:
+    logging.getLogger("ithras").warning("LongForm /media/longform mount skipped: %s", _lf_mount_exc)
+
+try:
+    from profile.media_paths import get_profile_photo_media_root
+
+    _profile_photo_dir = get_profile_photo_media_root()
+    _profile_photo_dir.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/media/profile",
+        StaticFiles(directory=str(_profile_photo_dir)),
+        name="profile_photos",
+    )
+except Exception as _pp_mount_exc:
+    logging.getLogger("ithras").warning("Profile /media/profile mount skipped: %s", _pp_mount_exc)
 
 
 @app.on_event("startup")

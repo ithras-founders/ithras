@@ -13,6 +13,7 @@ const MessagingView = ({ user, onLogout }) => {
   const [activeSection, setActiveSection] = useState('priority');
   const [showNewMessage, setShowNewMessage] = useState(false);
   const [startConversationId, setStartConversationId] = useState(null);
+  const [sidebarCounts, setSidebarCounts] = useState({});
   const currentUserId = user?.user_numerical || user?.id;
 
   const handleConversationStarted = (convId) => {
@@ -26,6 +27,7 @@ const MessagingView = ({ user, onLogout }) => {
       activeSection=${activeSection}
       onSectionChange=${setActiveSection}
       onCompose=${() => setShowNewMessage(true)}
+      counts=${sidebarCounts}
     />
   `;
 
@@ -46,6 +48,7 @@ const MessagingView = ({ user, onLogout }) => {
         startConversationId=${startConversationId}
         onClearStartConversation=${() => setStartConversationId(null)}
         onRequestAccepted=${() => setActiveSection('priority')}
+        onSectionCountsChange=${setSidebarCounts}
       />
     </${AppShell}>
   `;

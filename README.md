@@ -101,6 +101,32 @@ All services support hot-reload:
 - Frontend: Volume-mounted source files served directly via nginx (ES modules)
 - Backend: Uvicorn with --reload flag
 
+### Local UI without Docker (API errors on a random dev port)
+
+The app calls **`/api`** on **the same origin** as the page (`getApiBaseUrl()` in `shared/services/apiBase.js`). If you open `core/app/frontend/index.html` via **Live Server**, **file://**, or any server that **does not** forward `/api` to the FastAPI app, requests fail with a “network error / API not reachable” message.
+
+**Recommended:** run the bundled dev static server (proxies `/api` → `http://localhost:8000`):
+
+```bash
+# Terminal 1 — backend (from repo root, however you usually start it)
+# e.g. uvicorn on port 8000
+
+# Terminal 2
+python frontend_server.py
+# Open http://localhost:5000
+```
+
+Override backend URL for the proxy if needed: set env `BACKEND_URL` before starting `frontend_server.py` (defaults to `http://localhost:8000`).
+
+**Quick workaround** without the proxy (backend must allow CORS — already enabled in dev): after the page loads, in the browser console:
+
+```js
+sessionStorage.setItem('ithras_api_base', 'http://127.0.0.1:8000/api');
+location.reload();
+```
+
+Or set `window.__ITHRAS_API_BASE__ = 'http://127.0.0.1:8000/api'` **before** any API module runs (e.g. a small inline script in `index.html` above your app entry).
+
 ## Module Structure
 
 ### Core Modules

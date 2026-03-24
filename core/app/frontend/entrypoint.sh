@@ -32,6 +32,23 @@ echo "=== Generated nginx config ==="
 cat /etc/nginx/conf.d/default.conf
 echo "=== End nginx config ==="
 
+# Optional: browser uses same-origin /api (nginx proxy) instead of cross-origin :8000 — fixes search/CORS with Docker.
+HTML_ROOT="/usr/share/nginx/html"
+DOCKER_API_JS="$HTML_ROOT/docker-api-base.js"
+USE_ORIGIN="${USE_SAME_ORIGIN_API:-1}"
+case "$USE_ORIGIN" in
+  0|false|no|NO|False)
+    echo "USE_SAME_ORIGIN_API=$USE_ORIGIN: leaving docker-api-base.js as no-op"
+    printf '%s\n' '/* USE_SAME_ORIGIN_API disabled; API base from getApiBaseUrl(). */' > "$DOCKER_API_JS"
+    ;;
+  *)
+    echo "USE_SAME_ORIGIN_API=$USE_ORIGIN: same-origin API at window.location.origin + /api"
+    cat > "$DOCKER_API_JS" << 'JSHERE'
+window.__ITHRAS_API_BASE__ = window.location.origin.replace(/\/+$/, '') + '/api';
+JSHERE
+    ;;
+esac
+
 # Validate before starting
 echo "Validating nginx config..."
 if ! nginx -t; then

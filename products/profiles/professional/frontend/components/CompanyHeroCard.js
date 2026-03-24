@@ -1,7 +1,7 @@
 /**
  * Company hero card: logo, name, metadata, stats grid, actions, tags.
  */
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import htm from 'htm';
 import { ExternalLink, UserPlus, Pencil, Download } from 'lucide-react';
 
@@ -10,8 +10,46 @@ const html = htm.bind(React.createElement);
 const getInitials = (name) =>
   (name || '?').split(/\s+/).map((s) => s[0]).join('').slice(0, 2).toUpperCase();
 
+const READ_MORE_AT = 400;
+
+/** Uppercase first letter in the string (after any leading non-letters). */
+export function capitalizeDescriptionLead(s) {
+  const t = (s || '').trim();
+  if (!t) return t;
+  let i = 0;
+  while (i < t.length && !/[a-zA-Z]/.test(t[i])) i += 1;
+  if (i >= t.length) return t;
+  return t.slice(0, i) + t[i].toUpperCase() + t.slice(i + 1);
+}
+
+/** Strip pasted Wikipedia lines and bare URLs from legacy seed copy. */
+export function sanitizeEntityDescription(raw, entityName) {
+  if (!raw || typeof raw !== 'string') return '';
+  let t = raw.replace(/\s*Wikipedia:\s*https?:\/\/\S+/gi, ' ').trim();
+  t = t.replace(/https?:\/\/[^\s)\]]+/g, '').replace(/\s{2,}/g, ' ').trim();
+  const n = (entityName || '').trim();
+  if (n.length > 8 && t.length > n.length + 10) {
+    const low = t.toLowerCase();
+    const nn = n.toLowerCase();
+    if (low.startsWith(nn)) {
+      const rest = t.slice(n.length).trim();
+      if (rest.startsWith('(')) {
+        const end = rest.indexOf(')');
+        if (end > 0 && end < 80) {
+          const after = rest.slice(end + 1).trim().replace(/^[,.\s]+/, '');
+          const noise = /^(is|was)\s+(a|an|the)\s+/i;
+          if (noise.test(after)) {
+            t = after.replace(noise, '').trim();
+          }
+        }
+      }
+    }
+  }
+  return capitalizeDescriptionLead(t.trim());
+}
+
 /**
- * @param {{ org: { name?: string, logo_url?: string, description?: string, website?: string, status?: string }, extras?: { industry?: string, headquarters?: string, founded?: number, website?: string, status?: string, openRoles?: number, avgTenure?: string, tags?: string[] }, stats?: { current_count?: number, alumni_count?: number, total_count?: number }, onAddMember?: () => void, onEdit?: () => void, onExport?: () => void }} props
+ * @param {{ org: { name?: string, logo_url?: string, description?: string, website?: string, wikipedia_url?: string, status?: string }, extras?: object, stats?: object, variant?: string }} props
  */
 const CompanyHeroCard = ({
   org,
@@ -25,8 +63,18 @@ const CompanyHeroCard = ({
   const isInstitution = variant === 'institution';
   const name = org?.name || (isInstitution ? 'Institution' : 'Company');
   const logoUrl = org?.logo_url || extras?.logo_url;
-  const description = org?.description || (isInstitution ? 'A leading academic institution.' : 'A leading organisation in its industry.');
+  const rawDescription =
+    org?.description || (isInstitution ? 'A leading academic institution.' : 'A leading organisation in its industry.');
+  const cleanedDescription = useMemo(() => sanitizeEntityDescription(rawDescription, name), [rawDescription, name]);
+  const [aboutExpanded, setAboutExpanded] = useState(false);
+  const aboutLong = cleanedDescription.length > READ_MORE_AT;
+  const aboutShown =
+    !aboutLong || aboutExpanded
+      ? cleanedDescription
+      : `${cleanedDescription.slice(0, READ_MORE_AT).replace(/\s+\S*$/, '')}…`;
+
   const website = org?.website || extras?.website;
+  const wikipediaUrl = org?.wikipedia_url || extras?.wikipedia_url;
   const status = extras?.status || (org?.status === 'placeholder' ? 'Pending' : 'Active');
   const industry = extras?.industry;
   const headquarters = extras?.headquarters;
@@ -44,17 +92,36 @@ const CompanyHeroCard = ({
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div className="flex gap-4">
           ${logoUrl
-            ? html`<img src=${logoUrl} alt="" className="h-20 w-20 rounded-xl object-cover flex-shrink-0" />`
+            ? html`<img
+                src=${logoUrl}
+                alt=""
+                className="h-24 w-24 rounded-xl object-contain flex-shrink-0 bg-white p-2 ring-1 ring-gray-100"
+                loading="lazy"
+                decoding="async"
+              />`
             : html`
                 <div
-                  className="h-20 w-20 rounded-xl flex items-center justify-center text-2xl font-semibold flex-shrink-0 bg-gray-100 text-gray-600"
+                  className="h-24 w-24 rounded-xl flex items-center justify-center text-2xl font-semibold flex-shrink-0 bg-gray-100 text-gray-600"
                 >
                   ${getInitials(name)}
                 </div>
               `}
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-gray-900">${name}</h1>
-            <p className="mt-1 text-sm text-gray-500 max-w-xl">${description}</p>
+            <div className="mt-2 text-sm text-gray-600 max-w-2xl leading-relaxed">
+              <p>${aboutShown}</p>
+              ${aboutLong
+                ? html`
+                    <button
+                      type="button"
+                      className="mt-1.5 text-sm font-medium text-blue-600 hover:text-blue-800"
+                      onClick=${() => setAboutExpanded((e) => !e)}
+                    >
+                      ${aboutExpanded ? 'Show less' : 'Read more'}
+                    </button>
+                  `
+                : null}
+            </div>
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
               ${industry ? html`<span>${industry}</span>` : null}
               ${headquarters ? html`<span>${headquarters}</span>` : null}
@@ -64,6 +131,19 @@ const CompanyHeroCard = ({
                     <a href=${website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline">
                       <${ExternalLink} className="w-3.5 h-3.5" />
                       Website
+                    </a>
+                  `
+                : null}
+              ${wikipediaUrl
+                ? html`
+                    <a
+                      href=${wikipediaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-blue-600 hover:underline"
+                    >
+                      <${ExternalLink} className="w-3.5 h-3.5" />
+                      Wikipedia
                     </a>
                   `
                 : null}

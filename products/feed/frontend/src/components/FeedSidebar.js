@@ -49,6 +49,7 @@ const FeedSidebar = ({ activeView, activeCommunitySlug, onNavigate, pathPrefix =
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [communityQuery, setCommunityQuery] = useState('');
   const settingsRef = useRef(null);
 
   useEffect(() => {
@@ -67,7 +68,7 @@ const FeedSidebar = ({ activeView, activeCommunitySlug, onNavigate, pathPrefix =
   }, []);
 
   const navItems = [
-    { key: 'home', label: 'Home', href: pathPrefix, icon: HomeIcon },
+    { key: 'updates', label: 'Updates', href: pathPrefix, icon: HomeIcon },
     { key: 'saved', label: 'Saved', href: `${pathPrefix}/saved`, icon: BookmarkIcon },
     { key: 'discover', label: 'Discover', href: `${pathPrefix}/discover`, icon: CompassIcon },
   ];
@@ -85,6 +86,11 @@ const FeedSidebar = ({ activeView, activeCommunitySlug, onNavigate, pathPrefix =
     window.dispatchEvent(new CustomEvent('ithras:path-changed'));
     onNavigate?.(href);
   };
+
+  const q = communityQuery.trim().toLowerCase();
+  const filteredCommunities = q
+    ? communities.filter((c) => (c.name || '').toLowerCase().includes(q))
+    : communities;
 
   return html`
     <div className="flex flex-col h-full">
@@ -112,7 +118,28 @@ const FeedSidebar = ({ activeView, activeCommunitySlug, onNavigate, pathPrefix =
             </div>
           ` : html`
             <div className="space-y-0.5">
-              ${communities.map((c) => {
+              ${communities.length > 5 ? html`
+                <div className="px-3 mb-2">
+                  <label className="sr-only" htmlFor="ithras-sidebar-community-search">Filter communities</label>
+                  <input
+                    id="ithras-sidebar-community-search"
+                    type="search"
+                    placeholder="Filter communities…"
+                    value=${communityQuery}
+                    onInput=${(e) => setCommunityQuery(e.target.value)}
+                    className="w-full rounded-lg border px-2 py-1.5 text-sm outline-none"
+                    style=${{
+                      borderColor: 'var(--app-border-soft)',
+                      background: 'var(--app-surface-subtle)',
+                      color: 'var(--app-text-primary)',
+                    }}
+                  />
+                </div>
+              ` : null}
+              ${filteredCommunities.length === 0 ? html`
+                <div className="px-3 py-2 text-xs" style=${{ color: 'var(--app-text-muted)' }}>No communities match your filter.</div>
+              ` : null}
+              ${filteredCommunities.map((c) => {
                 const isActive = activeCommunitySlug === c.slug;
                 return html`
                   <button

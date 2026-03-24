@@ -242,18 +242,25 @@ def me(user=Depends(get_current_user), db=Depends(get_db)):
     """Returns user from JWT payload, with profile_slug and account_status from DB for routing."""
     user_type = getattr(user, "user_type", "professional")
     profile_slug = None
+    profile_photo_url = None
     account_status = "approved"
     try:
         uid = int(user.id) if user.id else None
         if uid:
             r = db.execute(
-                text("SELECT profile_slug, COALESCE(account_status, 'approved') as account_status FROM users WHERE user_numerical = :uid"),
+                text("""
+                    SELECT profile_slug, profile_photo_url,
+                           COALESCE(account_status, 'approved') as account_status
+                    FROM users WHERE user_numerical = :uid
+                """),
                 {"uid": uid},
             )
             row = r.fetchone()
             if row:
                 if hasattr(row, "profile_slug"):
                     profile_slug = row.profile_slug
+                if hasattr(row, "profile_photo_url"):
+                    profile_photo_url = row.profile_photo_url
                 if hasattr(row, "account_status"):
                     account_status = row.account_status
     except (ValueError, TypeError):
@@ -275,7 +282,7 @@ def me(user=Depends(get_current_user), db=Depends(get_db)):
             "program_id": None,
             "sector_preferences": [],
             "student_subtype": None,
-            "profile_photo_url": None,
+            "profile_photo_url": profile_photo_url,
             "email_hidden": False,
         },
     }

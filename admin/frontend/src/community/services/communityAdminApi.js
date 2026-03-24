@@ -98,6 +98,33 @@ export const requestChangesCommunityRequest = (requestId, message) =>
     body: JSON.stringify({ message: message || null }),
   });
 
+export const listChannelRequests = (params = {}) => {
+  const q = new URLSearchParams();
+  if (params.status) q.set('status', params.status);
+  if (params.limit != null) q.set('limit', params.limit);
+  if (params.offset != null) q.set('offset', params.offset);
+  const query = q.toString();
+  return apiRequest(`${base}/channel-requests${query ? `?${query}` : ''}`).then((r) => ({
+    items: r?.items || [],
+    total: r?.total ?? 0,
+  }));
+};
+
+export const approveChannelRequest = (requestId) =>
+  apiRequest(`${base}/channel-requests/${requestId}/approve`, { method: 'POST' });
+
+export const rejectChannelRequest = (requestId, reason) =>
+  apiRequest(`${base}/channel-requests/${requestId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason: reason || null }),
+  });
+
+export const requestChangesChannelRequest = (requestId, message) =>
+  apiRequest(`${base}/channel-requests/${requestId}/request-changes`, {
+    method: 'POST',
+    body: JSON.stringify({ message: message || null }),
+  });
+
 export const getCommunityActivity = (communityId, params = {}) =>
   apiRequest(`${base}/communities/${communityId}/activity?limit=${params.limit ?? 50}&offset=${params.offset ?? 0}`).then((r) => ({
     items: r?.items || [],

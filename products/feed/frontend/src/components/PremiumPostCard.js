@@ -20,6 +20,8 @@ const REACTIONS = [
   { type: 'insightful',emoji: '💡', label: 'Insightful' },
   { type: 'celebrate', emoji: '🎉', label: 'Celebrate' },
 ];
+const PRIMARY_REACTION = REACTIONS[0];
+const EXTRA_REACTIONS = REACTIONS.slice(1);
 
 const formatTime = (iso) => {
   if (!iso) return '';
@@ -33,8 +35,6 @@ const formatTime = (iso) => {
   if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
-
-const typeLabel = (t) => (t || 'discussion').replace(/^./, (c) => c.toUpperCase());
 
 const strHue = (str) => {
   let h = 5381;
@@ -54,15 +54,6 @@ const authorColors = (name) => {
 
 const initials = (name) =>
   (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?';
-
-const TYPE_COLORS = {
-  question:   { bg: '#fef3c7', color: '#92400e' },
-  update:     { bg: '#dcfce7', color: '#166534' },
-  resource:   { bg: '#dbeafe', color: '#1e40af' },
-  event:      { bg: '#fce7f3', color: '#9d174d' },
-};
-
-const getTypeStyle = (t) => TYPE_COLORS[t] || { bg: '#f1f5f9', color: '#64748b' };
 
 const BookmarkIcon = ({ filled }) => html`
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
@@ -112,10 +103,22 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const fetchedRef = useRef(false);
+  const [reactionMenuOpen, setReactionMenuOpen] = useState(false);
+  const reactionMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!reactionMenuOpen) return;
+    const close = (e) => {
+      if (reactionMenuRef.current && !reactionMenuRef.current.contains(e.target)) {
+        setReactionMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [reactionMenuOpen]);
 
   const communityName = post.community_name || post.community?.name || 'Community';
   const channelName = post.channel_name || post.channel?.name || '';
-  const typeStyle = getTypeStyle(post.type);
   const commCols = communityColors(communityName);
   const authCols = authorColors(post.author_name || '');
 
@@ -192,16 +195,24 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
     ? comments.length
     : (post.comment_count || 0);
 
+  const totalReactionCount = REACTIONS.reduce((acc, r) => acc + (reactionCounts[r.type] || 0), 0);
+
   const userInitials = user ? initials(user.full_name || user.username || '') : '?';
   const userAuthCols = authorColors(user?.full_name || user?.username || 'u');
 
   return html`
     <article
-      className="rounded-3xl border transition-all duration-200 hover:-translate-y-0.5"
+      className="rounded-[var(--app-radius-card)] border transition-all duration-200 hover:-translate-y-0.5 overflow-hidden"
       style=${{
         background: 'var(--app-surface)',
         borderColor: 'var(--app-border-soft)',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+        boxShadow: 'var(--app-shadow-card)',
+      }}
+      onMouseEnter=${(e) => {
+        e.currentTarget.style.boxShadow = 'var(--app-shadow-elevated)';
+      }}
+      onMouseLeave=${(e) => {
+        e.currentTarget.style.boxShadow = 'var(--app-shadow-card)';
       }}
     >
       <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-0">
@@ -221,12 +232,12 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
 
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 text-sm">
-              <span className="font-semibold truncate" style=${{ color: 'var(--app-text-primary)' }}>
+              <span key="community-name" className="font-semibold truncate" style=${{ color: 'var(--app-text-primary)' }}>
                 ${communityName}
               </span>
               ${channelName ? html`
-                <span style=${{ color: 'var(--app-text-muted)' }}>·</span>
-                <span className="truncate" style=${{ color: 'var(--app-text-muted)', fontSize: '13px' }}>
+                <span key="channel-sep" style=${{ color: 'var(--app-text-muted)' }}>·</span>
+                <span key="channel-name" className="truncate" style=${{ color: 'var(--app-text-muted)', fontSize: '13px' }}>
                   #${channelName}
                 </span>
               ` : null}
@@ -234,6 +245,7 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
 
             <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
               <div
+                key="author-avatar"
                 className="flex-shrink-0 flex items-center justify-center rounded-full font-semibold select-none"
                 style=${{
                   width: '22px',
@@ -245,18 +257,12 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
               >
                 ${initials(post.author_name)}
               </div>
-              <span className="text-xs font-medium" style=${{ color: 'var(--app-text-secondary)' }}>
+              <span key="author-name" className="text-xs font-medium" style=${{ color: 'var(--app-text-secondary)' }}>
                 ${post.author_name || 'Anonymous'}
               </span>
-              <span className="text-xs" style=${{ color: 'var(--app-text-muted)' }}>·</span>
-              <span className="text-xs" style=${{ color: 'var(--app-text-muted)' }}>
+              <span key="meta-sep" className="text-xs" style=${{ color: 'var(--app-text-muted)' }}>·</span>
+              <span key="author-time" className="text-xs" style=${{ color: 'var(--app-text-muted)' }}>
                 ${formatTime(post.created_at)}
-              </span>
-              <span
-                className="inline-block rounded-full px-2 py-0.5 text-xs font-medium"
-                style=${{ background: typeStyle.bg, color: typeStyle.color }}
-              >
-                ${typeLabel(post.type)}
               </span>
             </div>
           </div>
@@ -275,14 +281,16 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
       </div>
 
       <div className="px-5 pt-4">
-        ${post.title ? html`
-          <h2
-            className="text-[17px] font-semibold tracking-tight leading-snug mb-2"
-            style=${{ color: 'var(--app-text-primary)' }}
-          >
-            ${post.title}
-          </h2>
-        ` : null}
+        ${post.title
+          ? html`
+              <h2
+                className="text-[17px] font-semibold tracking-tight leading-snug mb-2"
+                style=${{ color: 'var(--app-text-primary)' }}
+              >
+                ${post.title}
+              </h2>
+            `
+          : null}
 
         ${contentShow ? html`
           <p className="text-[14.5px] leading-[1.7]" style=${{ color: 'var(--app-text-secondary)' }}>
@@ -316,55 +324,133 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
       </div>
 
       <div
-        className="mt-4 px-5 pb-4 flex items-center justify-between gap-4 border-t pt-3"
-        style=${{ borderColor: 'rgba(0,0,0,0.06)' }}
+        className="mt-4 px-5 pb-4 flex items-start justify-between gap-4 border-t pt-3"
+        style=${{ borderColor: 'var(--app-border-soft)' }}
       >
-        <div className="flex items-center gap-1 flex-wrap">
-          ${REACTIONS.map(({ type, emoji, label }) => {
-            const active = userReactions.includes(type);
-            const count = reactionCounts[type] || 0;
-            return html`
+        <div className="flex flex-col gap-2 min-w-0 flex-1" ref=${reactionMenuRef}>
+          ${totalReactionCount > 0 ? html`
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs" style=${{ color: 'var(--app-text-muted)' }} aria-label="Reaction summary">
+              ${REACTIONS.map(({ type, emoji }) => {
+                const c = reactionCounts[type] || 0;
+                if (c === 0) return null;
+                return html`
+                  <span key=${`${type}-summary`} className="inline-flex items-center gap-0.5 tabular-nums">
+                    <span style=${{ fontSize: '14px', lineHeight: 1 }}>${emoji}</span>
+                    <span style=${{ color: 'var(--app-text-secondary)' }}>${c}</span>
+                  </span>
+                `;
+              })}
+              <span className="text-[11px] font-medium" style=${{ color: 'var(--app-text-faint)' }}>
+                ${totalReactionCount} reaction${totalReactionCount === 1 ? '' : 's'}
+              </span>
+            </div>
+          ` : null}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            ${(() => {
+              const type = PRIMARY_REACTION.type;
+              const emoji = PRIMARY_REACTION.emoji;
+              const label = PRIMARY_REACTION.label;
+              const active = userReactions.includes(type);
+              const count = reactionCounts[type] || 0;
+              return html`
+                <button
+                  key=${type}
+                  type="button"
+                  onClick=${() => handleReact(type)}
+                  disabled=${!!reacting}
+                  title=${label}
+                  aria-label=${label}
+                  className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all select-none ith-focus-ring"
+                  style=${{
+                    background: active ? 'var(--app-accent-soft)' : 'var(--app-surface-subtle)',
+                    color: active ? 'var(--app-accent)' : 'var(--app-text-muted)',
+                    border: active ? '1px solid var(--app-accent-soft)' : '1px solid transparent',
+                    transform: reacting === type ? 'scale(0.92)' : 'scale(1)',
+                  }}
+                >
+                  <span style=${{ fontSize: '14px', lineHeight: 1 }}>${emoji}</span>
+                  ${count > 0 ? html`<span>${count}</span>` : null}
+                </button>
+              `;
+            })()}
+            <div className="relative">
               <button
-                key=${type}
                 type="button"
-                onClick=${() => handleReact(type)}
+                onClick=${() => setReactionMenuOpen((o) => !o)}
                 disabled=${!!reacting}
-                title=${label}
-                className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-all select-none"
+                className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ith-focus-ring"
                 style=${{
-                  background: active ? 'var(--app-accent-soft)' : 'var(--app-surface-subtle, #f8fafc)',
-                  color: active ? 'var(--app-accent)' : 'var(--app-text-muted)',
-                  border: active ? '1px solid var(--app-accent-soft)' : '1px solid transparent',
-                  transform: reacting === type ? 'scale(0.92)' : 'scale(1)',
+                  background: 'var(--app-surface-subtle)',
+                  color: 'var(--app-text-muted)',
+                  border: '1px solid var(--app-border-soft)',
                 }}
+                aria-haspopup="true"
+                aria-expanded=${reactionMenuOpen}
+                aria-label="More reactions"
               >
-                <span style=${{ fontSize: '14px', lineHeight: 1 }}>${emoji}</span>
-                ${count > 0 ? html`<span>${count}</span>` : null}
+                <span aria-hidden="true">＋</span>
+                React
               </button>
-            `;
-          })}
+              ${reactionMenuOpen ? html`
+                <div
+                  className="absolute left-0 top-full z-20 mt-1 min-w-[10rem] rounded-xl border py-1 shadow-lg"
+                  style=${{
+                    borderColor: 'var(--app-border-soft)',
+                    background: 'var(--app-surface)',
+                    boxShadow: 'var(--app-shadow-floating)',
+                  }}
+                  role="menu"
+                >
+                  ${EXTRA_REACTIONS.map(({ type, emoji, label }) => {
+                    const active = userReactions.includes(type);
+                    const count = reactionCounts[type] || 0;
+                    return html`
+                      <button
+                        key=${type}
+                        type="button"
+                        role="menuitem"
+                        onClick=${() => {
+                          handleReact(type);
+                          setReactionMenuOpen(false);
+                        }}
+                        disabled=${!!reacting}
+                        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--app-surface-hover)] ith-focus-ring"
+                        style=${{ color: active ? 'var(--app-accent)' : 'var(--app-text-primary)' }}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span style=${{ fontSize: '16px', lineHeight: 1 }}>${emoji}</span>
+                          ${label}
+                        </span>
+                        ${count > 0 ? html`<span className="text-xs tabular-nums" style=${{ color: 'var(--app-text-muted)' }}>${count}</span>` : null}
+                      </button>
+                    `;
+                  })}
+                </div>
+              ` : null}
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3 flex-shrink-0 pt-0.5">
           <button
             type="button"
             onClick=${() => setCommentsOpen((o) => !o)}
             className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80"
             style=${{ color: commentsOpen ? 'var(--app-text-primary)' : 'var(--app-text-muted)' }}
           >
-            <${ChatIcon} />
-            <span>${displayCommentCount}</span>
+            <span key="comments-icon" className="inline-flex"><${ChatIcon} /></span>
+            <span key="comments-count">${displayCommentCount}</span>
           </button>
           ${post.view_count > 0 ? html`
             <div className="flex items-center gap-1 text-xs" style=${{ color: 'var(--app-text-muted)' }}>
-              <${EyeIcon} />
-              <span>${post.view_count}</span>
+              <span key="views-icon" className="inline-flex"><${EyeIcon} /></span>
+              <span key="views-count">${post.view_count}</span>
             </div>
           ` : null}
           ${post.save_count > 0 ? html`
             <div className="flex items-center gap-1 text-xs" style=${{ color: 'var(--app-text-muted)' }}>
-              <${BookmarkIcon} filled=${false} />
-              <span>${post.save_count}</span>
+              <span key="saves-icon" className="inline-flex"><${BookmarkIcon} filled=${false} /></span>
+              <span key="saves-count">${post.save_count}</span>
             </div>
           ` : null}
         </div>
@@ -373,7 +459,7 @@ const PremiumPostCard = ({ post, onRefresh, user, isSaved: isSavedProp, onSaveCh
       ${commentsOpen ? html`
         <div
           className="px-5 pb-5 pt-1 space-y-4 border-t"
-          style=${{ borderColor: 'rgba(0,0,0,0.06)' }}
+          style=${{ borderColor: 'var(--app-border-soft)' }}
         >
           ${commentsLoading ? html`
             <p className="text-xs pt-2" style=${{ color: 'var(--app-text-muted)' }}>Loading…</p>

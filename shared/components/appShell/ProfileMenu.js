@@ -4,11 +4,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import htm from 'htm';
 import { LogOut, ChevronDown } from 'lucide-react';
+import { resolveApiMediaUrl } from '/shared/services/apiBase.js';
 
 const html = htm.bind(React.createElement);
 
+const goPath = (href) => {
+  window.history.pushState(null, '', href);
+  window.dispatchEvent(new CustomEvent('ithras:path-changed'));
+};
+
 /**
- * @param {{ user: object, onLogout?: () => void, showDropdown?: boolean }}
+ * @param {{ user: object | null, onLogout?: () => void, showDropdown?: boolean }}
  */
 const ProfileMenu = ({ user, onLogout, showDropdown = true }) => {
   const [open, setOpen] = useState(false);
@@ -20,9 +26,38 @@ const ProfileMenu = ({ user, onLogout, showDropdown = true }) => {
     return () => document.removeEventListener('click', h);
   }, []);
 
+  if (!user) {
+    return html`
+      <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
+        <a
+          href="/"
+          onClick=${(e) => {
+            e.preventDefault();
+            goPath('/');
+          }}
+          className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-[var(--app-text-secondary)] hover:bg-[var(--app-surface-hover)] ith-focus-ring"
+        >
+          Sign in
+        </a>
+        <a
+          href="/register"
+          onClick=${(e) => {
+            e.preventDefault();
+            goPath('/register');
+          }}
+          className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-white ith-focus-ring"
+          style=${{ background: 'var(--app-accent)' }}
+        >
+          Register
+        </a>
+      </div>
+    `;
+  }
+
   const displayName = user?.full_name || user?.name || user?.email || 'User';
   const initials = (displayName || 'U').split(/\s+/).map((s) => s[0]).join('').slice(0, 2).toUpperCase();
   const profileHref = user?.profile_slug ? `/p/${user.profile_slug}` : '/';
+  const photoUrl = resolveApiMediaUrl(user?.profile_photo_url);
 
   const handleProfileClick = (e) => {
     e.preventDefault();
@@ -39,9 +74,11 @@ const ProfileMenu = ({ user, onLogout, showDropdown = true }) => {
           className="flex items-center gap-2.5 py-1.5 pl-1 pr-1 rounded-lg text-[var(--app-text-primary)] hover:bg-[var(--app-surface-hover)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--app-accent)] focus:ring-offset-2"
           aria-label="Profile"
         >
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium bg-[var(--app-accent-soft)] text-[var(--app-accent)] flex-shrink-0" title=${displayName}>
-            ${initials}
-          </div>
+          ${photoUrl
+            ? html`<img src=${photoUrl} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" width="36" height="36" title=${displayName} />`
+            : html`<div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium bg-[var(--app-accent-soft)] text-[var(--app-accent)] flex-shrink-0" title=${displayName}>
+                ${initials}
+              </div>`}
           <span className="hidden sm:block text-sm font-medium truncate max-w-[140px]">${displayName}</span>
         </a>
         ${showDropdown ? html`

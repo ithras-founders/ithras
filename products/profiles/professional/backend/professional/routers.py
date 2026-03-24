@@ -8,7 +8,8 @@ from pydantic import BaseModel
 from sqlalchemy import text
 
 from shared.database.database import get_db
-from shared.auth.auth import get_current_user
+from shared.auth.auth import get_current_user, get_current_user_optional
+from shared.search.institution_search import search_institutions_ranked
 
 router = APIRouter(tags=["professional"])
 
@@ -32,6 +33,8 @@ def _row_to_profile(row) -> dict:
         out["summary"] = row.summary
     if hasattr(row, "profile_slug"):
         out["profile_slug"] = row.profile_slug
+    if hasattr(row, "profile_photo_url"):
+        out["profile_photo_url"] = row.profile_photo_url
     return out
 
 
@@ -41,7 +44,7 @@ def get_profile_me(user=Depends(get_current_user), db=Depends(get_db)):
     uid = int(user.id)
     r = db.execute(
         text("""
-            SELECT user_numerical, username, email, full_name, date_of_birth, headline, summary, profile_slug
+            SELECT user_numerical, username, email, full_name, date_of_birth, headline, summary, profile_slug, profile_photo_url
             FROM users WHERE user_numerical = :uid
         """),
         {"uid": uid},
@@ -56,7 +59,8 @@ def get_profile_me(user=Depends(get_current_user), db=Depends(get_db)):
             text("""
                 SELECT e.id, e.institution_id, e.institution_degree_majors_id, e.institution_name,
                        e.degree, e.majors_json, e.minors_json, e.start_month, e.end_month, e.status,
-                       i.name as institution_display
+                       i.name as institution_display,
+                       CASE WHEN i.status IN ('listed', 'placeholder') THEN i.slug ELSE NULL END as institution_slug
                 FROM education_entries e
                 LEFT JOIN institutions i ON i.id = e.institution_id
                 WHERE e.user_id = :uid
@@ -79,6 +83,7 @@ def get_profile_me(user=Depends(get_current_user), db=Depends(get_db)):
                 "id": er.id,
                 "institution_id": er.institution_id,
                 "institution_name": er.institution_name or er.institution_display,
+                "institution_slug": getattr(er, "institution_slug", None) or None,
                 "degree": er.degree,
                 "majors": majors,
                 "minors": minors,
@@ -93,7 +98,8 @@ def get_profile_me(user=Depends(get_current_user), db=Depends(get_db)):
     try:
         rg_rows = db.execute(
             text("""
-                SELECT eg.id, eg.organisation_id, eg.organisation_name, o.name as org_display
+                SELECT eg.id, eg.organisation_id, eg.organisation_name, o.name as org_display,
+                       CASE WHEN o.status IN ('listed', 'placeholder') THEN o.slug ELSE NULL END as organisation_slug
                 FROM experience_groups eg
                 LEFT JOIN organisations o ON o.id = eg.organisation_id
                 WHERE eg.user_id = :uid
@@ -119,6 +125,7 @@ def get_profile_me(user=Depends(get_current_user), db=Depends(get_db)):
                 "id": eg.id,
                 "organisation_id": eg.organisation_id,
                 "organisation_name": eg.organisation_name or eg.org_display,
+                "organisation_slug": getattr(eg, "organisation_slug", None) or None,
                 "movements": movements,
             })
     except Exception:
@@ -196,7 +203,8 @@ def list_education(user=Depends(get_current_user), db=Depends(get_db)):
     r = db.execute(
         text("""
             SELECT e.id, e.user_id, e.institution_id, e.institution_degree_majors_id, e.institution_name,
-                   e.degree, e.majors_json, e.minors_json, e.start_month, e.end_month, e.status, i.name as institution_display
+                   e.degree, e.majors_json, e.minors_json, e.start_month, e.end_month, e.status, i.name as institution_display,
+                   CASE WHEN i.status IN ('listed', 'placeholder') THEN i.slug ELSE NULL END as institution_slug
             FROM education_entries e
             LEFT JOIN institutions i ON i.id = e.institution_id
             WHERE e.user_id = :uid
@@ -221,6 +229,7 @@ def list_education(user=Depends(get_current_user), db=Depends(get_db)):
             "id": row.id,
             "institution_id": row.institution_id,
             "institution_name": row.institution_name or row.institution_display,
+            "institution_slug": getattr(row, "institution_slug", None) or None,
             "degree": row.degree,
             "majors": majors,
             "minors": minors,
@@ -407,22 +416,20 @@ def delete_education(entry_id: int, user=Depends(get_current_user), db=Depends(g
 
 
 @router.get("/api/v1/institutions/search", summary="Search institutions by name")
-def search_institutions(q: str = Query("", min_length=0), db=Depends(get_db)):
+def search_institutions(
+    q: str = Query("", min_length=0),
+    db=Depends(get_db),
+    user=Depends(get_current_user_optional),
+):
     """Search institutions by name. Returns only listed (approved) institutions for suggestions.
-    Free-text entries go for approval via pending_institutions."""
+    Free-text entries go for approval via pending_institutions.
+    Ranking uses aliases, locations, descriptions, and the signed-in user's education (when present)."""
     if not q or len(q.strip()) < 2:
         return {"institutions": []}
-    term = f"%{q.strip().lower()}%"
-    r = db.execute(
-        text("""
-            SELECT id, name, slug, logo_url FROM institutions
-            WHERE status = 'listed' AND (LOWER(name) LIKE :t OR slug LIKE :t)
-            ORDER BY name
-            LIMIT 20
-        """),
-        {"t": term},
-    )
-    rows = r.fetchall()
+    uid = None
+    if user is not None:
+        uid = int(getattr(user, "user_numerical", None) or getattr(user, "id", 0) or 0) or None
+    rows, _ = search_institutions_ranked(db, q.strip(), 20, 0, user_id=uid)
     try:
         from shared.telemetry.emitters.search_emitter import track_search_performed
         track_search_performed(db, "institution", q, len(rows))
@@ -430,7 +437,7 @@ def search_institutions(q: str = Query("", min_length=0), db=Depends(get_db)):
         pass
     return {
         "institutions": [
-            {"id": row.id, "name": row.name, "slug": row.slug, "logo_url": getattr(row, "logo_url", None)}
+            {"id": row["id"], "name": row["name"], "slug": row["slug"], "logo_url": row.get("logo_url")}
             for row in rows
         ]
     }

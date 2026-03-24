@@ -14,7 +14,7 @@ const CommunityEmptyState = ({ variant = 'community', isMember }) => {
       }
     : {
         title: 'No discussions yet',
-        description: isMember ? 'Start the first discussion. Ask a question, share a resource, or introduce yourself.' : 'Join the community to post.',
+        description: isMember ? 'Start the first discussion.' : 'Join the community to post.',
       };
 
   return html`

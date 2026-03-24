@@ -20,6 +20,7 @@ const html = htm.bind(React.createElement);
 const NetworkView = ({ user, onLogout }) => {
   const [path, setPath] = useState(window.location.pathname || '/network');
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingItems, setPendingItems] = useState([]);
 
   useEffect(() => {
     const handler = () => setPath(window.location.pathname || '/network');
@@ -32,7 +33,17 @@ const NetworkView = ({ user, onLogout }) => {
   }, []);
 
   useEffect(() => {
-    const load = () => getPendingConnections().then((r) => setPendingCount((r.items || []).length)).catch(() => setPendingCount(0));
+    const load = () =>
+      getPendingConnections()
+        .then((r) => {
+          const items = r.items || [];
+          setPendingItems(items);
+          setPendingCount(items.length);
+        })
+        .catch(() => {
+          setPendingItems([]);
+          setPendingCount(0);
+        });
     load();
     window.addEventListener('ithras:notifications-changed', load);
     return () => window.removeEventListener('ithras:notifications-changed', load);
@@ -60,7 +71,7 @@ const NetworkView = ({ user, onLogout }) => {
   else if (matchInstitution) content = html`<${InstitutionNetworkPage} />`;
   else if (matchFunction) content = html`<${FunctionNetworkPage} />`;
   else if (matchSuggestions) content = html`<${SuggestionsPage} />`;
-  else content = html`<${OverviewPage} />`;
+  else content = html`<${OverviewPage} pendingItems=${pendingItems} />`;
 
   return html`
     <${AppShell}
